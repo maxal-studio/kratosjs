@@ -74,9 +74,9 @@ Open the printed URL and sign in with **admin@example.com** / **password** (seed
 
 ## Documentation
 
-📚 **[View Full Documentation](examples/docs/README.md)**
+The documentation is a VitePress site located in [`examples/docs/`](https://github.com/maxal-studio/kratos-js/tree/main/examples/docs).
 
-Run the docs site locally:
+Run it locally:
 
 ```bash
 cd examples/docs
@@ -84,17 +84,7 @@ npm install
 npm run dev
 ```
 
-### Quick Links
-
-- [Getting Started](examples/docs/getting-started.md)
-- [Creating Resources](examples/docs/resources/overview.md)
-- [Form Fields](examples/docs/forms/overview.md)
-- [Table Columns](examples/docs/tables/overview.md)
-- [Authentication](examples/docs/authentication/overview.md)
-- [Pages](examples/docs/pages/overview.md)
-- [Media](examples/docs/media/overview.md)
-- [Plugin System](examples/docs/plugins/overview.md)
-- [Creating Plugins](examples/docs/plugins/creating-plugins.md)
+**Topics covered:** Getting Started · Resources · Form Fields · Table Columns · Authentication · Pages · Media · Plugin System · Creating Plugins · Custom Fields · Custom Columns
 
 ## License
 
