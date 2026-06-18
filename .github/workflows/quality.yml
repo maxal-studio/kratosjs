@@ -24,9 +24,9 @@ jobs:
         run: npm run lint
       - name: Format
         run: npm run format:check
-      - name: Test
-        run: npm run test --workspaces --if-present
       - name: Typecheck
         run: npx tsc --noEmit
       - name: Build
-        run: npm run build
+        run: npm run build # produces dist/ that workspace tests import
+      - name: Test
+        run: npm run test --workspaces --if-present
