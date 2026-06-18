@@ -2,12 +2,33 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { AdminPanel } from './components/AdminPanel';
 import { mergePluginClients } from './plugin';
-import type { KratosPluginClient } from './plugin';
+import type { KratosPluginClient, MergedPluginRegistries } from './plugin';
+import type { FieldRegistry, WidgetRegistry, BlockRegistry } from './types';
+import type { ColumnRegistry } from './contexts/ColumnRegistryContext';
+import type { RuleDefinition } from '@maxal_studio/kratosjs';
 import { ValidationEngine } from '@maxal_studio/kratosjs/dist/validation';
 
 export interface MountAdminPanelOptions {
 	/** Client manifests of the plugins used by this panel */
 	plugins?: KratosPluginClient[];
+	/**
+	 * Custom field components keyed by field type (e.g. `'star-rating'`).
+	 * Registered directly by the app — no plugin required. The key must match the
+	 * `componentType` emitted by the backend builder. App entries override plugins.
+	 */
+	fields?: FieldRegistry;
+	/** Custom table column components keyed by column type. App entries override plugins. */
+	columns?: ColumnRegistry;
+	/** Custom widget components keyed by widget type. App entries override plugins. */
+	widgets?: WidgetRegistry;
+	/** Custom page block components keyed by block type. App entries override plugins. */
+	blocks?: BlockRegistry;
+	/**
+	 * Custom validation rules keyed by rule name. Authored once and shared with the
+	 * server (via `panel.registerValidationRule`) so they validate identically on
+	 * both sides. App entries override plugins.
+	 */
+	rules?: Record<string, RuleDefinition>;
 	/**
 	 * API base URL. Defaults to the base path injected by the KratosJs server
 	 * (window.__VALAJS_API_BASE_PATH__) on the current origin.
@@ -22,6 +43,25 @@ export interface MountAdminPanelOptions {
 	 * on the document root; hover/soft shades are derived automatically.
 	 */
 	accentColor?: string;
+}
+
+/**
+ * Resolve the merged component/rule registries from mount options.
+ *
+ * Plugin manifests are merged first, then the app's own direct registrations
+ * (`fields`/`columns`/`widgets`/`blocks`/`rules`) are applied last so an app
+ * always wins over a plugin on a key collision.
+ */
+export function resolveRegistries(options: MountAdminPanelOptions = {}): MergedPluginRegistries {
+	const appManifest: KratosPluginClient = {
+		name: 'app',
+		fields: options.fields,
+		columns: options.columns,
+		widgets: options.widgets,
+		blocks: options.blocks,
+		rules: options.rules,
+	};
+	return mergePluginClients([...(options.plugins ?? []), appManifest]);
 }
 
 function applyAccentColor(accentColor: string): void {
@@ -43,9 +83,19 @@ function resolveApiBaseUrl(): string {
  *
  * @example
  * ```typescript
- * // src/admin/main.tsx
+ * // src/admin/main.tsx — register custom components directly, no plugin needed
  * import { mountAdminPanel } from '@maxal_studio/kratosjs-react';
  * import '@maxal_studio/kratosjs-react/styles.css';
+ * import StarRatingField from './components/StarRatingField';
+ *
+ * mountAdminPanel({
+ *   fields: { 'star-rating': StarRatingField },
+ * });
+ * ```
+ *
+ * @example
+ * ```typescript
+ * // Packaged plugins still work, and can be combined with app registrations:
  * import starRating from '@maxal_studio/kratosjs-plugin-star-rating/client';
  *
  * mountAdminPanel({ plugins: [starRating] });
@@ -57,7 +107,7 @@ export function mountAdminPanel(options: MountAdminPanelOptions = {}): void {
 		throw new Error(`Root element "#${options.rootElementId ?? 'root'}" not found`);
 	}
 
-	const registries = mergePluginClients(options.plugins);
+	const registries = resolveRegistries(options);
 
 	// Register plugin-provided validation rules into the shared engine so the
 	// client validates them exactly as the server does.

@@ -4,7 +4,9 @@ title: Custom Widgets
 
 # Creating Custom Widgets
 
-KratosJs allows you to create custom widgets to display custom data visualizations or content on dashboards. This involves creating both a backend widget class and a frontend React component.
+KratosJs allows you to create custom widgets to display custom data visualizations or content on dashboards. This involves creating both a backend widget class and a frontend React component — **no plugin required**. You register the component directly on `mountAdminPanel()` in your app's admin entry (`src/admin/main.tsx`).
+
+> To redistribute a widget across apps, package it as a plugin instead — the component contract is identical. See [Custom Components in Plugins](/plugins/custom-components).
 
 ## Backend: Creating a Custom Widget Class
 
@@ -154,28 +156,22 @@ export function CardWidget({ widget, data }: WidgetComponentProps) {
 
 ### 2. Register Your Custom Widget
 
-Register your custom widget component with the `WidgetRegistryProvider`:
+Register your component on `mountAdminPanel()` in your app's admin entry. The key must match the widget's `type`:
 
 ```typescript
-// src/App.tsx
-import React from 'react';
-import { AdminPanel, WidgetRegistryProvider } from '@maxal_studio/kratosjs-react';
+// src/admin/main.tsx
+import { mountAdminPanel } from '@maxal_studio/kratosjs-react';
+import '@maxal_studio/kratosjs-react/styles.css';
 import { CardWidget } from './components/CardWidget';
 
-const customWidgets = {
-	card: CardWidget,
-};
-
-function App() {
-	return (
-		<WidgetRegistryProvider customWidgets={customWidgets}>
-			<AdminPanel apiBaseUrl="http://localhost:3001/kratosjs/api" dashboardPath="/admin" />
-		</WidgetRegistryProvider>
-	);
-}
-
-export default App;
+mountAdminPanel({
+	widgets: {
+		card: CardWidget, // ✅ key matches the widget type
+	},
+});
 ```
+
+> **Optional metadata** — the backend can also call `panel.registerCustomWidget('card')` so the type name appears in panel metadata. This is informational only; rendering is driven by the `widgets` registry.
 
 ## Complete Example
 
@@ -331,17 +327,16 @@ export function ListWidget({ widget, data }: WidgetComponentProps) {
 ### Registration
 
 ```typescript
-// src/App.tsx
-import { WidgetRegistryProvider } from '@maxal_studio/kratosjs-react';
+// src/admin/main.tsx
+import { mountAdminPanel } from '@maxal_studio/kratosjs-react';
+import '@maxal_studio/kratosjs-react/styles.css';
 import { ListWidget } from './components/ListWidget';
 
-const customWidgets = {
-	list: ListWidget,
-};
-
-<WidgetRegistryProvider customWidgets={customWidgets}>
-	{/* Your app */}
-</WidgetRegistryProvider>
+mountAdminPanel({
+	widgets: {
+		list: ListWidget,
+	},
+});
 ```
 
 ## Widget Props Interface

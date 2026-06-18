@@ -20,6 +20,8 @@ Components are composed at **build time**.
 
 There is no runtime component discovery, no virtual URLs, and no on-the-fly transformation.
 
+> **Don't need a plugin?** If a custom component is specific to one app, you don't have to package it as a plugin at all. Define the backend builder class in your app and register the React component directly on `mountAdminPanel({ fields, columns, widgets, blocks })`. The component contract below is identical. See [Custom Fields](/forms/custom-fields), [Custom Columns](/tables/custom-columns), [Custom Widgets](/resources/custom-widgets), and [Blocks](/pages/blocks#custom-blocks). Use a plugin (this guide) when you want to **redistribute** the component across apps.
+
 ## The Plugin Client Entry
 
 A plugin with UI components exports a client manifest:

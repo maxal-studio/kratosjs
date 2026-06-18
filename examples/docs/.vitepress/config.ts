@@ -82,6 +82,7 @@ export default defineConfig({
 						{ text: 'Overview', link: '/pages/overview' },
 						{ text: 'Creating Pages', link: '/pages/creating-pages' },
 						{ text: 'Blocks', link: '/pages/blocks' },
+						{ text: 'Custom Blocks', link: '/pages/custom-blocks' },
 					],
 				},
 			],

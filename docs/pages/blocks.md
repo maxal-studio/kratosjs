@@ -102,6 +102,12 @@ TabsBlock.make()
 - **`tab(label, blocks, icon?)`**: Add a tab with label, array of blocks, and optional icon
 - **`defaultTab(index)`**: Set the default active tab (0-based index)
 
+## Custom Blocks
+
+Beyond the built-in block types you can render your own page block — **no plugin required**. You define a backend `Block` class and register a React component on `mountAdminPanel({ blocks: { ... } })`.
+
+See **[Custom Blocks](/pages/custom-blocks)** for the full guide and a runnable example.
+
 ## Block Layout
 
 Blocks use a 12-column grid system. You can specify how many columns a block should span:

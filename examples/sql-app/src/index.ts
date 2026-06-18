@@ -5,6 +5,7 @@ import { MySqlDriver } from '@mikro-orm/mysql';
 import { Migrator } from '@mikro-orm/migrations';
 import { UserResource } from './resources/UserResource';
 import { ShowcaseResource } from './resources/ShowcaseResource';
+import { DashboardPage } from './pages/DashboardPage';
 import { User } from './entities/User';
 import { seedAdminUser } from './seedAdminUser';
 import { Migration20250100000000CreateUserTable } from './migrations/Migration20250100000000CreateUserTable';
@@ -46,7 +47,15 @@ const adminPanel = Panel.make('admin')
 		}),
 	])
 	.resources([UserResource, ShowcaseResource])
+	.pages([DashboardPage])
 	.registerMigrations([Migration20250100000000CreateUserTable]);
+
+// App-level custom component names (informational metadata only — rendering is
+// driven by the client registry in src/admin/main.tsx). Optional, but keeps the
+// panel metadata complete for tooling/introspection.
+adminPanel.registerCustomField('star-rating');
+adminPanel.registerCustomColumn('star-rating');
+adminPanel.registerCustomBlock('callout');
 
 adminPanel.auth({
 	jwt: {

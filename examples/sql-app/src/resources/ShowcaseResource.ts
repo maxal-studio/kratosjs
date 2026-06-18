@@ -55,6 +55,10 @@ import {
 import { Showcase } from '../entities/Showcase';
 import { UserResource } from './UserResource';
 import { formatUserOption } from '../utils/formatSelectOption';
+// App-level custom components (no plugin) — the React renderers are registered
+// in src/admin/main.tsx via mountAdminPanel({ fields, columns }).
+import { StarRating } from '../fields/StarRating';
+import { StarRatingColumn } from '../columns/StarRatingColumn';
 
 const STATUS_OPTIONS = {
 	draft: 'Draft',
@@ -154,6 +158,7 @@ export class ShowcaseResource extends BaseResource {
 									.default(0)
 									.required(),
 							]),
+						StarRating.make('stars').label('Rating').maxStars(5),
 						Radio.make('visibility')
 							.label('Visibility')
 							.options({ public: 'Public', private: 'Private', unlisted: 'Unlisted' })
@@ -298,7 +303,8 @@ export class ShowcaseResource extends BaseResource {
 				SelectColumn.make('category').label('Category').options(CATEGORY_OPTIONS).selectablePlaceholder(),
 				TextColumn.make('price').label('Price').money('USD').sortable(),
 				TextInputColumn.make('quantity').label('Qty').type('number').rules(['numeric']).sortable(),
-				TextColumn.make('stars').label('Rating').sortable(),
+				// Custom app-level column (no plugin) — renders the rating as stars.
+				StarRatingColumn.make('stars').label('Rating').sortable(),
 				ColorColumn.make('color').label('Color').toggleable(),
 				TagsColumn.make('tags').label('Tags').limit(3).toggleable(),
 				ToggleColumn.make('isFeatured')

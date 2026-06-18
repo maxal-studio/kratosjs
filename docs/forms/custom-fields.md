@@ -4,7 +4,9 @@ title: Custom Fields
 
 # Creating Custom Form Fields
 
-KratosJs allows you to create custom form fields to extend the built-in field types. This involves creating both a backend field class and a frontend React component.
+KratosJs allows you to create custom form fields to extend the built-in field types. This involves creating both a backend field class and a frontend React component — **no plugin required**. You register the component directly on `mountAdminPanel()` in your app's admin entry (`src/admin/main.tsx`).
+
+> **Field vs. plugin** — registering a field directly in your app is the right choice when the field is specific to one project. If you want to redistribute it across apps, package it as a plugin instead — the component contract is identical. See [Custom Components in Plugins](/plugins/custom-components).
 
 ## Backend: Creating a Custom Field Class
 
@@ -188,7 +190,7 @@ export function PhoneNumberField(props: FieldProps) {
 
 ### 2. Register Your Custom Field
 
-Register your custom field component with the `FieldRegistryProvider`. **Important**: The key in the `customFields` object must match the `componentType` from your backend field class:
+Register your component on `mountAdminPanel()` in your app's admin entry. **Important**: the key in the `fields` object must match the `componentType` from your backend field class:
 
 ```typescript
 // Backend: componentType = 'phone-number'
@@ -196,33 +198,24 @@ export class PhoneNumberField extends Field {
 	protected componentType: string = 'phone-number';
 	// ...
 }
-
-// Frontend: key must match 'phone-number'
-const customFields = {
-	'phone-number': PhoneNumberField, // ✅ Matches componentType
-};
 ```
 
 ```typescript
-// src/App.tsx
-import React from 'react';
-import { AdminPanel, FieldRegistryProvider } from '@maxal_studio/kratosjs-react';
+// src/admin/main.tsx
+import { mountAdminPanel } from '@maxal_studio/kratosjs-react';
+import '@maxal_studio/kratosjs-react/styles.css';
 import { PhoneNumberField } from './components/PhoneNumberField';
 
-const customFields = {
-	'phone-number': PhoneNumberField,
-};
-
-function App() {
-	return (
-		<FieldRegistryProvider customFields={customFields}>
-			<AdminPanel apiBaseUrl="http://localhost:3001/kratosjs/api" dashboardPath="/admin" />
-		</FieldRegistryProvider>
-	);
-}
-
-export default App;
+mountAdminPanel({
+	fields: {
+		'phone-number': PhoneNumberField, // ✅ key matches componentType
+	},
+});
 ```
+
+That's the whole registration step — no provider wrapping, no plugin. The app's Vite build bundles the component with the rest of the admin client. App registrations override any plugin that registers the same key.
+
+> **Optional metadata** — the backend can also call `panel.registerCustomField('phone-number')` so the type name appears in panel metadata for tooling. This is purely informational; rendering is driven entirely by the `fields` registry above.
 
 ## Complete Example
 
@@ -391,18 +384,19 @@ export function RatingField(props: FieldProps) {
 ### Registration
 
 ```typescript
-// src/App.tsx
-import { FieldRegistryProvider } from '@maxal_studio/kratosjs-react';
+// src/admin/main.tsx
+import { mountAdminPanel } from '@maxal_studio/kratosjs-react';
+import '@maxal_studio/kratosjs-react/styles.css';
 import { RatingField } from './components/RatingField';
 
-const customFields = {
-	rating: RatingField,
-};
-
-<FieldRegistryProvider customFields={customFields}>
-	{/* Your app */}
-</FieldRegistryProvider>
+mountAdminPanel({
+	fields: {
+		rating: RatingField,
+	},
+});
 ```
+
+> A complete, runnable version of this `star-rating` field (backend class, React component, and `mountAdminPanel` registration) lives in `examples/sql-app` — see `src/fields/StarRating.ts` and `src/admin/main.tsx`.
 
 ## FieldProps Interface
 

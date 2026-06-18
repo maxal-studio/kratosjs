@@ -4,7 +4,9 @@ title: Custom Columns
 
 # Creating Custom Table Columns
 
-KratosJs allows you to create custom table columns to extend the built-in column types. This involves creating both a backend column class and a frontend React component.
+KratosJs allows you to create custom table columns to extend the built-in column types. This involves creating both a backend column class and a frontend React component — **no plugin required**. You register the component directly on `mountAdminPanel()` in your app's admin entry (`src/admin/main.tsx`).
+
+> To redistribute a column across apps, package it as a plugin instead — the component contract is identical. See [Custom Components in Plugins](/plugins/custom-components).
 
 ## Backend: Creating a Custom Column Class
 
@@ -143,28 +145,22 @@ export function ProgressColumnComponent({ column, record }: ColumnProps) {
 
 ### 2. Register Your Custom Column
 
-Register your custom column component with the `ColumnRegistryProvider`:
+Register your component on `mountAdminPanel()` in your app's admin entry. The key must match the `columnType` from your backend column class:
 
 ```typescript
-// src/App.tsx
-import React from 'react';
-import { AdminPanel, ColumnRegistryProvider } from '@maxal_studio/kratosjs-react';
+// src/admin/main.tsx
+import { mountAdminPanel } from '@maxal_studio/kratosjs-react';
+import '@maxal_studio/kratosjs-react/styles.css';
 import { ProgressColumnComponent } from './components/ProgressColumnComponent';
 
-const customColumns = {
-	progress: ProgressColumnComponent,
-};
-
-function App() {
-	return (
-		<ColumnRegistryProvider registry={customColumns}>
-			<AdminPanel apiBaseUrl="http://localhost:3001/kratosjs/api" dashboardPath="/admin" />
-		</ColumnRegistryProvider>
-	);
-}
-
-export default App;
+mountAdminPanel({
+	columns: {
+		progress: ProgressColumnComponent, // ✅ key matches columnType
+	},
+});
 ```
+
+> **Optional metadata** — the backend can also call `panel.registerCustomColumn('progress')` so the type name appears in panel metadata. This is informational only; rendering is driven by the `columns` registry.
 
 ## Complete Example
 
@@ -262,24 +258,27 @@ export function AvatarColumnComponent({ column, record }: ColumnProps) {
 ### Registration
 
 ```typescript
-// src/App.tsx
-import { ColumnRegistryProvider } from '@maxal_studio/kratosjs-react';
+// src/admin/main.tsx
+import { mountAdminPanel } from '@maxal_studio/kratosjs-react';
+import '@maxal_studio/kratosjs-react/styles.css';
 import { AvatarColumnComponent } from './components/AvatarColumnComponent';
 
-const customColumns = {
-	avatar: AvatarColumnComponent,
-};
-
-<ColumnRegistryProvider registry={customColumns}>
-	{/* Your app */}
-</ColumnRegistryProvider>
+mountAdminPanel({
+	columns: {
+		avatar: AvatarColumnComponent,
+	},
+});
 ```
+
+> A complete, runnable `star-rating` column lives in `examples/sql-app` — see `src/columns/StarRatingColumn.ts` and `src/admin/main.tsx`.
 
 ## Column Props Interface
 
-Your custom column component will receive these props:
+`ColumnProps` is exported from `@maxal_studio/kratosjs-react` — import it instead of redeclaring it:
 
 ```typescript
+import type { ColumnProps } from '@maxal_studio/kratosjs-react';
+
 interface ColumnProps {
 	column: SerializedColumn; // The serialized column schema
 	record: any; // The current row record
@@ -289,37 +288,22 @@ interface ColumnProps {
 
 ## Editable Columns
 
-To create an editable column (like `ToggleColumn` or `SelectColumn`), you need to handle updates:
+Editable column types (`textinput`, `select`, `checkbox`, `toggle`) receive an extra `onCellChange` callback that the table wires up for inline editing. Call it with the new value:
 
 ```typescript
 // src/components/EditableProgressColumnComponent.tsx
-import React, { useState } from 'react';
-import { SerializedColumn } from '@maxal_studio/kratosjs';
+import { useState } from 'react';
+import type { ColumnProps } from '@maxal_studio/kratosjs-react';
 
-interface EditableColumnProps {
-	column: SerializedColumn;
-	record: any;
-	rowIndex: number;
-	onUpdate?: (value: any) => Promise<void>;
-}
+// onCellChange is supplied by the table for editable column types.
+type EditableColumnProps = ColumnProps & { onCellChange?: (value: any) => void };
 
-export function EditableProgressColumnComponent({ column, record, onUpdate }: EditableColumnProps) {
+export function EditableProgressColumnComponent({ column, record, onCellChange }: EditableColumnProps) {
 	const [value, setValue] = useState(record[column.name] || 0);
-	const [isUpdating, setIsUpdating] = useState(false);
 
-	const handleChange = async (newValue: number) => {
+	const handleChange = (newValue: number) => {
 		setValue(newValue);
-		if (onUpdate) {
-			setIsUpdating(true);
-			try {
-				await onUpdate(newValue);
-			} catch (error) {
-				// Revert on error
-				setValue(record[column.name] || 0);
-			} finally {
-				setIsUpdating(false);
-			}
-		}
+		onCellChange?.(newValue);
 	};
 
 	return (
@@ -330,10 +314,8 @@ export function EditableProgressColumnComponent({ column, record, onUpdate }: Ed
 				max="100"
 				value={value}
 				onChange={e => handleChange(Number(e.target.value))}
-				disabled={isUpdating}
 				className="w-full"
 			/>
-			{isUpdating && <span className="text-xs text-gray-500">Updating...</span>}
 		</div>
 	);
 }
