@@ -11,7 +11,7 @@ KratosJs supports four types of custom components:
 - **Custom Widgets** - Dashboard/widget components (e.g., stats cards, charts)
 - **Custom Blocks** - Page block components (e.g., custom content sections, live feeds)
 
-Components are composed at **build time** (the Filament/Payload model):
+Components are composed at **build time**.
 
 1. The plugin ships its React components in a `./client` entry, exported as a manifest via `definePluginClient`
 2. The app owns the admin entry (`src/admin/main.tsx`) and statically imports the plugin client manifests

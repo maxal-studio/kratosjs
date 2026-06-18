@@ -1,12 +1,10 @@
 /**
  * Global configuration registry for builder classes.
  *
- * Mirrors Filament's `Table::configureUsing()` / `Form::configureUsing()` /
- * `Action::configureUsing()` / `Field::configureUsing()`: plugins register
- * callbacks that mutate every instance of a builder family. Callbacks are applied
- * after a resource has defined its schema and before serialization (see
- * `Panel.createResourceInstance`), so they can inject into already-built
- * collections (columns, actions) and override per-resource settings.
+ * Plugins register callbacks that mutate every instance of a builder family.
+ * Callbacks are applied after a resource has defined its schema and before
+ * serialization (see `Panel.createResourceInstance`), so they can inject into
+ * already-built collections (columns, actions) and override per-resource settings.
  */
 export interface Configurator<T> {
 	/** Register a configuration callback. */

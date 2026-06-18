@@ -192,7 +192,6 @@ export class Column extends ColumnWithMixins {
 		return column;
 	}
 
-	// ── Global configuration (Filament-style `configureUsing`) ──────────────
 	private static _configurator = makeConfigurable<Column>();
 
 	/**

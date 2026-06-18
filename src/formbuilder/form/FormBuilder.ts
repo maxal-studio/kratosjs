@@ -81,7 +81,6 @@ export class FormBuilder {
 		return new FormBuilder();
 	}
 
-	// ── Global configuration (Filament-style `configureUsing`) ──────────────
 	private static _configurator = makeConfigurable<FormBuilder>();
 
 	/**

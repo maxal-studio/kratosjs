@@ -515,7 +515,6 @@ export class TableBuilder {
 		return new TableBuilder();
 	}
 
-	// ── Global configuration (Filament-style `configureUsing`) ──────────────
 	private static _configurator = makeConfigurable<TableBuilder>();
 
 	/**

@@ -178,7 +178,6 @@ export class Action {
 		};
 	}
 
-	// ── Global configuration (Filament-style `configureUsing`) ──────────────
 	private static _configurator = makeConfigurable<Action>();
 
 	/**

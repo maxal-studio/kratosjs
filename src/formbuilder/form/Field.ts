@@ -149,7 +149,6 @@ export class Field extends FieldWithMixins {
 		return instance;
 	}
 
-	// ── Global configuration (Filament-style `configureUsing`) ──────────────
 	private static _configurator = makeConfigurable<Field>();
 
 	/**

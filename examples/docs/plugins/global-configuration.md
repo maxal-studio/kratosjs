@@ -1,6 +1,6 @@
 # Global Configuration
 
-Plugins can globally configure **every** table, form, action, field, and column in a panel using `configureUsing` — KratosJs's equivalent of Filament's `Table::configureUsing()`, `Form::configureUsing()`, `Action::configureUsing()`, and `Field::configureUsing()`.
+Plugins can globally configure **every** table, form, action, field, and column in a panel using `configureUsing`.
 
 This is the mechanism a plugin uses to, for example, add an export button to every table, force destructive actions to require confirmation, or add a "Created at" column everywhere — without touching individual resources.
 
