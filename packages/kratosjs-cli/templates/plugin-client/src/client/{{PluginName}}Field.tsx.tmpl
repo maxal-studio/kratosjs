@@ -1,0 +1,28 @@
+// @ts-nocheck
+import { FieldProps, ViewFieldWrapper } from '@maxal_studio/kratosjs-react';
+import { useFormContext } from 'react-hook-form';
+
+/**
+ * Sample custom field component for the {{PluginName}} plugin.
+ * Replace the body with your own UI.
+ */
+export default function {{PluginName}}Field(props: FieldProps) {
+	if (props.mode === 'view') {
+		return (
+			<ViewFieldWrapper label={props.label}>
+				<span>{props.value ?? '—'}</span>
+			</ViewFieldWrapper>
+		);
+	}
+
+	const { register } = useFormContext();
+
+	return (
+		<div className="mb-4">
+			{props.label && (
+				<label className="block text-sm font-medium kratosjstext-primary mb-2">{props.label}</label>
+			)}
+			<input type="text" className="w-full rounded border px-3 py-2" {...register(props.name)} />
+		</div>
+	);
+}

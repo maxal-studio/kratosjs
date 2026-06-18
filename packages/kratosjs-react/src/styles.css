@@ -1,0 +1,437 @@
+@import 'tailwindcss';
+
+/* Enable class-based dark mode */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Runtime-configured color utilities from resource definitions (not scannable in src) */
+@source inline('{dark:,}bg-{black,white,transparent}');
+@source inline('{dark:,}text-{black,white,transparent}');
+@source inline('{dark:,}border-{black,white,transparent}');
+@source inline('{dark:,}bg-{accent,success,danger,warning,muted,surface,raised,hover,input}');
+@source inline('{dark:,}text-{accent,success,danger,warning,muted,surface,raised,hover,input}');
+@source inline('{dark:,}border-{accent,success,danger,warning,muted,surface,raised,hover,input}');
+@source inline('{dark:,}{bg,text,border}-{slate,gray,zinc,neutral,stone,red,orange,amber,yellow,lime,green,emerald,teal,cyan,sky,blue,indigo,violet,purple,fuchsia,pink,rose}-{50,{100..900..100},950}');
+
+/*
+ * Spacing & layout utilities for plugin components.
+ * Plugins ship precompiled JS — Tailwind cannot scan their sources, so
+ * padding/margin/gap/space classes must be safelisted here.
+ */
+@source inline('{m,p}{x,y,t,b,l,r}-{0,0.5,1,1.5,2,2.5,3,3.5,4,5,6,7,8,9,10,11,12,14,16,20,24,28,32,36,40,44,48,52,56,60,64,72,80,96}');
+@source inline('-m{x,y,t,b,l,r}-{0,0.5,1,1.5,2,3,4,5,6,8}');
+@source inline('mx-auto');
+@source inline('ml-auto');
+@source inline('mr-auto');
+@source inline('gap-{0,0.5,1,1.5,2,2.5,3,4,5,6,7,8,9,10,11,12}');
+@source inline('space-y-{0,0.5,1,1.5,2,2.5,3,4,5,6,7,8,9,10,11,12}');
+@source inline('space-x-{0,0.5,1,1.5,2,2.5,3,4,5,6,7,8,9,10,11,12}');
+@source inline('{sm:,md:,lg:,xl:,2xl:}{m,p}{x,y,t,b,l,r}-{0,0.5,1,1.5,2,2.5,3,3.5,4,5,6,7,8,9,10,11,12,14,16,20,24}');
+@source inline('{sm:,md:,lg:,xl:,2xl:}gap-{0,1,2,3,4,5,6,8}');
+@source inline('{sm:,md:,lg:,xl:,2xl:}space-y-{0,2,3,4,6,8}');
+@source inline('{sm:,md:,lg:,xl:,2xl:}space-x-{0,2,3,4,6,8}');
+
+/* ============================================
+   KratosJS Design Tokens
+   --------------------------------------------
+   The --kratos-* variables are the single source of truth for the panel's
+   look. Consumers can re-theme the panel (accent color, radii, surfaces)
+   by overriding these variables in their own CSS, or via
+   mountAdminPanel({ accentColor }).
+   ============================================ */
+
+:root {
+	/* Surfaces */
+	--kratos-bg: #f7f8fa;
+	--kratos-surface: #ffffff;
+	--kratos-surface-raised: #ffffff;
+	--kratos-muted: #f3f4f6;
+	--kratos-hover: #f4f5f7;
+
+	/* Lines */
+	--kratos-border: #e6e8ec;
+	--kratos-border-strong: #d4d7dd;
+
+	/* Text */
+	--kratos-fg: #18181b;
+	--kratos-fg-secondary: #52525b;
+	--kratos-fg-muted: #9ca3af;
+
+	/* Accent (configurable) */
+	--kratos-accent: #2563eb;
+	--kratos-accent-hover: #1d4ed8;
+	--kratos-accent-fg: #ffffff;
+	--kratos-accent-soft: #dbeafe;
+	--kratos-ring: color-mix(in srgb, var(--kratos-accent) 35%, transparent);
+
+	/* Status */
+	--kratos-danger: #dc2626;
+	--kratos-danger-hover: #b91c1c;
+	--kratos-danger-soft: #fee2e2;
+	--kratos-success: #059669;
+	--kratos-success-soft: #d1fae5;
+	--kratos-warning: #d97706;
+	--kratos-warning-soft: #fef3c7;
+
+	/* Shape & elevation */
+	--kratos-radius: 0.5rem;
+	--kratos-shadow-sm: 0 1px 2px 0 rgb(16 24 40 / 0.04);
+	--kratos-shadow-md: 0 2px 8px -2px rgb(16 24 40 / 0.08), 0 1px 2px 0 rgb(16 24 40 / 0.04);
+	--kratos-shadow-lg: 0 12px 24px -6px rgb(16 24 40 / 0.14), 0 2px 8px -2px rgb(16 24 40 / 0.08);
+
+	/* Inputs */
+	--kratos-input-bg: #ffffff;
+	--kratos-input-border: #d4d7dd;
+	--kratos-input-placeholder: #9ca3af;
+
+}
+
+.dark {
+	/* Surfaces */
+	--kratos-bg: #0b0b0d;
+	--kratos-surface: #151517;
+	--kratos-surface-raised: #1c1c1f;
+	--kratos-muted: #1f1f23;
+	--kratos-hover: #232327;
+
+	/* Lines */
+	--kratos-border: rgba(255, 255, 255, 0.08);
+	--kratos-border-strong: rgba(255, 255, 255, 0.16);
+
+	/* Text */
+	--kratos-fg: #f4f4f5;
+	--kratos-fg-secondary: #a1a1aa;
+	--kratos-fg-muted: #71717a;
+
+	/* Accent */
+	--kratos-accent: #3b82f6;
+	--kratos-accent-hover: #60a5fa;
+	--kratos-accent-fg: #ffffff;
+	--kratos-accent-soft: color-mix(in srgb, var(--kratos-accent) 18%, transparent);
+
+	/* Status */
+	--kratos-danger: #ef4444;
+	--kratos-danger-hover: #f87171;
+	--kratos-danger-soft: rgba(239, 68, 68, 0.15);
+	--kratos-success: #10b981;
+	--kratos-success-soft: rgba(16, 185, 129, 0.15);
+	--kratos-warning: #f59e0b;
+	--kratos-warning-soft: rgba(245, 158, 11, 0.15);
+
+	/* Elevation */
+	--kratos-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.35);
+	--kratos-shadow-md: 0 2px 8px -2px rgb(0 0 0 / 0.45);
+	--kratos-shadow-lg: 0 12px 24px -6px rgb(0 0 0 / 0.55);
+
+	/* Inputs */
+	--kratos-input-bg: #232326;
+	--kratos-input-border: #43434a;
+	--kratos-input-placeholder: #71717a;
+}
+
+/* ============================================
+   Tailwind theme mapping
+   --------------------------------------------
+   Exposes the tokens as first-class Tailwind utilities (bg-surface,
+   text-fg-secondary, border-border, bg-accent, ring-ring, ...) that
+   respond to .dark automatically through the variable indirection.
+   ============================================ */
+
+@theme inline {
+	--color-base: var(--kratos-bg);
+	--color-surface: var(--kratos-surface);
+	--color-raised: var(--kratos-surface-raised);
+	--color-muted: var(--kratos-muted);
+	--color-hover: var(--kratos-hover);
+
+	--color-border: var(--kratos-border);
+	--color-border-strong: var(--kratos-border-strong);
+
+	--color-fg: var(--kratos-fg);
+	--color-fg-secondary: var(--kratos-fg-secondary);
+	--color-fg-muted: var(--kratos-fg-muted);
+
+	--color-accent: var(--kratos-accent);
+	--color-accent-hover: var(--kratos-accent-hover);
+	--color-accent-fg: var(--kratos-accent-fg);
+	--color-accent-soft: var(--kratos-accent-soft);
+	--color-ring: var(--kratos-ring);
+
+	--color-danger: var(--kratos-danger);
+	--color-danger-hover: var(--kratos-danger-hover);
+	--color-danger-soft: var(--kratos-danger-soft);
+	--color-success: var(--kratos-success);
+	--color-success-soft: var(--kratos-success-soft);
+	--color-warning: var(--kratos-warning);
+	--color-warning-soft: var(--kratos-warning-soft);
+
+	--color-input: var(--kratos-input-bg);
+	--color-input-border: var(--kratos-input-border);
+
+	--shadow-soft-sm: var(--kratos-shadow-sm);
+	--shadow-soft: var(--kratos-shadow-md);
+	--shadow-soft-lg: var(--kratos-shadow-lg);
+}
+
+/* ============================================
+   Stable plugin styling contract
+   --------------------------------------------
+   Plugins ship precompiled JS, so Tailwind cannot scan their sources;
+   arbitrary utilities are NOT guaranteed to exist in this stylesheet.
+   Standard spacing (p-*, m-*, gap-*, space-y-*) is safelisted via @source
+   inline() above; prefer those scale values over arbitrary classes.
+   These plain semantic classes (plus the exported UI primitives) are the
+   supported way for plugin components to match the panel theme.
+   ============================================ */
+
+.k-surface {
+	background-color: var(--kratos-surface);
+}
+
+.k-muted {
+	background-color: var(--kratos-muted);
+}
+
+.k-text {
+	color: var(--kratos-fg);
+}
+
+.k-text-secondary {
+	color: var(--kratos-fg-secondary);
+}
+
+.k-text-muted {
+	color: var(--kratos-fg-muted);
+}
+
+.k-border {
+	border-color: var(--kratos-border);
+}
+
+.k-accent {
+	color: var(--kratos-accent);
+}
+
+.k-input {
+	background-color: var(--kratos-input-bg);
+	border-color: var(--kratos-input-border);
+	color: var(--kratos-fg);
+	border-radius: var(--kratos-radius);
+}
+
+.k-input::placeholder {
+	color: var(--kratos-input-placeholder);
+}
+
+.k-input:focus {
+	border-color: var(--kratos-accent);
+	outline: none;
+	box-shadow: 0 0 0 3px var(--kratos-ring);
+}
+
+/* Section depth in dark mode: progressively darker surfaces so each
+   nesting level is clearly distinguishable. Derived from the bg token. */
+.dark .section-depth-bg[data-section-depth='1'] {
+	background-color: color-mix(in srgb, var(--kratos-surface-raised) 92%, white) !important;
+}
+.dark .section-depth-bg[data-section-depth='2'] {
+	background-color: var(--kratos-surface) !important;
+}
+.dark .section-depth-bg[data-section-depth='3'] {
+	background-color: color-mix(in srgb, var(--kratos-surface) 80%, black) !important;
+}
+.dark .section-depth-bg[data-section-depth='4'] {
+	background-color: color-mix(in srgb, var(--kratos-surface) 62%, black) !important;
+}
+.dark .section-depth-bg[data-section-depth='5'] {
+	background-color: color-mix(in srgb, var(--kratos-surface) 48%, black) !important;
+}
+.dark .section-depth-bg[data-section-depth='6'] {
+	background-color: color-mix(in srgb, var(--kratos-surface) 34%, black) !important;
+}
+.dark .section-depth-bg[data-section-depth='7'] {
+	background-color: color-mix(in srgb, var(--kratos-surface) 20%, black) !important;
+}
+.dark .section-depth-bg[data-section-depth='8'] {
+	background-color: #000000 !important;
+}
+
+/* ============================================
+   TipTap Rich Editor Styles
+   ============================================ */
+.rich-editor-content .tiptap {
+	outline: none;
+	color: var(--kratos-fg);
+}
+
+.rich-editor-content .tiptap p {
+	margin: 0.75rem 0;
+}
+
+.rich-editor-content .tiptap p:first-child {
+	margin-top: 0;
+}
+
+.rich-editor-content .tiptap p:last-child {
+	margin-bottom: 0;
+}
+
+.rich-editor-content .tiptap h1 {
+	font-size: 2rem;
+	font-weight: 700;
+	line-height: 2.5rem;
+	margin: 1.5rem 0 1rem 0;
+}
+
+.rich-editor-content .tiptap h2 {
+	font-size: 1.5rem;
+	font-weight: 600;
+	line-height: 2rem;
+	margin: 1.25rem 0 0.75rem 0;
+}
+
+.rich-editor-content .tiptap h3 {
+	font-size: 1.25rem;
+	font-weight: 600;
+	line-height: 1.75rem;
+	margin: 1rem 0 0.5rem 0;
+}
+
+.rich-editor-content .tiptap h1:first-child,
+.rich-editor-content .tiptap h2:first-child,
+.rich-editor-content .tiptap h3:first-child {
+	margin-top: 0;
+}
+
+.rich-editor-content .tiptap ul,
+.rich-editor-content .tiptap ol {
+	padding-left: 1.5rem;
+	margin: 0.75rem 0;
+}
+
+.rich-editor-content .tiptap ul {
+	list-style-type: disc;
+}
+
+.rich-editor-content .tiptap ol {
+	list-style-type: decimal;
+}
+
+.rich-editor-content .tiptap li {
+	margin: 0.25rem 0;
+}
+
+.rich-editor-content .tiptap blockquote {
+	border-left: 4px solid var(--kratos-border);
+	padding-left: 1rem;
+	margin: 1rem 0;
+	color: var(--kratos-fg-secondary);
+	font-style: italic;
+}
+
+.rich-editor-content .tiptap code {
+	background-color: var(--kratos-muted);
+	border-radius: 0.25rem;
+	padding: 0.125rem 0.375rem;
+	font-family: 'Courier New', monospace;
+	font-size: 0.875rem;
+	color: var(--kratos-fg);
+}
+
+.rich-editor-content .tiptap pre {
+	background-color: var(--kratos-muted);
+	border-radius: 0.5rem;
+	padding: 1rem;
+	margin: 1rem 0;
+	overflow-x: auto;
+	border: 1px solid var(--kratos-border);
+}
+
+.rich-editor-content .tiptap pre code {
+	background: none;
+	color: var(--kratos-fg);
+	padding: 0;
+	font-size: 0.875rem;
+	line-height: 1.5;
+}
+
+.rich-editor-content .tiptap strong {
+	font-weight: 700;
+}
+
+.rich-editor-content .tiptap em {
+	font-style: italic;
+}
+
+.rich-editor-content .tiptap s {
+	text-decoration: line-through;
+}
+
+/* Placeholder styling */
+.rich-editor-content .tiptap p.is-editor-empty:first-child::before {
+	content: attr(data-placeholder);
+	float: left;
+	color: var(--kratos-input-placeholder);
+	pointer-events: none;
+	height: 0;
+}
+
+.rich-editor-content .tiptap u {
+	text-decoration: underline;
+}
+
+.rich-editor-content .tiptap sub {
+	vertical-align: sub;
+	font-size: 0.75em;
+}
+
+.rich-editor-content .tiptap sup {
+	vertical-align: super;
+	font-size: 0.75em;
+}
+
+.rich-editor-content .tiptap mark {
+	background-color: #fef08a;
+	color: #854d0e;
+	padding: 0.125rem 0;
+	border-radius: 0.125rem;
+}
+
+.rich-editor-content .tiptap a {
+	color: var(--kratos-accent);
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.rich-editor-content .tiptap a:hover {
+	color: var(--kratos-accent-hover);
+}
+
+.rich-editor-content .tiptap [style*='text-align: center'] {
+	text-align: center;
+}
+
+.rich-editor-content .tiptap [style*='text-align: right'] {
+	text-align: right;
+}
+
+.rich-editor-content .tiptap [style*='text-align: left'] {
+	text-align: left;
+}
+
+/* ============================================
+   Date/DateTime Input Icon Fix for Dark Mode
+   ============================================ */
+
+/* In dark mode, make browser's native date/time icons light-colored */
+.dark input[type='date'],
+.dark input[type='datetime-local'],
+.dark input[type='time'] {
+	color-scheme: dark;
+}
+
+/* In light mode, ensure icons are dark */
+input[type='date'],
+input[type='datetime-local'],
+input[type='time'] {
+	color-scheme: light;
+}

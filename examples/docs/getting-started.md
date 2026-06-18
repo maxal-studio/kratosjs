@@ -1,0 +1,1 @@
+../../packages/kratosjs-react/docs/getting-started.md

@@ -1,0 +1,29 @@
+{
+	"name": "kratosjs-mongo-example",
+	"version": "1.0.0",
+	"description": "Slim KratosJs example using MikroORM with MongoDB",
+	"scripts": {
+		"dev": "tsx watch src/index.ts",
+		"build": "npm run build:server && npm run build:admin",
+		"build:server": "tsc",
+		"build:admin": "vite build",
+		"start": "NODE_ENV=production node dist/index.js"
+	},
+	"dependencies": {
+		"@maxal_studio/kratosjs": "file:../..",
+		"@mikro-orm/core": "^7.1.4",
+		"@mikro-orm/migrations-mongodb": "^7.1.4",
+		"@mikro-orm/mongodb": "^7.1.4",
+		"dotenv": "^17.4.2",
+		"express": "^5.2.1"
+	},
+	"devDependencies": {
+		"@maxal_studio/kratosjs-react": "file:../../packages/kratosjs-react",
+		"react": "^19.2.7",
+		"react-dom": "^19.2.7",
+		"react-hook-form": "^7.79.0",
+		"tsx": "^4.22.4",
+		"typescript": "^5.9.3",
+		"vite": "^7.3.5"
+	}
+}

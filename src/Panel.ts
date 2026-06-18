@@ -1,0 +1,1144 @@
+import path from 'path';
+import { Router, Request, Response, RequestHandler, NextFunction } from 'express';
+import { MikroORM, EntityManager } from '@mikro-orm/core';
+import { KratosJsRequestHandler } from './panel/request';
+import { ResourceClass } from './BaseResource';
+import { Resource } from './Resource';
+import { ResourceHooks } from './resource/types';
+import { AdapterClass, RegisteredResource, PanelMetadata } from './panel/types';
+import { DataAdapter } from './adapters/database/DataAdapter';
+import { MikroOrmAdapter } from './adapters/database/MikroOrmAdapter';
+import { AuthManager } from './auth/AuthManager';
+import { AuthProvider } from './auth/AuthProvider';
+import { EmailAuthProvider } from './auth/providers/EmailAuthProvider';
+import { JWTConfig, AuthUser, UserFieldMap, ResolvedUserFieldMap, AuthDefaultsContext } from './auth/types';
+import { formatUserDisplayName } from './auth/formatUserDisplayName';
+import { verifyPassword as defaultVerifyPassword } from './auth/password';
+import { authMiddleware, optionalAuthMiddleware } from './auth/middleware';
+import { MediaAdapter } from './adapters/media/MediaAdapter';
+import { Page } from './Page';
+import { getRequestContext } from './RequestContextStorage';
+import { SerializedForm } from './formbuilder/types';
+import { ValidationEngine } from './validation/ValidationEngine';
+import { RuleDefinition } from './validation/types';
+import { HttpAdapter } from './adapters/http/HttpAdapter';
+import { ExpressAdapter } from './adapters/http/ExpressAdapter';
+import { Plugin } from './plugins/Plugin';
+import { attachRedirectHelper } from './utils/redirectHelper';
+import { mergeHooks } from './utils/panelHelpers';
+import { OrmManager, OrmOptions, DriverKind } from './panel/OrmManager';
+import { MediaManager } from './panel/MediaManager';
+import {
+	PanelHooks,
+	MetadataFilterHook,
+	SchemaFilterHook,
+	PageBlocksFilterHook,
+	PageAccessCheckHook,
+	DataFilterHook,
+	CapabilitiesFilterHook,
+	ActionAccessCheckHook,
+} from './panel/PanelHooks';
+import { buildPanelMetadata, buildPanelBadges } from './panel/metadata';
+import { buildPanelRouter } from './panel/routes';
+import { applyGlobalConfiguration } from './panel/applyGlobalConfiguration';
+import { Exporter } from './panel/export';
+// Import request types to ensure declaration merging is applied
+import './panel/request';
+
+/** Default panel favicon path — served from bundled assets or app `assets/` via `useStatic`. */
+export const DEFAULT_PANEL_FAVICON = '/assets/icon.png';
+
+/**
+ * Panel - Central orchestrator for KratosJs admin panels
+ *
+ * Manages multiple resources, auto-generates Express routes,
+ * and provides a shared adapter configuration.
+ *
+ * The implementation is split into focused modules under src/panel/:
+ * - OrmManager: MikroORM lifecycle (config, init, migrations, request context)
+ * - MediaManager: media adapters and media-field transformations
+ * - PanelHooks: permission/filter hooks registered by plugins
+ * - metadata.ts: panel metadata + navigation badge building
+ * - routes.ts + controllers/: Express router and HTTP request handlers
+ *
+ * @example
+ * ```typescript
+ * const panel = Panel.make('admin')
+ *     .path('/api/admin')
+ *     .orm({ driver: MySqlDriver, dbName: 'app', user: 'root' })
+ *     .resources([UserResource, PostResource])
+ *     .middleware([authMiddleware]);
+ *
+ * await panel.start(3000);
+ * ```
+ */
+export class Panel {
+	private _id: string;
+	private _title?: string;
+	private _icon?: string;
+	private _favicon?: string;
+	private _basePath: string = '/api';
+	private _adapterClass?: AdapterClass;
+	private _defaultSearchableFields: string[] = [];
+	private _resources: Map<string, RegisteredResource> = new Map();
+	private _pages: Map<string, typeof Page> = new Map();
+	private _middleware: RequestHandler[] = [];
+	private _resourceHooks: Map<ResourceClass, ResourceHooks> = new Map();
+	private _authManager?: AuthManager;
+	private _httpAdapterClass?: new (panel: Panel, basePath: string) => HttpAdapter;
+	private _httpAdapter?: HttpAdapter;
+	private _plugins: Array<Plugin | (new () => Plugin)> = [];
+	private _pluginInstances: Plugin[] = [];
+	// Custom component type names registered by plugins (for metadata/introspection).
+	// The actual React components are bundled by the app's admin client build.
+	private _customBlocks: Set<string> = new Set();
+	private _customFields: Set<string> = new Set();
+	private _customColumns: Set<string> = new Set();
+	private _customWidgets: Set<string> = new Set();
+	private _exporters: Map<string, Exporter> = new Map();
+
+	private readonly _ormManager = new OrmManager();
+	private readonly _mediaManager = new MediaManager();
+	private readonly _hooks = new PanelHooks();
+
+	/**
+	 * Create a new Panel instance
+	 * @param id - Unique identifier for the panel
+	 */
+	constructor(id: string) {
+		this._id = id;
+	}
+
+	/**
+	 * Static factory method
+	 * @param id - Unique identifier for the panel
+	 */
+	static make(id: string): Panel {
+		return new Panel(id);
+	}
+
+	// ============================================================================
+	// Basic configuration
+	// ============================================================================
+
+	/**
+	 * Set the panel title (displayed in the header)
+	 * @param title - Panel title
+	 */
+	title(title: string): this {
+		this._title = title;
+		return this;
+	}
+
+	/**
+	 * Get the panel title
+	 */
+	getTitle(): string | undefined {
+		return this._title;
+	}
+
+	/**
+	 * Set the panel icon shown in the admin header and login screen.
+	 * Uses a Lucide icon name (same convention as resource icons, e.g. 'LayoutDashboard').
+	 * When {@link favicon} is also set, the favicon image takes precedence in the UI.
+	 * @param icon - Lucide icon name
+	 */
+	icon(icon: string): this {
+		this._icon = icon;
+		return this;
+	}
+
+	/**
+	 * Get the panel icon (Lucide icon name)
+	 */
+	getIcon(): string | undefined {
+		return this._icon;
+	}
+
+	/**
+	 * Set the panel favicon
+	 * @param favicon - Favicon URL or path (e.g., '/favicon.ico' or '/assets/favicon.svg')
+	 */
+	favicon(favicon: string): this {
+		this._favicon = favicon;
+		return this;
+	}
+
+	/**
+	 * Get the panel favicon
+	 */
+	getFavicon(): string {
+		return this._favicon ?? DEFAULT_PANEL_FAVICON;
+	}
+
+	/**
+	 * Set the base path for all routes
+	 * @param basePath - Base URL path (e.g., '/api/admin')
+	 */
+	path(basePath: string): this {
+		this._basePath = basePath.replace(/\/$/, ''); // Remove trailing slash
+		return this;
+	}
+
+	/**
+	 * Get the panel ID
+	 */
+	getId(): string {
+		return this._id;
+	}
+
+	/**
+	 * Get the base path
+	 */
+	getBasePath(): string {
+		return this._basePath;
+	}
+
+	/**
+	 * Set default searchable fields for all resources
+	 * @param fields - Array of field names
+	 */
+	searchableFields(fields: string[]): this {
+		this._defaultSearchableFields = fields;
+		return this;
+	}
+
+	/**
+	 * Add Express middleware to all panel routes
+	 * @param middleware - Array of Express middleware functions
+	 */
+	middleware(middleware: RequestHandler[]): this {
+		this._middleware = middleware;
+		return this;
+	}
+
+	/**
+	 * Get the panel-level middleware (used when building routes)
+	 */
+	getMiddleware(): RequestHandler[] {
+		return this._middleware;
+	}
+
+	// ============================================================================
+	// Database / ORM
+	// ============================================================================
+
+	/**
+	 * Set the database adapter class to use for all resources
+	 * Defaults to MikroOrmAdapter if not specified
+	 * @param adapterClass - Database adapter class constructor
+	 */
+	databaseAdapter(adapterClass: AdapterClass): this {
+		this._adapterClass = adapterClass;
+		return this;
+	}
+
+	/**
+	 * Get the database adapter class
+	 */
+	getDatabaseAdapter(): AdapterClass | undefined {
+		return this._adapterClass;
+	}
+
+	/**
+	 * Configure the MikroORM connection for the panel.
+	 * Accepts either a MikroORM options object (the panel will call MikroORM.init() during start(),
+	 * merging in all entities registered by resources and plugins) or an already-initialized
+	 * MikroORM instance.
+	 *
+	 * @param config - MikroORM options object or MikroORM instance
+	 * @param options - Panel-level ORM behavior:
+	 *   - migrate: run pending migrations on start (default: true when migrations are configured)
+	 *   - updateSchema: sync the database schema on start (useful in development / for MongoDB indexes)
+	 *
+	 * @example
+	 * ```typescript
+	 * import { MySqlDriver } from '@mikro-orm/mysql';
+	 *
+	 * panel.orm({
+	 *     driver: MySqlDriver,
+	 *     dbName: 'app',
+	 *     user: 'root',
+	 *     password: '',
+	 * });
+	 * ```
+	 */
+	orm(config: Record<string, any> | MikroORM, options?: OrmOptions): this {
+		this._ormManager.configure(config, options);
+		return this;
+	}
+
+	/**
+	 * Get the MikroORM instance (available after start())
+	 */
+	getOrm(): MikroORM {
+		return this._ormManager.getOrm();
+	}
+
+	/**
+	 * Get the context-aware EntityManager (available after start()).
+	 * Inside a request this resolves to the request-scoped fork.
+	 */
+	getEm(): EntityManager {
+		return this._ormManager.getEm();
+	}
+
+	/**
+	 * Get the configured database driver kind ('mongo' or 'sql').
+	 * Available as soon as panel.orm() has been called, so plugins can build
+	 * driver-specific entities and pick matching migrations during register().
+	 */
+	getDriverKind(): DriverKind {
+		return this._ormManager.getDriverKind();
+	}
+
+	/**
+	 * Register MikroORM entities with the panel (for plugins).
+	 * Entities registered here are merged into the ORM configuration during start(),
+	 * so plugins can ship their own models without touching the host app config.
+	 *
+	 * @param entities - Array of EntitySchema instances or entity classes
+	 */
+	registerEntities(entities: any[]): this {
+		this._ormManager.registerEntities(entities);
+		return this;
+	}
+
+	/**
+	 * Register MikroORM migration classes with the panel (for plugins).
+	 * Registered migrations are merged into the ORM's migrationsList and executed
+	 * (in registration order) during start(), before any adapter is created.
+	 * This allows plugins to create/modify database tables directly.
+	 *
+	 * @param migrations - Array of Migration classes (from @mikro-orm/migrations)
+	 */
+	registerMigrations(migrations: Array<new (...args: any[]) => any>): this {
+		this._ormManager.registerMigrations(migrations);
+		return this;
+	}
+
+	/**
+	 * Express middleware that creates a request-scoped MikroORM context (forked EntityManager).
+	 * Applied automatically to panel routes and plugin-registered routes.
+	 */
+	ormContextMiddleware(): RequestHandler {
+		return this._ormManager.contextMiddleware();
+	}
+
+	// ============================================================================
+	// HTTP adapter
+	// ============================================================================
+
+	/**
+	 * Set the HTTP adapter class to use for the server
+	 * Defaults to ExpressAdapter if not specified
+	 * @param adapterClass - HTTP adapter class constructor
+	 */
+	httpAdapter(adapterClass: new (panel: Panel, basePath: string) => HttpAdapter): this {
+		this._httpAdapterClass = adapterClass;
+		return this;
+	}
+
+	/**
+	 * Get the HTTP adapter instance
+	 */
+	getHttpAdapter(): HttpAdapter | undefined {
+		return this._httpAdapter;
+	}
+
+	/**
+	 * Initialize the HTTP adapter if not already initialized
+	 * Creates ExpressAdapter by default or uses custom adapter if set
+	 * Note: Panel routes are NOT mounted here - they are mounted in start() to ensure
+	 * all configuration (auth, resources, etc.) is complete before routes are built
+	 */
+	private initializeHttpAdapter(): void {
+		if (this._httpAdapter) {
+			return;
+		}
+
+		const AdapterClass = this._httpAdapterClass || ExpressAdapter;
+		this._httpAdapter = new AdapterClass(this, this._basePath);
+		// Panel routes will be mounted in start() after all configuration is done
+	}
+
+	/**
+	 * Serve bundled branding assets when the app has not mounted its own `/assets` directory.
+	 */
+	private mountDefaultAssetsIfNeeded(): void {
+		if (this._httpAdapter!.hasStaticMount('/assets')) {
+			return;
+		}
+
+		const assetsDir = path.join(__dirname, '..', 'assets');
+		this.useStatic('/assets', assetsDir);
+	}
+
+	/**
+	 * Get the underlying HTTP server app instance
+	 * @returns The server app instance (Express, Fastify, etc.)
+	 */
+	getApp(): any {
+		this.initializeHttpAdapter();
+		return this._httpAdapter!.getApp();
+	}
+
+	/**
+	 * Register a custom route with automatic base path, auth, and media helpers
+	 * Handlers receive KratosJsRequest and KratosJsResponse with all KratosJs properties available
+	 * @param method - HTTP method (get, post, put, patch, delete)
+	 * @param path - Route path (will be prepended with basePath)
+	 * @param handlers - Route handler functions (can use KratosJsRequest and KratosJsResponse)
+	 */
+	registerRoute(
+		method: 'get' | 'post' | 'put' | 'patch' | 'delete',
+		path: string,
+		...handlers: KratosJsRequestHandler[]
+	): this {
+		this.initializeHttpAdapter();
+		this._httpAdapter!.registerRoute(method, path, ...handlers);
+		return this;
+	}
+
+	/**
+	 * Serve static files from a directory
+	 * @param path - URL path to serve files from
+	 * @param directory - Directory path to serve files from
+	 */
+	useStatic(path: string, directory: string): this {
+		this.initializeHttpAdapter();
+		this._httpAdapter!.useStatic(path, directory);
+		return this;
+	}
+
+	/**
+	 * Get all registered routes from the HTTP server
+	 */
+	getRegisteredRoutes(): Array<{ method: string; path: string }> {
+		this.initializeHttpAdapter();
+		return this._httpAdapter!.getRegisteredRoutes();
+	}
+
+	// ============================================================================
+	// Custom components
+	// ============================================================================
+
+	/**
+	 * Register a custom block component type name (e.g., 'live-sessions').
+	 * The matching React component is provided by the plugin's client manifest
+	 * and bundled by the app's admin client build.
+	 */
+	registerCustomBlock(name: string): this {
+		this._customBlocks.add(name);
+		return this;
+	}
+
+	/**
+	 * Register a custom field component type name (e.g., 'star-rating').
+	 */
+	registerCustomField(name: string): this {
+		this._customFields.add(name);
+		return this;
+	}
+
+	/**
+	 * Register a custom column component type name (e.g., 'star-rating').
+	 */
+	registerCustomColumn(name: string): this {
+		this._customColumns.add(name);
+		return this;
+	}
+
+	/**
+	 * Register a custom widget component type name (e.g., 'card').
+	 */
+	registerCustomWidget(name: string): this {
+		this._customWidgets.add(name);
+		return this;
+	}
+
+	/**
+	 * Register a custom validation rule into the shared validation engine.
+	 *
+	 * The rule becomes available to both the backend `SchemaValidator` and (when
+	 * the plugin also ships it in its client manifest) the React `useValidation`
+	 * hook — the same `RuleDefinition` object can be authored once and referenced
+	 * from both entries.
+	 *
+	 * @example
+	 * panel.registerValidationRule('phone', {
+	 *   validate: ({ value }) => /^\+?[0-9 ]{7,}$/.test(String(value)),
+	 *   message: ({ label, field }) => `${label || field} must be a phone number`,
+	 * });
+	 */
+	registerValidationRule(name: string, definition: Omit<RuleDefinition, 'name'>): this {
+		ValidationEngine.register({ ...definition, name });
+		return this;
+	}
+
+	/**
+	 * Register an exporter for a given format (e.g. 'csv'), used by the core
+	 * `POST /:resource/export` endpoint. Registered by export plugins.
+	 */
+	registerExporter(format: string, exporter: Exporter): this {
+		this._exporters.set(format, exporter);
+		return this;
+	}
+
+	/**
+	 * Get the exporter registered for a format, if any.
+	 */
+	getExporter(format: string): Exporter | undefined {
+		return this._exporters.get(format);
+	}
+
+	/**
+	 * Get the registered custom component type names.
+	 * Used when building panel metadata.
+	 */
+	getCustomComponents(): {
+		blocks: Set<string>;
+		fields: Set<string>;
+		columns: Set<string>;
+		widgets: Set<string>;
+	} {
+		return {
+			blocks: this._customBlocks,
+			fields: this._customFields,
+			columns: this._customColumns,
+			widgets: this._customWidgets,
+		};
+	}
+
+	// ============================================================================
+	// Lifecycle
+	// ============================================================================
+
+	/**
+	 * Register plugins with the panel.
+	 * Plugins are registered during start() after all configuration is complete
+	 * but before routes are mounted, giving them access to all panel features.
+	 * Accepts plugin classes (instantiated with no arguments) or pre-configured
+	 * plugin instances (for plugins that take options).
+	 *
+	 * @example
+	 * ```typescript
+	 * panel.plugins([
+	 *     LoggingPlugin,                                  // class
+	 *     new DashboardPlugin({ widgetResources: [...] }) // configured instance
+	 * ]);
+	 * ```
+	 */
+	plugins(plugins: Array<Plugin | (new () => Plugin)>): this {
+		this._plugins = plugins;
+		return this;
+	}
+
+	/**
+	 * Start the HTTP server
+	 * @param port - Port number to listen on
+	 * @param callback - Optional callback function called when server starts
+	 */
+	async start(port: number, callback?: () => void): Promise<void> {
+		this.initializeHttpAdapter();
+		this.mountDefaultAssetsIfNeeded();
+
+		// 1. Register all plugins (after all configuration is complete, before ORM init)
+		// Plugins can register resources, entities, and migrations at this point
+		for (const pluginOrClass of this._plugins) {
+			const plugin = typeof pluginOrClass === 'function' ? new pluginOrClass() : pluginOrClass;
+			try {
+				this._pluginInstances.push(plugin);
+				const result = plugin.register(this);
+				// Handle async registration
+				if (result instanceof Promise) {
+					await result;
+				}
+			} catch (error) {
+				console.error(`Error registering plugin ${plugin.getName?.() ?? 'unknown'}:`, error);
+			}
+		}
+
+		// 2. Initialize the ORM with all entities (resources + plugins), run migrations,
+		// create adapters, and run plugin boot hooks (seeding)
+		await this.initializeOrm();
+
+		// Mount panel routes now that all configuration (including plugins) is complete
+		this._httpAdapter!.mountRouter(this._basePath, this.routes());
+		this._httpAdapter!.start(port, callback);
+	}
+
+	/**
+	 * Initialize the ORM (entities, migrations, schema sync), then create a
+	 * database adapter per registered resource and run plugin boot() hooks.
+	 */
+	private async initializeOrm(): Promise<void> {
+		// Collect entities from all registered resources
+		const resourceEntities: any[] = [];
+		for (const [, registered] of this._resources) {
+			if (registered.resourceClass.entity) {
+				resourceEntities.push(registered.resourceClass.entity);
+			}
+		}
+
+		await this._ormManager.initialize(resourceEntities);
+
+		// Create database adapters for all registered resources
+		for (const [, registered] of this._resources) {
+			if (!registered.adapter) {
+				registered.adapter = this.createAdapter(registered.resourceClass);
+			}
+		}
+
+		// Run plugin boot hooks (e.g. seeding) with a forked EntityManager
+		for (const plugin of this._pluginInstances) {
+			if (typeof plugin.boot === 'function') {
+				try {
+					await plugin.boot(this._ormManager.getEm().fork(), this);
+				} catch (error) {
+					console.error(`Error booting plugin ${plugin.getName()}:`, error);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Create a database adapter for a resource class
+	 */
+	private createAdapter(ResourceClass: ResourceClass): DataAdapter {
+		const AdapterCls = this._adapterClass || MikroOrmAdapter;
+
+		// Get searchable fields (resource-specific or default)
+		const searchableFields =
+			ResourceClass.getSearchableFields().length > 0
+				? ResourceClass.getSearchableFields()
+				: this._defaultSearchableFields;
+
+		return new AdapterCls(this._ormManager.getOrm(), ResourceClass.entity, searchableFields);
+	}
+
+	// ============================================================================
+	// Media
+	// ============================================================================
+
+	/**
+	 * Get the media manager (adapter registry + media-field transformations)
+	 */
+	get media(): MediaManager {
+		return this._mediaManager;
+	}
+
+	/**
+	 * Set the media adapters for file uploads
+	 * @param adapters - Array of MediaAdapter instances
+	 */
+	mediaAdapters(adapters: MediaAdapter[]): this {
+		const staticMounts = this._mediaManager.register(adapters);
+		// LocalMediaAdapters need their upload directories served statically
+		for (const mount of staticMounts) {
+			this.useStatic(mount.path, mount.directory);
+		}
+		return this;
+	}
+
+	/**
+	 * Get the media adapter by name, or return the default adapter
+	 * @param name - Optional adapter name
+	 */
+	getMediaAdapter(name?: string): MediaAdapter | undefined {
+		return this._mediaManager.getAdapter(name);
+	}
+
+	/**
+	 * Get the default adapter name
+	 */
+	getDefaultAdapterName(): string | undefined {
+		return this._mediaManager.getDefaultAdapterName();
+	}
+
+	/**
+	 * Resolve media URL from media value (string, object with url, or object with key/bucket)
+	 * @param mediaValue - Media value to resolve
+	 * @returns Resolved URL or undefined
+	 */
+	async resolveMediaUrl(mediaValue: any): Promise<string | undefined> {
+		return this._mediaManager.resolveUrl(mediaValue);
+	}
+
+	/**
+	 * Format a single media key for database bucket
+	 * Simple helper that takes a key string and returns { key, bucket } format
+	 * @param key - The media key (e.g., "uploads-test/test/file.png")
+	 * @param bucketName - Optional bucket adapter name (defaults to default adapter)
+	 * @returns Formatted media object: { key, bucket }
+	 */
+	async formatMediaKey(key: string, bucketName?: string): Promise<{ key: string; bucket: string }> {
+		return this._mediaManager.formatKey(key, bucketName);
+	}
+
+	/**
+	 * Transform media fields for bucket (create operation)
+	 * Public method that can be bound and passed to controllers
+	 */
+	async transformMediaFieldsForStorage(data: Record<string, any>, formSchema: SerializedForm): Promise<void> {
+		return this._mediaManager.transformFieldsForStorage(data, formSchema);
+	}
+
+	/**
+	 * Middleware that attaches media helper functions to the request
+	 * Attaches transformMediaFieldsForStorage, formatMediaKey, and resolveMediaUrl to req
+	 * Also attaches redirectTo helper to res for easy redirect responses
+	 */
+	attachMediaHelpers(): RequestHandler {
+		return (req: Request, res: Response, next: NextFunction) => {
+			req.transformMediaFieldsForStorage = (data: Record<string, any>, formSchema: any) =>
+				this.transformMediaFieldsForStorage(data, formSchema);
+			req.formatMediaKey = (key: string, bucketName?: string) => this.formatMediaKey(key, bucketName);
+			req.resolveMediaUrl = (mediaValue: any) => this.resolveMediaUrl(mediaValue);
+			attachRedirectHelper(res);
+			next();
+		};
+	}
+
+	// ============================================================================
+	// Authentication
+	// ============================================================================
+
+	/**
+	 * Configure authentication for the panel
+	 * @param config - Authentication configuration with JWT settings and providers
+	 */
+	auth(config: {
+		jwt: JWTConfig;
+		/**
+		 * Auth providers. Optional: when omitted and `userEntity` is set, a default
+		 * EmailAuthProvider (email/password) is added automatically.
+		 */
+		providers?: AuthProvider[];
+		/**
+		 * Look up a user by id for token refresh and `/me`. Optional: when omitted and
+		 * `userEntity` is set, a default implementation is used.
+		 */
+		getUserById?: (id: string) => Promise<AuthUser | null>;
+		/**
+		 * The user entity the default credential/user lookups query. Enables the
+		 * default EmailAuthProvider and the default `getUserById`.
+		 */
+		userEntity?: unknown;
+		/** Map the conventional user fields to your entity's property names. */
+		userFields?: UserFieldMap;
+		/** Verify a plaintext password against a stored hash. Defaults to bcrypt. */
+		verifyPassword?: (plain: string, hash: string | undefined | null) => Promise<boolean>;
+	}): this {
+		this._authManager = new AuthManager(config.jwt);
+
+		const fields = this._resolveUserFields(config.userFields);
+		const verifyPassword = config.verifyPassword ?? defaultVerifyPassword;
+
+		// Default to an email/password provider when none supplied and we have an entity.
+		const providers = config.providers ?? (config.userEntity ? [new EmailAuthProvider()] : []);
+
+		const ctx: AuthDefaultsContext = {
+			userEntity: config.userEntity,
+			fields,
+			getEm: () => this.getEm(),
+			getDriverKind: () => this.getDriverKind(),
+			resolveMediaUrl: (value: any) => this.resolveMediaUrl(value),
+			verifyPassword,
+		};
+
+		for (const provider of providers) {
+			// Let providers install panel-bound defaults (e.g. default validateCredentials).
+			provider.bindPanelDefaults?.(ctx);
+			this._authManager.registerProvider(provider);
+		}
+
+		// Store getUserById (explicit, or a default backed by the user entity) for refresh / me.
+		const getUserById =
+			config.getUserById ?? (config.userEntity ? this._defaultGetUserById(config.userEntity, fields) : undefined);
+		if (getUserById) {
+			(this._authManager as any)._getUserById = getUserById;
+		}
+
+		return this;
+	}
+
+	/** Apply field-name defaults (email/password/firstname/lastname/profileMediaImage/role). */
+	private _resolveUserFields(fields?: UserFieldMap): ResolvedUserFieldMap {
+		return {
+			email: fields?.email ?? 'email',
+			password: fields?.password ?? 'password',
+			firstname: fields?.firstname ?? 'firstname',
+			lastname: fields?.lastname ?? 'lastname',
+			image: fields?.image ?? 'profileMediaImage',
+			role: fields?.role ?? 'role',
+		};
+	}
+
+	/**
+	 * Build the default `getUserById`: look the user up by primary key (driver-aware),
+	 * resolve the avatar, and return the AuthUser shape. `role` is passed through as-is;
+	 * core reduces a relation to its id when issuing the token.
+	 */
+	private _defaultGetUserById(
+		userEntity: unknown,
+		fields: ResolvedUserFieldMap,
+	): (id: string) => Promise<AuthUser | null> {
+		return async (id: string): Promise<AuthUser | null> => {
+			const em = this.getEm();
+			const where = this.getDriverKind() === 'mongo' ? { id } : { id: Number(id) };
+			const user: any = await em.findOne(userEntity as any, where);
+			if (!user) {
+				return null;
+			}
+			const avatarUrl = await this.resolveMediaUrl(user[fields.image]);
+			return {
+				id: String(user.id ?? user._id),
+				email: user[fields.email],
+				name: formatUserDisplayName({ firstname: user[fields.firstname], lastname: user[fields.lastname] }),
+				role: user[fields.role],
+				avatarUrl,
+			};
+		};
+	}
+
+	/**
+	 * Get authentication middleware for protecting routes
+	 * @returns Express middleware that requires authentication
+	 */
+	getAuthMiddleware(): RequestHandler {
+		if (!this._authManager) {
+			throw new Error('Authentication not configured. Call panel.auth() first.');
+		}
+		return authMiddleware(this._authManager);
+	}
+
+	/**
+	 * Get optional authentication middleware
+	 * Attaches user to request if token is valid, but doesn't block if not authenticated
+	 */
+	getOptionalAuthMiddleware(): RequestHandler {
+		if (!this._authManager) {
+			throw new Error('Authentication not configured. Call panel.auth() first.');
+		}
+		return optionalAuthMiddleware(this._authManager);
+	}
+
+	/**
+	 * Get the AuthManager instance
+	 */
+	getAuthManager(): AuthManager | undefined {
+		return this._authManager;
+	}
+
+	/**
+	 * Get authentication middleware that requires authentication
+	 * @throws Error if authentication is not configured
+	 */
+	attachAuth(): RequestHandler {
+		return this.getAuthMiddleware();
+	}
+
+	// ============================================================================
+	// Resources & pages
+	// ============================================================================
+
+	/**
+	 * Register resource classes with the panel
+	 * @param resourceClasses - Array of resource classes extending BaseResource
+	 */
+	resources(resourceClasses: ResourceClass[]): this {
+		for (const ResourceClass of resourceClasses) {
+			this._registerResource(ResourceClass);
+		}
+		return this;
+	}
+
+	/**
+	 * Register page classes with the panel
+	 * @param pageClasses - Array of page classes extending Page
+	 */
+	pages(pageClasses: Array<typeof Page>): this {
+		for (const PageClass of pageClasses) {
+			this._registerPage(PageClass);
+		}
+		return this;
+	}
+
+	/**
+	 * Register a single resource class (for plugins)
+	 * This is a public method that plugins can use to register resources
+	 * without overriding existing ones
+	 * @param ResourceClass - Resource class extending BaseResource
+	 */
+	registerResource(ResourceClass: ResourceClass): this {
+		this._registerResource(ResourceClass);
+		return this;
+	}
+
+	/**
+	 * Register a single page class (for plugins)
+	 * @param PageClass - Page class extending Page
+	 */
+	registerPage(PageClass: typeof Page): this {
+		this._registerPage(PageClass);
+		return this;
+	}
+
+	/**
+	 * Register a single page class (internal)
+	 */
+	private _registerPage(PageClass: typeof Page): void {
+		const slug = PageClass.slug;
+
+		if (!slug) {
+			throw new Error(`Page ${PageClass.name} must have a static 'slug' property`);
+		}
+
+		if (this._pages.has(slug)) {
+			throw new Error(`Page with slug "${slug}" is already registered`);
+		}
+
+		this._pages.set(slug, PageClass);
+	}
+
+	/**
+	 * Register a single resource class (internal)
+	 */
+	private _registerResource(ResourceClass: ResourceClass): void {
+		const slug = ResourceClass.getSlug();
+
+		if (!slug) {
+			throw new Error(`Resource ${ResourceClass.name} must have a static 'slug' property`);
+		}
+
+		if (!ResourceClass.entity) {
+			throw new Error(`Resource ${ResourceClass.name} must have a static 'entity' property`);
+		}
+
+		// Set panel reference on resource class
+		ResourceClass.setPanel(this);
+
+		// Create the adapter immediately when the ORM is already initialized,
+		// otherwise it is created during start() after MikroORM.init()
+		const adapter = this._ormManager.isInitialized()
+			? this.createAdapter(ResourceClass)
+			: (undefined as unknown as DataAdapter);
+
+		// Get action handlers
+		const actions = ResourceClass.actions();
+
+		// Get hooks from all sources
+		const staticHooks = ResourceClass.hooks?.() || {};
+		const registeredHooks = this._resourceHooks.get(ResourceClass) || {};
+		const mergedHooks = mergeHooks(staticHooks, registeredHooks);
+
+		// Get widget instances from resource
+		const widgetInstances = ResourceClass.widgets?.() || [];
+		const widgets = new Map<string, any>();
+		for (const widget of widgetInstances) {
+			widgets.set(widget.getName(), widget);
+		}
+
+		// Register the resource
+		this._resources.set(slug, {
+			resourceClass: ResourceClass,
+			adapter,
+			actions,
+			hooks: mergedHooks,
+			widgets,
+		});
+	}
+
+	/**
+	 * Register hooks for a resource class (for plugins)
+	 * Can be called before or after resource registration
+	 * Hooks are merged with existing hooks (arrays are concatenated)
+	 *
+	 * @param ResourceClass - The resource class to register hooks for
+	 * @param hooks - Hook handlers to register
+	 */
+	registerResourceHooks(ResourceClass: ResourceClass, hooks: ResourceHooks): this {
+		const existing = this._resourceHooks.get(ResourceClass) || {};
+		const merged = mergeHooks(existing, hooks);
+		this._resourceHooks.set(ResourceClass, merged);
+
+		// If resource is already registered, update its hooks
+		const slug = ResourceClass.getSlug();
+		const registered = this._resources.get(slug);
+		if (registered) {
+			registered.hooks = mergeHooks(registered.hooks || {}, merged);
+		}
+
+		return this;
+	}
+
+	/**
+	 * Get a registered resource by slug
+	 * @param slug - Resource slug
+	 */
+	getResource(slug: string): RegisteredResource | undefined {
+		return this._resources.get(slug);
+	}
+
+	/**
+	 * Get all registered resources
+	 */
+	getResources(): Map<string, RegisteredResource> {
+		return this._resources;
+	}
+
+	/**
+	 * Get all registered pages
+	 */
+	getPages(): Map<string, typeof Page> {
+		return this._pages;
+	}
+
+	/**
+	 * Create a Resource instance for a registered resource.
+	 * Context is taken from request-scoped storage (set by Panel middleware), so it is
+	 * available in form(), table(), and everywhere via BaseResource.getContext().
+	 * Used by the panel's HTTP controllers.
+	 * @param registered - The registered resource
+	 */
+	createResourceInstance(registered: RegisteredResource): Resource {
+		// attach adapter to the request context
+		const requestContext = getRequestContext();
+		if (requestContext) {
+			requestContext.databaseAdapter = registered.adapter;
+		}
+		// Build the resource's form/table builders, then weave in any plugin-registered
+		// global configuration (configureUsing) before serializing to JSON.
+		const formBuilder = registered.resourceClass.form();
+		const tableBuilder = registered.resourceClass.table();
+		applyGlobalConfiguration(formBuilder, tableBuilder);
+
+		return new Resource({
+			adapter: registered.adapter,
+			formSchema: formBuilder.toJSON(),
+			tableSchema: tableBuilder.toJSON(),
+			hooks: registered.hooks,
+			resourceClass: registered.resourceClass,
+		});
+	}
+
+	// ============================================================================
+	// Permission/filter hooks (registered by plugins)
+	// ============================================================================
+
+	/**
+	 * Get the hook registry (read by the panel's controllers)
+	 */
+	get hooks(): PanelHooks {
+		return this._hooks;
+	}
+
+	/**
+	 * Register a hook to filter panel metadata (resources and pages)
+	 * Used by plugins to filter metadata based on permissions
+	 */
+	registerMetadataFilterHook(hook: MetadataFilterHook): this {
+		this._hooks.metadataFilter = hook;
+		return this;
+	}
+
+	/**
+	 * Register a hook to filter form schema
+	 * Used by plugins to filter form fields based on permissions
+	 */
+	registerFormSchemaFilterHook(hook: SchemaFilterHook): this {
+		this._hooks.formSchemaFilter = hook;
+		return this;
+	}
+
+	/**
+	 * Register a hook to filter table schema
+	 * Used by plugins to filter table columns, actions, and widgets based on permissions
+	 */
+	registerTableSchemaFilterHook(hook: SchemaFilterHook): this {
+		this._hooks.tableSchemaFilter = hook;
+		return this;
+	}
+
+	/**
+	 * Register a hook to filter page blocks
+	 * Used by plugins to filter page blocks based on permissions
+	 */
+	registerPageBlocksFilterHook(hook: PageBlocksFilterHook): this {
+		this._hooks.pageBlocksFilter = hook;
+		return this;
+	}
+
+	/**
+	 * Register a hook to check page access
+	 * Used by plugins to check if user has access to pages
+	 */
+	registerPageAccessCheckHook(hook: PageAccessCheckHook): this {
+		this._hooks.pageAccessCheck = hook;
+		return this;
+	}
+
+	/**
+	 * Register a hook to filter data records based on permissions
+	 * This hook is called after data is fetched but before it's returned to the client
+	 * @param hook - Function that receives records array, resource slug, operation, and user, returns filtered records
+	 */
+	registerDataFilterHook(hook: DataFilterHook): this {
+		this._hooks.dataFilter = hook;
+		return this;
+	}
+
+	/**
+	 * Register a hook to filter resource capabilities (canCreate, canEdit, canDelete, canView)
+	 * This hook is called when returning schema responses to allow plugins to override capabilities
+	 * @param hook - Function that receives capabilities object, resource slug, and user, returns filtered capabilities
+	 */
+	registerCapabilitiesFilterHook(hook: CapabilitiesFilterHook): this {
+		this._hooks.capabilitiesFilter = hook;
+		return this;
+	}
+
+	/**
+	 * Register a hook to authorize execution of custom/bulk/header actions and exports.
+	 * Called by the action and export controllers before running an action; returning
+	 * false yields a 403. Lets plugins gate execution (not just hide buttons).
+	 * @param hook - Function that receives the action name, resource slug, and user, returns whether it is allowed
+	 */
+	registerActionAccessCheckHook(hook: ActionAccessCheckHook): this {
+		this._hooks.actionAccessCheck = hook;
+		return this;
+	}
+
+	// ============================================================================
+	// Metadata & routes
+	// ============================================================================
+
+	/**
+	 * Get panel metadata for frontend consumption
+	 * Hidden resources (with static hidden = true) are excluded from navigation
+	 * Can be filtered by registered metadata filter hook
+	 */
+	getMetadata(user?: AuthUser): PanelMetadata | Promise<PanelMetadata> {
+		return buildPanelMetadata(this, user);
+	}
+
+	/**
+	 * Get navigation badge values for all resources and pages (same visibility as getMetadata).
+	 * Used by GET /meta/badges for initial load and refresh.
+	 */
+	async getBadges(user?: AuthUser): Promise<{
+		resources: Record<string, { value: string | number | null; color?: string } | null>;
+		pages: Record<string, { value: string | number | null; color?: string } | null>;
+	}> {
+		return buildPanelBadges(this, user);
+	}
+
+	/**
+	 * Generate Express Router with all resource routes
+	 * Routes are global with resource as URL parameter
+	 */
+	routes(): Router {
+		return buildPanelRouter(this);
+	}
+}

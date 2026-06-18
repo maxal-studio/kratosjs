@@ -1,0 +1,62 @@
+import 'dotenv/config';
+import path from 'path';
+import { Panel, LocalMediaAdapter, EmailAuthProvider } from '@maxal_studio/kratosjs';
+{{driverImport}}
+{{migratorImport}}
+import { UserResource } from './resources/UserResource';
+import { User } from './entities/User';
+import { seedAdminUser } from './seedAdminUser';
+
+const PORT = parseInt(process.env.PORT || '3000');
+const uploadsPath = path.join(process.cwd(), 'uploads');
+const assetsPath = path.join(process.cwd(), 'assets');
+
+const adminPanel = Panel.make('admin')
+	.path('/kratosjs/api')
+	.title('{{appTitle}}')
+	.favicon('/assets/icon.png')
+	.icon('/assets/icon.png')
+	.orm(
+		{{ormConfig}},
+		{ migrate: true, updateSchema: true },
+	)
+	.mediaAdapters([
+		new LocalMediaAdapter({
+			name: 'local-uploads',
+			uploadPath: uploadsPath,
+			publicUrl: `http://localhost:${PORT}/uploads`,
+			createDirectories: true,
+			isDefault: true,
+		}),
+	])
+	.resources([UserResource])
+	.plugins([]);
+
+// Email/password login. With `userEntity` set, `validateCredentials` and `getUserById`
+// are provided by default (look up the user, verify the password, resolve the avatar).
+// To customize, pass your own `validateCredentials` to EmailAuthProvider, add more
+// providers, or pass a `getUserById` here. Map non-standard field names with `userFields`.
+adminPanel.auth({
+	jwt: {
+		secret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
+		accessTokenExpiry: '15m',
+		refreshTokenExpiry: '7d',
+	},
+	userEntity: User,
+	providers: [new EmailAuthProvider()],
+});
+
+// Serve static assets (including panel icon)
+adminPanel.useStatic('/assets', assetsPath);
+
+adminPanel
+	.start(PORT, async () => {
+		await seedAdminUser(adminPanel);
+		console.log(`🚀 {{appTitle}} running on http://localhost:${PORT}`);
+		console.log(`📊 Admin Panel API: ${adminPanel.getBasePath()}`);
+		console.log('🔐 Login: admin@example.com / password');
+	})
+	.catch((error: unknown) => {
+		console.error('Failed to start panel:', error);
+		process.exit(1);
+	});

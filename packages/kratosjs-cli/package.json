@@ -1,0 +1,38 @@
+{
+	"name": "@maxal_studio/kratosjs-cli",
+	"version": "1.0.0",
+	"description": "Command-line interface for scaffolding KratosJs apps and plugins",
+	"bin": {
+		"kratosjs": "dist/index.js"
+	},
+	"files": [
+		"dist",
+		"templates"
+	],
+	"scripts": {
+		"build": "npm run clean && tsc -p tsconfig.json && chmod +x dist/index.js",
+		"clean": "rm -rf dist",
+		"lint": "eslint ./src"
+	},
+	"keywords": [
+		"kratosjs",
+		"cli",
+		"scaffold",
+		"generator"
+	],
+	"author": "MaxAl",
+	"license": "ISC",
+	"repository": {
+		"type": "git",
+		"url": "git+ssh://git@github.com/maxal-studio/kratos-js.git"
+	},
+	"dependencies": {
+		"@inquirer/prompts": "^8.5.2",
+		"commander": "^15.0.0",
+		"picocolors": "^1.1.1"
+	},
+	"devDependencies": {
+		"@types/node": "^25.9.3",
+		"typescript": "^5.9.3"
+	}
+}

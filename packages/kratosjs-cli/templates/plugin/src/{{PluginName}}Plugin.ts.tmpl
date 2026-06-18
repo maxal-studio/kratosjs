@@ -1,0 +1,17 @@
+import { Plugin, Panel } from '@maxal_studio/kratosjs';
+
+/**
+ * {{PluginName}} Plugin
+ *
+ * Implement `register` to extend a panel: register custom component names,
+ * add routes, register migrations, or wire up resources.
+ */
+export class {{PluginName}}Plugin extends Plugin {
+	getName(): string {
+		return '{{pluginName}}';
+	}
+
+	register(panel: Panel): void {
+		{{registerBody}}
+	}
+}

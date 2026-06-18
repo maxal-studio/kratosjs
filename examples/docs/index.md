@@ -1,0 +1,32 @@
+---
+layout: home
+
+hero:
+    name: KratosJs
+    text: Admin panels, forged in TypeScript
+    tagline: A powerful, opinionated framework for building Node.js backend admin panels with React frontends. Define resources, forms, and tables once — render them everywhere.
+    image:
+        src: /icon.png
+        alt: KratosJs
+    actions:
+        - theme: brand
+          text: Get Started
+          link: /getting-started
+        - theme: alt
+          text: View on Github
+          link: https://github.com/maxal-studio/kratos-js
+
+features:
+    - title: Fluent TypeScript API
+      details: Define resources, forms, and tables with a clean, chainable API. Full autocompletion and compile-time safety out of the box.
+    - title: React Frontend
+      details: A dedicated React package renders your backend-defined schemas dynamically — no hand-written CRUD screens.
+    - title: MikroORM Support
+      details: One adapter for MySQL, PostgreSQL, SQLite, MariaDB, and MongoDB. Swap databases without rewriting your resources.
+    - title: Authentication & Permissions
+      details: Built-in email auth, OAuth, and granular access control. Protect resources and actions with declarative policies.
+    - title: Plugin System
+      details: Extend with plugins that register entities, migrations, resources, pages, routes, and lifecycle hooks.
+    - title: Media Management
+      details: Integrated file uploads with local and S3 storage backends. Attach media to any resource field.
+---

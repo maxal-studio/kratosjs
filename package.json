@@ -1,0 +1,151 @@
+{
+	"name": "@maxal_studio/kratosjs",
+	"version": "1.0.0",
+	"description": "KratosJs - A powerful admin panel builder for Node.js.",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		},
+		"./dist/validation": {
+			"types": "./dist/validation/index.d.ts",
+			"default": "./dist/validation/index.js"
+		},
+		"./vite": {
+			"types": "./vite/index.d.mts",
+			"import": "./vite/index.mjs"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist",
+		"assets",
+		"vite"
+	],
+	"workspaces": [
+		"packages/kratosjs-react",
+		"packages/kratosjs-cli",
+		"examples/*"
+	],
+	"scripts": {
+		"release": "npm run build && npm run publish:packages",
+		"publish:packages": "npm publish && npm publish -w @maxal_studio/kratosjs-react && npm publish -w @maxal_studio/kratosjs-cli",
+		"build": "npm run clean && tsc && npm run build:packages",
+		"build:packages": "npm run build:react && npm run build:cli",
+		"build:react": "cd packages/kratosjs-react && npm i && npm run clean && npm run build",
+		"build:cli": "cd packages/kratosjs-cli && npm i && npm run clean && npm run build",
+		"lint": "eslint ./src",
+		"format": "prettier --write 'src/**/*.{ts,js,json,md}'",
+		"precommit": "npm run lint && npm run format:check && npm test",
+		"format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
+		"format:fix": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
+		"prepublishOnly": "npm run lint && npm test",
+		"test": "vitest run && npm run test --workspaces --if-present",
+		"prepare": "husky",
+		"clean": "rm -rf dist"
+	},
+	"keywords": [
+		"kratosjs"
+	],
+	"author": "MaxAl",
+	"email": "info@max.al",
+	"website": "https://max.al",
+	"license": "ISC",
+	"peerDependencies": {
+		"@aws-sdk/client-s3": "^3.0.0",
+		"@aws-sdk/s3-request-presigner": "^3.0.0",
+		"@maxal_studio/kratosjs-react": "^1.0.0",
+		"@mikro-orm/mariadb": "^7.0.0",
+		"@mikro-orm/migrations": "^7.0.0",
+		"@mikro-orm/migrations-mongodb": "^7.0.0",
+		"@mikro-orm/mongodb": "^7.0.0",
+		"@mikro-orm/mysql": "^7.0.0",
+		"@mikro-orm/postgresql": "^7.0.0",
+		"@mikro-orm/sqlite": "^7.0.0"
+	},
+	"peerDependenciesMeta": {
+		"@aws-sdk/client-s3": {
+			"optional": true
+		},
+		"@aws-sdk/s3-request-presigner": {
+			"optional": true
+		},
+		"@mikro-orm/mariadb": {
+			"optional": true
+		},
+		"@mikro-orm/migrations": {
+			"optional": true
+		},
+		"@mikro-orm/migrations-mongodb": {
+			"optional": true
+		},
+		"@mikro-orm/mongodb": {
+			"optional": true
+		},
+		"@mikro-orm/mysql": {
+			"optional": true
+		},
+		"@mikro-orm/postgresql": {
+			"optional": true
+		},
+		"@mikro-orm/sqlite": {
+			"optional": true
+		},
+		"@maxal_studio/kratosjs-react": {
+			"optional": true
+		}
+	},
+	"dependencies": {
+		"@aws-sdk/client-s3": "^3.0.0",
+		"@aws-sdk/s3-request-presigner": "^3.0.0",
+		"@mikro-orm/core": "^7.1.4",
+		"@vitejs/plugin-react": "^5.2.0",
+		"bcryptjs": "^3.0.3",
+		"cookie-parser": "^1.4.7",
+		"cors": "^2.8.6",
+		"express": "^5.2.1",
+		"jsonwebtoken": "^9.0.3",
+		"vite": "^7.3.5",
+		"vite-express": "^0.22.1"
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.39.4",
+		"@mikro-orm/migrations": "^7.1.4",
+		"@mikro-orm/mongodb": "^7.1.4",
+		"@mikro-orm/sqlite": "^7.1.4",
+		"@swc/core": "^1.15.41",
+		"@types/cookie-parser": "^1.4.10",
+		"@types/cors": "^2.8.19",
+		"@types/express": "^5.0.6",
+		"@types/jsonwebtoken": "^9.0.10",
+		"@types/node": "^25.9.3",
+		"@types/react": "^19.2.17",
+		"@types/react-dom": "^19.2.3",
+		"eslint": "^9.39.4",
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-prettier": "^5.5.6",
+		"eslint-plugin-react-hooks": "^7.1.1",
+		"eslint-plugin-react-refresh": "^0.5.3",
+		"globals": "^17.6.0",
+		"husky": "^9.1.7",
+		"mongodb-memory-server": "^11.2.0",
+		"tsx": "^4.22.4",
+		"typescript": "^5.9.3",
+		"typescript-eslint": "^8.61.0",
+		"vitest": "^4.1.8"
+	},
+	"directories": {
+		"doc": "docs",
+		"example": "examples"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+ssh://git@github.com/maxal-studio/kratos-js.git"
+	},
+	"bugs": {
+		"url": "https://github.com/maxal-studio/kratos-js/issues"
+	},
+	"homepage": "https://github.com/maxal-studio/kratos-js#readme"
+}

@@ -1,0 +1,61 @@
+# {{appName}}
+
+A [KratosJs](https://github.com/maxal-studio/kratos-js) admin panel using **{{driverLabel}}**.
+
+## Getting started
+
+1. Copy the environment file and adjust the database settings:
+
+```bash
+cp .env.example .env
+```
+
+2. Install dependencies (if you skipped `--install`):
+
+```bash
+npm install
+```
+
+3. Start the dev server (API + admin client with HMR):
+
+```bash
+npm run dev
+```
+
+The admin panel will be available at `http://localhost:3000`.
+
+Default login (seeded automatically on first boot):
+
+- **Email:** `admin@example.com`
+- **Password:** `password`
+
+## Project structure
+
+```
+src/
+  index.ts              # Panel definition, ORM config, auth, server bootstrap
+  entities/User.ts       # MikroORM entity (driver-agnostic schema)
+  resources/UserResource.ts  # Admin resource (form + table) for users
+  seedAdminUser.ts       # Seeds the demo admin user on first boot
+  admin/main.tsx         # Admin client entry — register plugin client manifests here
+  migrations/            # Generated migrations (mikro-orm migration:create)
+index.html              # Admin client HTML shell
+vite.config.mts         # Admin client Vite config (kratosAdminVite)
+```
+
+The database schema is created automatically on first boot via `updateSchema: true`.
+When you are ready for versioned migrations, generate them with
+`npx mikro-orm migration:create` and register them on the panel.
+
+## Building for production
+
+```bash
+npm run build   # compiles the server (tsc) and the admin client (vite build)
+npm start       # runs the compiled server with NODE_ENV=production
+```
+
+## Adding a plugin
+
+Install a KratosJs plugin package, register its server class in `src/index.ts`
+via `.plugins([...])`, and (if it ships UI) import its client manifest in
+`src/admin/main.tsx`. See the docs for details.

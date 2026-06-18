@@ -1,0 +1,15 @@
+{
+	"name": "{{appName}}",
+	"version": "1.0.0",
+	"private": true,
+	"description": "A KratosJs admin panel ({{driverLabel}})",
+	"scripts": {
+		"dev": "tsx watch src/index.ts",
+		"build": "npm run build:server && npm run build:admin",
+		"build:server": "tsc",
+		"build:admin": "vite build",
+		"start": "NODE_ENV=production node dist/index.js"
+	},
+	"dependencies": {{dependencies}},
+	"devDependencies": {{devDependencies}}
+}
