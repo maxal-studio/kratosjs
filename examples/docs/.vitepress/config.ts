@@ -35,7 +35,6 @@ export default defineConfig({
 		},
 		nav: [
 			{ text: 'Guide', link: '/getting-started' },
-			{ text: 'Database', link: '/database/overview' },
 			{ text: 'Resources', link: '/resources/overview' },
 			{ text: 'Pages', link: '/pages/overview' },
 			{ text: 'Forms', link: '/forms/overview' },
@@ -52,13 +51,8 @@ export default defineConfig({
 						{ text: 'Overview', link: '/' },
 						{ text: 'Getting Started', link: '/getting-started' },
 						{ text: 'Backend Setup', link: '/backend-setup' },
+						{ text: 'Database & MikroORM', link: '/database/overview' },
 					],
-				},
-			],
-			'/database/': [
-				{
-					text: 'Database',
-					items: [{ text: 'Database & MikroORM', link: '/database/overview' }],
 				},
 			],
 			'/resources/': [
