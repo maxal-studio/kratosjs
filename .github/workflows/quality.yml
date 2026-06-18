@@ -1,0 +1,32 @@
+name: Quality
+
+# Merge gate: lint, format, unit tests, type-checking, and build. Mark the `quality`
+# job as a required status check on `main` (branch protection) to block merges
+# on failure.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Format
+        run: npm run format:check
+      - name: Test
+        run: npm run test --workspaces --if-present
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Build
+        run: npm run build
