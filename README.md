@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/icon.png" alt="KratosJs" width="120" />
+</p>
+
 # KratosJs
 
 **Admin panels, forged in TypeScript.**
@@ -74,15 +78,7 @@ Open the printed URL and sign in with **admin@example.com** / **password** (seed
 
 ## Documentation
 
-The documentation is a VitePress site located in [`examples/docs/`](https://github.com/maxal-studio/kratos-js/tree/main/examples/docs).
-
-Run it locally:
-
-```bash
-cd examples/docs
-npm install
-npm run dev
-```
+Full documentation is available at **[docs.kratosjs.com](https://docs.kratosjs.com)**.
 
 **Topics covered:** Getting Started · Resources · Form Fields · Table Columns · Authentication · Pages · Media · Plugin System · Creating Plugins · Custom Fields · Custom Columns
 
