@@ -112,7 +112,6 @@ import { Panel } from '@maxal_studio/kratosjs';
 import { MongoDriver } from '@mikro-orm/mongodb';
 
 const panel = Panel.make('admin')
-	.path('/kratosjs/api')
 	.orm(
 		{
 			driver: MongoDriver,

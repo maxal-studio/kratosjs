@@ -21,7 +21,6 @@ const DATABASE_PORT = parseInt(process.env.DATABASE_PORT || '3306');
 const DATABASE_NAME = process.env.DATABASE_NAME || 'kratosjs';
 
 const adminPanel = Panel.make('admin')
-	.path('/kratosjs/api')
 	.title('KratosJs (MySQL)')
 	.favicon('/assets/icon.png')
 	.icon('/assets/icon.png')

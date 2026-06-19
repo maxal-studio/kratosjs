@@ -402,7 +402,7 @@ export function RichEditorField({
 							isArray: false,
 						}),
 					},
-					apiBaseUrl || '/kratosjs/api',
+					apiBaseUrl,
 				);
 
 				if (!response.ok) {

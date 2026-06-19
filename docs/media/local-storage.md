@@ -58,17 +58,15 @@ const uploadsPath = path.join(process.cwd(), 'uploads');
 app.use('/uploads', express.static(uploadsPath));
 
 // Create panel with local storage
-const adminPanel = Panel.make('admin')
-	.path('/kratosjs/api')
-	.mediaAdapters([
-		new LocalMediaAdapter({
-			name: 'local-uploads',
-			uploadPath: uploadsPath,
-			publicUrl: `http://localhost:${PORT}/`,
-			createDirectories: true,
-			isDefault: true,
-		}),
-	]);
+const adminPanel = Panel.make('admin').mediaAdapters([
+	new LocalMediaAdapter({
+		name: 'local-uploads',
+		uploadPath: uploadsPath,
+		publicUrl: `http://localhost:${PORT}/`,
+		createDirectories: true,
+		isDefault: true,
+	}),
+]);
 ```
 
 ## File Structure

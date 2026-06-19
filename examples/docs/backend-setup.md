@@ -38,7 +38,6 @@ import path from 'path';
 const PORT = 3001;
 
 const adminPanel = Panel.make('admin')
-	.path('/kratosjs/api')
 	.orm(
 		{
 			driver: MongoDriver,
@@ -67,7 +66,6 @@ Configure how your admin panel appears in the browser tab, header, and login scr
 
 ```typescript
 const adminPanel = Panel.make('admin')
-	.path('/kratosjs/api')
 	.title('My Admin')
 	.icon('LayoutDashboard') // Lucide icon for header + login when no favicon image
 	.favicon('/assets/logo.png'); // Browser tab + logo image in header/login (takes precedence)
@@ -286,7 +284,6 @@ import { seedAdminUser } from './seedAdminUser';
 const PORT = 3001;
 
 const adminPanel = Panel.make('admin')
-	.path('/kratosjs/api')
 	.orm({ driver: MongoDriver, clientUrl: 'mongodb://localhost:27017', dbName: 'kratosjs' }, { updateSchema: true })
 	.mediaAdapters([
 		new LocalMediaAdapter({

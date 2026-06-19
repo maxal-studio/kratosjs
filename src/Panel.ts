@@ -77,7 +77,7 @@ export class Panel {
 	private _title?: string;
 	private _icon?: string;
 	private _favicon?: string;
-	private _basePath: string = '/api';
+	private _basePath: string = '/kratosjs/api';
 	private _adapterClass?: AdapterClass;
 	private _defaultSearchableFields: string[] = [];
 	private _resources: Map<string, RegisteredResource> = new Map();

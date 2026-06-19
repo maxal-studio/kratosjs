@@ -82,7 +82,6 @@ import { MongoDriver } from '@mikro-orm/mongodb';
 import { UserResource } from './resources/UserResource';
 
 const panel = Panel.make('admin')
-	.path('/kratosjs/api')
 	.orm({ driver: MongoDriver, clientUrl: 'mongodb://localhost:27017', dbName: 'kratosjs' }, { updateSchema: true })
 	.resources([UserResource]);
 

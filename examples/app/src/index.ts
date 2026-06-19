@@ -21,7 +21,6 @@ const DATABASE_PORT = process.env.DATABASE_PORT || '27017';
 const DATABASE_NAME = process.env.DATABASE_NAME || 'kratosjs';
 
 const adminPanel = Panel.make('admin')
-	.path('/kratosjs/api')
 	.title('KratosJs (MongoDB)')
 	.favicon('/assets/icon.png')
 	.orm(

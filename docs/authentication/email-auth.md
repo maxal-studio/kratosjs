@@ -13,7 +13,6 @@ import { Panel, EmailAuthProvider } from '@maxal_studio/kratosjs';
 import { User } from './entities/User';
 
 const panel = Panel.make('admin')
-	.path('/kratosjs/api')
 	.orm(/* ... */)
 	.resources([UserResource])
 	.auth({

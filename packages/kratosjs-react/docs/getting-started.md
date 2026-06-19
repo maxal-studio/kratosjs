@@ -133,7 +133,6 @@ import { UserResource } from './resources/UserResource';
 const PORT = 3001;
 
 const adminPanel = Panel.make('admin')
-	.path('/kratosjs/api')
 	.title('My Admin')
 	.icon('LayoutDashboard')
 	.favicon('/assets/logo.png')

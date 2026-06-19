@@ -352,7 +352,7 @@ export function FileUploadField({
 							bucket, // Pass bucket adapter name
 						}),
 					},
-					apiBaseUrl || '/kratosjs/api',
+					apiBaseUrl,
 				);
 
 				if (!response.ok) {
@@ -385,7 +385,7 @@ export function FileUploadField({
 						headers: { 'Content-Type': 'application/json' },
 						body: JSON.stringify(body),
 					},
-					apiBaseUrl || '/kratosjs/api',
+					apiBaseUrl,
 				);
 				return response.ok;
 			} catch (error) {

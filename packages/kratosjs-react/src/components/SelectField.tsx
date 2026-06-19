@@ -108,7 +108,7 @@ function SelectFieldViewMode({
 			setIsLoading(true);
 			try {
 				const resourceSlug = relationship.resource || relationship.name;
-				const apiUrl = apiBaseUrl || '/kratosjs/api';
+				const apiUrl = apiBaseUrl;
 				const fetchPromises = valueIds.map(async (id: string) => {
 					try {
 						const response = await authenticatedFetch(
@@ -300,7 +300,7 @@ export function SelectField(props: FieldProps) {
 					throw new Error('Resource slug is required for relationship data fetching');
 				}
 
-				const apiBaseUrl = (props as any).apiBaseUrl || '/kratosjs/api';
+				const apiBaseUrl = (props as any).apiBaseUrl;
 				const url = `${apiBaseUrl}/${resourceSlug}/list`;
 
 				const body: any = { perPage: 50 };
@@ -383,7 +383,7 @@ export function SelectField(props: FieldProps) {
 				try {
 					const { resource, titleAttribute } = props.relationship!;
 					const resourceSlug = resource || props.relationship!.name;
-					const apiBaseUrl = (props as any).apiBaseUrl || '/kratosjs/api';
+					const apiBaseUrl = (props as any).apiBaseUrl;
 
 					const fetchPromises = missingIds.map(async (id: string) => {
 						try {
@@ -825,7 +825,7 @@ export function SelectField(props: FieldProps) {
 					mode="create"
 					resourceName={props.createOptionModalHeading || 'Record'}
 					resourceSlug={props.relationship!.resource || props.relationship!.name}
-					apiBaseUrl={(props as any).apiBaseUrl || '/kratosjs/api'}
+					apiBaseUrl={(props as any).apiBaseUrl}
 					formSchema={{ type: 'form', components: props.createOptionForm || [] } as any}
 					onSuccess={handleCreateRelationshipSuccess}
 					depth={1}

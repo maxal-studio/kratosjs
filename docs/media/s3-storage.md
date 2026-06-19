@@ -103,18 +103,16 @@ Make sure your S3 bucket has the following permissions:
 ```typescript
 import { Panel, S3MediaAdapter } from '@maxal_studio/kratosjs';
 
-const adminPanel = Panel.make('admin')
-	.path('/kratosjs/api')
-	.mediaAdapters([
-		new S3MediaAdapter({
-			name: 's3-bucket',
-			bucket: process.env.AWS_BUCKET_NAME as string,
-			region: process.env.AWS_REGION as string,
-			uploadPath: 'uploads-test/live/',
-			accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-			secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-			publicUrl: process.env.AWS_PUBLIC_URL as string,
-			isDefault: true,
-		}),
-	]);
+const adminPanel = Panel.make('admin').mediaAdapters([
+	new S3MediaAdapter({
+		name: 's3-bucket',
+		bucket: process.env.AWS_BUCKET_NAME as string,
+		region: process.env.AWS_REGION as string,
+		uploadPath: 'uploads-test/live/',
+		accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+		secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+		publicUrl: process.env.AWS_PUBLIC_URL as string,
+		isDefault: true,
+	}),
+]);
 ```
