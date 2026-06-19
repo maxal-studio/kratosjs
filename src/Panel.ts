@@ -25,7 +25,8 @@ import { HttpAdapter } from './adapters/http/HttpAdapter';
 import { ExpressAdapter } from './adapters/http/ExpressAdapter';
 import { Plugin } from './plugins/Plugin';
 import { attachRedirectHelper } from './utils/redirectHelper';
-import { mergeHooks } from './utils/panelHelpers';
+import { mergeHooks, mergeMediaHooks } from './utils/panelHelpers';
+import { MediaFileInfo } from './utils/mediaHelpers';
 import { OrmManager, OrmOptions, DriverKind } from './panel/OrmManager';
 import { MediaManager } from './panel/MediaManager';
 import {
@@ -38,8 +39,8 @@ import {
 	CapabilitiesFilterHook,
 	ActionAccessCheckHook,
 	MediaAccessCheckHook,
-	MediaUploadedHook,
-	MediaDeletedHook,
+	MediaHooks,
+	MediaHookContext,
 } from './panel/PanelHooks';
 import { buildPanelMetadata, buildPanelBadges } from './panel/metadata';
 import { buildPanelRouter } from './panel/routes';
@@ -87,6 +88,7 @@ export class Panel {
 	private _pages: Map<string, typeof Page> = new Map();
 	private _middleware: RequestHandler[] = [];
 	private _resourceHooks: Map<ResourceClass, ResourceHooks> = new Map();
+	private _mediaHooks: MediaHooks = {};
 	private _authManager?: AuthManager;
 	private _httpAdapterClass?: new (panel: Panel, basePath: string) => HttpAdapter;
 	private _httpAdapter?: HttpAdapter;
@@ -1138,23 +1140,66 @@ export class Panel {
 	}
 
 	/**
-	 * Register a hook notified after a media file is successfully uploaded.
-	 * Lets a media-manager plugin persist an owner link (media -> user/entity).
-	 * @param hook - Function receiving the upload result and the MediaHookContext
+	 * Register array-based media lifecycle hooks (the media analog of
+	 * registerResourceHooks). Handlers stack — arrays are concatenated — and run
+	 * in registration order so each sees the prior handler's mutations.
+	 *
+	 * `beforeMediaUpload` hooks may mutate the context (e.g. replace `ctx.file`
+	 * with a compressed buffer, rename, reroute the bucket); `after*` hooks
+	 * observe `ctx.result`. Use this for transforms, linking, logging and audit.
+	 * Authorization is separate — see registerMediaUploadAccessCheckHook.
+	 * @param hooks - Media hook handlers keyed by lifecycle event
 	 */
-	registerMediaUploadedHook(hook: MediaUploadedHook): this {
-		this._hooks.mediaUploaded = hook;
+	registerMediaHooks(hooks: MediaHooks): this {
+		this._mediaHooks = mergeMediaHooks(this._mediaHooks, hooks);
 		return this;
 	}
 
 	/**
-	 * Register a hook notified after a media file is successfully deleted.
-	 * Lets a media-manager plugin remove the corresponding owner link.
-	 * @param hook - Function receiving the MediaHookContext
+	 * Run the registered handlers for a media lifecycle event in order, awaiting
+	 * each so a handler sees the previous handler's mutations to the context.
+	 * Called by the media controller. Errors propagate to the caller.
 	 */
-	registerMediaDeletedHook(hook: MediaDeletedHook): this {
-		this._hooks.mediaDeleted = hook;
-		return this;
+	async executeMediaHooks(event: keyof MediaHooks, ctx: MediaHookContext): Promise<void> {
+		const handlers = this._mediaHooks[event];
+		if (!handlers?.length) return;
+
+		for (const handler of handlers) {
+			await handler(ctx);
+		}
+	}
+
+	/**
+	 * Delete media files while firing the media lifecycle hooks for each one.
+	 *
+	 * Used by the CRUD controller when a record update removes/replaces a file or a
+	 * record is deleted — so `beforeMediaDelete`/`afterMediaDelete` (and `onMediaError`)
+	 * fire for backend-initiated deletions just like for the direct delete route.
+	 *
+	 * Unlike the HTTP delete route, this does NOT run `mediaDeleteAccessCheck`: the
+	 * deletion is a side effect of an already-authorized record update/delete, so the
+	 * authorization decision was made at the record level. Deletion is best-effort per
+	 * file (a failure is reported to `onMediaError` and logged, then skipped).
+	 *
+	 * `baseContext` carries the trusted server-side context (user, resourceSlug, recordId).
+	 */
+	async deleteMediaFiles(files: MediaFileInfo[], baseContext: Partial<MediaHookContext> = {}): Promise<void> {
+		for (const file of files) {
+			const ctx: MediaHookContext = { ...baseContext, operation: 'delete', key: file.key, bucket: file.bucket };
+			try {
+				await this.executeMediaHooks('beforeMediaDelete', ctx);
+				await this._mediaManager.deleteFiles([file]);
+				await this.executeMediaHooks('afterMediaDelete', ctx);
+			} catch (error) {
+				ctx.error = error instanceof Error ? error : new Error(String(error));
+				try {
+					await this.executeMediaHooks('onMediaError', ctx);
+				} catch (hookError) {
+					console.error('Error in onMediaError hook:', hookError);
+				}
+				console.warn(`Failed to delete media ${file.key}:`, error);
+			}
+		}
 	}
 
 	// ============================================================================

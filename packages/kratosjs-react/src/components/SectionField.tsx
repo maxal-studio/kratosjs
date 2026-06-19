@@ -42,9 +42,17 @@ export function SectionField({
 	value,
 	_recordData,
 	operation,
+	apiBaseUrl,
+	resource,
 	isLastSectionInParent,
 	sectionDepth = 0,
-}: FieldProps & { _recordData?: any; isLastSectionInParent?: boolean; sectionDepth?: number }) {
+}: FieldProps & {
+	_recordData?: any;
+	isLastSectionInParent?: boolean;
+	sectionDepth?: number;
+	apiBaseUrl?: string;
+	resource?: string;
+}) {
 	// Default to collapsed if not specified
 	const [isCollapsed, setIsCollapsed] = React.useState(initialCollapsed !== undefined ? initialCollapsed : true);
 
@@ -159,6 +167,8 @@ export function SectionField({
 															mode={mode}
 															value={nestedValue}
 															operation={operation}
+															apiBaseUrl={apiBaseUrl}
+															resource={resource}
 														/>
 													);
 												},
@@ -210,6 +220,8 @@ export function SectionField({
 															mode={mode}
 															value={nestedValue}
 															operation={operation}
+															apiBaseUrl={apiBaseUrl}
+															resource={resource}
 														/>
 													);
 												},

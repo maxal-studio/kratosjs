@@ -20,7 +20,9 @@ export function GroupField({
 	value,
 	_recordData,
 	operation,
-}: FieldProps & { _recordData?: any }) {
+	apiBaseUrl,
+	resource,
+}: FieldProps & { _recordData?: any; apiBaseUrl?: string; resource?: string }) {
 	const groupId = useId();
 	const recordData = mode === 'view' && _recordData ? _recordData : value || {};
 	const gridClasses = getGridClasses(columns);
@@ -72,6 +74,8 @@ export function GroupField({
 								mode={mode}
 								value={nestedValue}
 								operation={operation}
+								apiBaseUrl={apiBaseUrl}
+								resource={resource}
 							/>
 						);
 					})}

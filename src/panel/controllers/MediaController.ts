@@ -15,8 +15,10 @@ import { MediaHookContext } from '../PanelHooks';
  * - The media access-check hooks (`mediaUploadAccessCheck` / `mediaDeleteAccessCheck`) layer
  *   on top for fine-grained / ownership-based authorization and are the only policy gate the
  *   global (non-resource) routes get beyond authentication. Default (unset) = allow.
- * - The `mediaUploaded` / `mediaDeleted` hooks let a media-manager plugin link a stored file
- *   to its owner (user/entity) and clean that link up on delete.
+ * - The array-based media lifecycle hooks (`beforeMediaUpload`/`afterMediaUpload`/
+ *   `beforeMediaDelete`/`afterMediaDelete`/`onMediaError`, registered via
+ *   `panel.registerMediaHooks`) let plugins transform the uploaded bytes (compress/crop),
+ *   link a stored file to its owner, log, and audit failures.
  */
 export class MediaController {
 	constructor(private panel: Panel) {}
@@ -55,6 +57,7 @@ export class MediaController {
 	 * Expects the file to be sent as base64 in the JSON body
 	 */
 	async handleUpload(req: Request, res: Response): Promise<void> {
+		let context: MediaHookContext | undefined;
 		try {
 			const {
 				file,
@@ -81,7 +84,7 @@ export class MediaController {
 				return;
 			}
 
-			const context: MediaHookContext = {
+			context = {
 				operation: 'upload',
 				user: req.authUser,
 				resourceSlug: this.getResourceSlug(req),
@@ -90,6 +93,8 @@ export class MediaController {
 				isArray,
 				existingValue,
 				bucket,
+				// The buffer is mutable: a beforeMediaUpload hook may replace it (compress/crop).
+				file: Buffer.from(file, 'base64'),
 				filename,
 				contentType,
 				path,
@@ -107,9 +112,12 @@ export class MediaController {
 				}
 			}
 
-			// Get media adapter by bucket name (or use default)
-			const mediaAdapter = bucket
-				? this.panel.media.getAdapter(bucket)
+			// Lifecycle: let plugins transform the bytes / options before storage
+			await this.panel.executeMediaHooks('beforeMediaUpload', context);
+
+			// Get media adapter by bucket name (a hook may have rerouted it; else use default)
+			const mediaAdapter = context.bucket
+				? this.panel.media.getAdapter(context.bucket)
 				: this.panel.media.getAdapter() || this.panel.media.getOrCreateDefaultAdapter();
 
 			if (!mediaAdapter) {
@@ -119,27 +127,28 @@ export class MediaController {
 				return;
 			}
 
-			// Convert base64 to buffer
-			const fileBuffer = Buffer.from(file, 'base64');
-
-			// Upload the file
-			const uploadResult = await mediaAdapter.upload(fileBuffer, {
-				filename: filename || 'file',
-				contentType,
-				path,
-				visibility,
+			// Upload the (possibly transformed) file using the post-hook options
+			const uploadResult = await mediaAdapter.upload(context.file as Buffer, {
+				filename: context.filename || 'file',
+				contentType: context.contentType,
+				path: context.path,
+				visibility: context.visibility,
+				metadata: context.metadata,
 			});
 
-			// Notify plugins so they can link the stored file to its owner (user/entity)
-			await this.panel.hooks.mediaUploaded?.({ key: uploadResult.key, url: uploadResult.url, bucket }, context);
+			context.result = { key: uploadResult.key, url: uploadResult.url, bucket: context.bucket };
+
+			// Lifecycle: let plugins link the stored file to its owner, log, etc.
+			await this.panel.executeMediaHooks('afterMediaUpload', context);
 
 			res.status(200).json({
 				data: {
-					url: uploadResult.url,
-					key: uploadResult.key,
+					url: context.result.url,
+					key: context.result.key,
 				},
 			});
 		} catch (error: any) {
+			await this.runErrorHooks(context, error);
 			console.error('Error uploading media:', error);
 			res.status(500).json({
 				message: error.message || 'Failed to upload media',
@@ -151,6 +160,7 @@ export class MediaController {
 	 * Handle media file deletion
 	 */
 	async handleDelete(req: Request, res: Response): Promise<void> {
+		let context: MediaHookContext | undefined;
 		try {
 			const { key, bucket, fieldName, recordId } = req.body;
 
@@ -166,12 +176,11 @@ export class MediaController {
 				return;
 			}
 
-			// Get media adapter by bucket name (or use default)
-			// If key is an object with bucket, use that
+			// Resolve the bucket/key (the key may arrive as a plain string or a { key, bucket } object)
 			const bucketName = bucket || (typeof key === 'object' && key.bucket ? key.bucket : undefined);
 			const actualKey = typeof key === 'object' && key.key ? key.key : key;
 
-			const context: MediaHookContext = {
+			context = {
 				operation: 'delete',
 				user: req.authUser,
 				resourceSlug: this.getResourceSlug(req),
@@ -193,8 +202,11 @@ export class MediaController {
 				}
 			}
 
-			const mediaAdapter = bucketName
-				? this.panel.media.getAdapter(bucketName)
+			// Lifecycle: let plugins inspect/abort before deletion
+			await this.panel.executeMediaHooks('beforeMediaDelete', context);
+
+			const mediaAdapter = context.bucket
+				? this.panel.media.getAdapter(context.bucket)
 				: this.panel.media.getAdapter() || this.panel.media.getOrCreateDefaultAdapter();
 
 			if (!mediaAdapter) {
@@ -205,20 +217,35 @@ export class MediaController {
 			}
 
 			// Delete the file
-			await mediaAdapter.delete(actualKey);
+			await mediaAdapter.delete(context.key as string);
 
-			// Notify plugins so they can remove the corresponding owner link
-			await this.panel.hooks.mediaDeleted?.(context);
+			// Lifecycle: let plugins remove the owner link, log, etc.
+			await this.panel.executeMediaHooks('afterMediaDelete', context);
 
 			res.status(200).json({
 				success: true,
 				message: 'File deleted successfully',
 			});
 		} catch (error: any) {
+			await this.runErrorHooks(context, error);
 			console.error('Error deleting media:', error);
 			res.status(500).json({
 				message: error.message || 'Failed to delete media',
 			});
+		}
+	}
+
+	/**
+	 * Run onMediaError hooks for a failed operation. Swallows hook errors so a
+	 * faulty audit handler can never mask the original failure.
+	 */
+	private async runErrorHooks(context: MediaHookContext | undefined, error: any): Promise<void> {
+		if (!context) return;
+		context.error = error instanceof Error ? error : new Error(String(error));
+		try {
+			await this.panel.executeMediaHooks('onMediaError', context);
+		} catch (hookError) {
+			console.error('Error in onMediaError hook:', hookError);
 		}
 	}
 }

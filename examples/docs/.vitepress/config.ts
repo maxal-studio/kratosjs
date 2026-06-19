@@ -147,6 +147,7 @@ export default defineConfig({
 					text: 'Media',
 					items: [
 						{ text: 'Overview', link: '/media/overview' },
+						{ text: 'Hooks', link: '/media/hooks' },
 						{ text: 'Local Storage', link: '/media/local-storage' },
 						{ text: 'S3 Storage', link: '/media/s3-storage' },
 					],

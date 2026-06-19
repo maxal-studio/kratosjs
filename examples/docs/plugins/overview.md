@@ -187,21 +187,32 @@ register(panel: Panel): void {
 }
 ```
 
-### Authorize & Observe Media
+### Authorize, Transform & Observe Media
 
-Plugins can gate and observe media uploads/deletes — authorize what may be uploaded, guard against
-arbitrary-key deletion, and link each stored file to its owner (user/entity):
+Plugins interact with media through two layers. **Authorization** (single-handler) gates what
+may be uploaded/deleted and guards against arbitrary-key deletion:
 
 ```typescript
 register(panel: Panel): void {
   panel.registerMediaUploadAccessCheckHook(async (ctx) => ctx.user?.role === 'editor');
   panel.registerMediaDeleteAccessCheckHook(async (ctx) => mediaIsOwnedBy(ctx.key, ctx.user?.id));
-  panel.registerMediaUploadedHook(async (result, ctx) => linkMedia(result.key, ctx));
-  panel.registerMediaDeletedHook(async (ctx) => unlinkMedia(ctx.key));
 }
 ```
 
-See [Media → Authorization & Hooks](/media/overview#authorization-hooks) for the full hook context.
+**Lifecycle hooks** (array-based, stackable) transform the bytes before storage, link files to
+their owners, log, and audit failures:
+
+```typescript
+register(panel: Panel): void {
+  panel.registerMediaHooks({
+    beforeMediaUpload: [async (ctx) => { ctx.file = await compress(ctx.file); }],
+    afterMediaUpload: [async (ctx) => linkMedia(ctx.result!.key, ctx)],
+    afterMediaDelete: [async (ctx) => unlinkMedia(ctx.key)],
+  });
+}
+```
+
+See [Media → Hooks](/media/hooks) for the full lifecycle and `MediaHookContext` fields.
 
 ### Register Custom Component Names
 

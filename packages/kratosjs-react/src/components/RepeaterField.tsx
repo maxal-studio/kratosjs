@@ -30,6 +30,10 @@ export function RepeaterField(props: FieldProps) {
 		operation,
 	} = props;
 
+	// Threaded down so nested fields (e.g. relation selects, file uploads) can reach the API.
+	const apiBaseUrl = (props as any).apiBaseUrl as string | undefined;
+	const resource = (props as any).resource as string | undefined;
+
 	// Determine if repeater should be treated as required (for minItems fallback)
 	let isRequired = props.required === true;
 	const validationRules = (props.validation as { rules?: Array<string | { rule?: string }> } | undefined)?.rules;
@@ -73,6 +77,8 @@ export function RepeaterField(props: FieldProps) {
 											mode="view"
 											value={fieldValue}
 											operation={operation ?? 'view'}
+											apiBaseUrl={apiBaseUrl}
+											resource={resource}
 										/>
 									);
 								})}
@@ -374,6 +380,8 @@ export function RepeaterField(props: FieldProps) {
 														key={fieldSchema.name}
 														field={nestedField}
 														operation={operation}
+														apiBaseUrl={apiBaseUrl}
+														resource={resource}
 													/>
 												);
 											})}
@@ -497,6 +505,8 @@ export function RepeaterField(props: FieldProps) {
 												key={fieldSchema.name}
 												field={nestedField}
 												operation={operation}
+												apiBaseUrl={apiBaseUrl}
+												resource={resource}
 											/>
 										);
 									})}

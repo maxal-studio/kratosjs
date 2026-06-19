@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { ValidationError } from '../resource/types';
 import { ResourceHooks } from '../resource/types';
+import { MediaHooks } from '../panel/PanelHooks';
 import { traverseComponent } from './formSchemaTraversal';
 import { MediaFileInfo, extractMediaKeys, extractMediaFilesWithStorage, getStorageForMediaKey } from './mediaHelpers';
 
@@ -19,6 +20,21 @@ export function mergeHooks(existing: ResourceHooks, newHooks: ResourceHooks): Re
 			...(Array.isArray(existingHandlers) ? existingHandlers : [existingHandlers]),
 			...(Array.isArray(newHandlers) ? newHandlers : [newHandlers]),
 		];
+	}
+
+	return { ...existing, ...merged };
+}
+
+/**
+ * Merge two media hook configurations.
+ * Arrays are concatenated, not replaced (the media analog of mergeHooks).
+ */
+export function mergeMediaHooks(existing: MediaHooks, newHooks: MediaHooks): MediaHooks {
+	const merged: MediaHooks = {};
+	const allEvents = new Set([...Object.keys(existing), ...Object.keys(newHooks)]) as Set<keyof MediaHooks>;
+
+	for (const event of allEvents) {
+		merged[event] = [...(existing[event] || []), ...(newHooks[event] || [])];
 	}
 
 	return { ...existing, ...merged };

@@ -242,8 +242,8 @@ export type {
 	ActionAccessCheckHook,
 	MediaHookContext,
 	MediaAccessCheckHook,
-	MediaUploadedHook,
-	MediaDeletedHook,
+	MediaHooks,
+	MediaHookHandler,
 	DataOperation,
 	ResourceCapabilities,
 } from './panel/PanelHooks';

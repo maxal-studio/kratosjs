@@ -79,43 +79,49 @@ All media endpoints require authentication. On top of that:
 - **Global routes** have no resource context (they back page/block/settings uploads), so they are
   authenticated by default and authorized through the media hooks below.
 
-### Media hooks
+### Authorization hooks
 
-Plugins can gate and observe every upload/delete with four hooks. Each is optional — when unset,
-uploads and deletes are allowed (subject to the per-resource write check above). They are the
-foundation for a media-manager plugin that links each file to its owner (user/entity), the same
-way Laravel's Spatie Media Library ties media to a model.
+Two single-handler hooks gate uploads and deletes. Each is optional — when unset, the request
+is allowed (subject to the per-resource write check above). Returning `false` yields a `403`.
+They're the only policy gate the **global** routes get beyond authentication, and the guard
+against arbitrary-key deletion.
 
 ```typescript
 register(panel: Panel): void {
   // Authorize / validate an upload. Returning false yields a 403.
-  // This is the only policy gate the global routes get beyond authentication.
   panel.registerMediaUploadAccessCheckHook(async (ctx) => {
     // ctx: { operation, user, resourceSlug?, fieldName?, recordId?, filename?, contentType?, ... }
     return ctx.user?.role === 'editor';
   });
 
-  // Authorize a deletion. Guards against arbitrary-key deletion — verify the
-  // requesting user actually owns ctx.key before allowing it.
+  // Authorize a deletion — verify the requesting user actually owns ctx.key.
   panel.registerMediaDeleteAccessCheckHook(async (ctx) => {
     return await mediaIsOwnedBy(ctx.key, ctx.user?.id);
-  });
-
-  // Notified after a successful upload — persist an owner link (media -> user/entity).
-  panel.registerMediaUploadedHook(async (result, ctx) => {
-    await db.media.insert({ key: result.key, bucket: result.bucket, userId: ctx.user?.id, resource: ctx.resourceSlug, recordId: ctx.recordId });
-  });
-
-  // Notified after a successful delete — remove the corresponding owner link.
-  panel.registerMediaDeletedHook(async (ctx) => {
-    await db.media.deleteByKey(ctx.key);
   });
 }
 ```
 
-The `MediaHookContext` passed to every hook contains: `operation` (`'upload' | 'delete'`), `user`,
-`resourceSlug` (undefined on global routes), `fieldName`, `recordId`, `isArray`, `existingValue`,
-`bucket`, and — for uploads — `filename`, `contentType`, `path`, `visibility`; for deletes, `key`.
+### Lifecycle hooks
+
+To **transform** the uploaded bytes (compress, crop, rename), **link** a file to its owner,
+**log**, or **audit** failures, register array-based lifecycle hooks — the media analog of
+[resource hooks](/resources/hooks). Multiple plugins can stack handlers, and `before*` hooks
+mutate the file before it is stored:
+
+```typescript
+panel.registerMediaHooks({
+	beforeMediaUpload: [
+		async ctx => {
+			ctx.file = await compress(ctx.file);
+		},
+	],
+	afterMediaUpload: [async ctx => db.media.insert({ key: ctx.result!.key, userId: ctx.user?.id })],
+	afterMediaDelete: [async ctx => db.media.deleteByKey(ctx.key)],
+});
+```
+
+See **[Media Hooks](/media/hooks)** for the full lifecycle, the `MediaHookContext` fields, and
+worked examples (image compression, ownership linking, error auditing).
 
 ## Resolving Media URLs
 

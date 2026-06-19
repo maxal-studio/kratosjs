@@ -419,8 +419,12 @@ export class CrudController {
 				fileUploadFields,
 			);
 
-			// Delete removed files from bucket
-			await this.panel.media.deleteFiles(filesToDelete);
+			// Delete removed files from bucket (fires media delete lifecycle hooks)
+			await this.panel.deleteMediaFiles(filesToDelete, {
+				user: req.authUser,
+				resourceSlug: registered.resourceClass.getSlug(),
+				recordId: String(req.params.id),
+			});
 
 			// Perform update
 			const result = await resourceInstance.update(req.params.id, formattedData);
@@ -483,9 +487,12 @@ export class CrudController {
 				}),
 			);
 
-			// Collect and delete all media files from records
+			// Collect and delete all media files from records (fires media delete lifecycle hooks)
 			const filesToDelete = collectMediaFilesFromRecords(recordsToDelete, fileUploadFields);
-			await this.panel.media.deleteFiles(filesToDelete);
+			await this.panel.deleteMediaFiles(filesToDelete, {
+				user: req.authUser,
+				resourceSlug: registered.resourceClass.getSlug(),
+			});
 
 			// Delete the records
 			const result = await resourceInstance.delete(ids);
