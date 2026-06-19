@@ -240,6 +240,10 @@ export type {
 	DataFilterHook,
 	CapabilitiesFilterHook,
 	ActionAccessCheckHook,
+	MediaHookContext,
+	MediaAccessCheckHook,
+	MediaUploadedHook,
+	MediaDeletedHook,
 	DataOperation,
 	ResourceCapabilities,
 } from './panel/PanelHooks';

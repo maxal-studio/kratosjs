@@ -55,12 +55,67 @@ app.post(adminPanel.getBasePath() + '/upload', adminPanel.attachMediaHelpers(), 
 
 ## Media Upload Endpoint
 
-KratosJs provides a generic media upload endpoint:
+KratosJs provides generic media upload/delete endpoints. They come in a global form and a per-resource form:
 
 ```typescript
-// Automatically available at: POST /kratosjs/api/media/upload
-// Automatically available at: DELETE /kratosjs/api/media/delete
+// Global (used by non-resource uploads — page builder, settings, etc.)
+// POST /kratosjs/api/media/upload
+// POST /kratosjs/api/media/delete
+
+// Per-resource (used by FileUpload fields inside a resource form)
+// POST /kratosjs/api/:resource/media/upload
+// POST /kratosjs/api/:resource/media/delete
 ```
+
+## Authorization & Hooks
+
+All media endpoints require authentication. On top of that:
+
+- **Per-resource routes** require **write access** to the resource — the user must be able to
+  create _or_ edit it. Deleting media here means "remove/replace a file while editing a record",
+  so it does **not** require the record `delete` permission (an editor who cannot delete records
+  can still replace an image). This reuses the same capability pipeline as CRUD, so the
+  [permissions plugin](/plugins/overview) governs it automatically.
+- **Global routes** have no resource context (they back page/block/settings uploads), so they are
+  authenticated by default and authorized through the media hooks below.
+
+### Media hooks
+
+Plugins can gate and observe every upload/delete with four hooks. Each is optional — when unset,
+uploads and deletes are allowed (subject to the per-resource write check above). They are the
+foundation for a media-manager plugin that links each file to its owner (user/entity), the same
+way Laravel's Spatie Media Library ties media to a model.
+
+```typescript
+register(panel: Panel): void {
+  // Authorize / validate an upload. Returning false yields a 403.
+  // This is the only policy gate the global routes get beyond authentication.
+  panel.registerMediaUploadAccessCheckHook(async (ctx) => {
+    // ctx: { operation, user, resourceSlug?, fieldName?, recordId?, filename?, contentType?, ... }
+    return ctx.user?.role === 'editor';
+  });
+
+  // Authorize a deletion. Guards against arbitrary-key deletion — verify the
+  // requesting user actually owns ctx.key before allowing it.
+  panel.registerMediaDeleteAccessCheckHook(async (ctx) => {
+    return await mediaIsOwnedBy(ctx.key, ctx.user?.id);
+  });
+
+  // Notified after a successful upload — persist an owner link (media -> user/entity).
+  panel.registerMediaUploadedHook(async (result, ctx) => {
+    await db.media.insert({ key: result.key, bucket: result.bucket, userId: ctx.user?.id, resource: ctx.resourceSlug, recordId: ctx.recordId });
+  });
+
+  // Notified after a successful delete — remove the corresponding owner link.
+  panel.registerMediaDeletedHook(async (ctx) => {
+    await db.media.deleteByKey(ctx.key);
+  });
+}
+```
+
+The `MediaHookContext` passed to every hook contains: `operation` (`'upload' | 'delete'`), `user`,
+`resourceSlug` (undefined on global routes), `fieldName`, `recordId`, `isArray`, `existingValue`,
+`bucket`, and — for uploads — `filename`, `contentType`, `path`, `visibility`; for deletes, `key`.
 
 ## Resolving Media URLs
 

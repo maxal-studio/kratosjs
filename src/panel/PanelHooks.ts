@@ -32,6 +32,35 @@ export type ActionAccessCheckHook = (
 ) => Promise<boolean> | boolean;
 
 /**
+ * Context passed to media hooks describing a single upload/delete request.
+ * `resourceSlug` is undefined for the global (non-resource) media routes.
+ */
+export interface MediaHookContext {
+	operation: 'upload' | 'delete';
+	user?: AuthUser;
+	resourceSlug?: string;
+	fieldName?: string;
+	recordId?: string;
+	isArray?: boolean;
+	existingValue?: any;
+	bucket?: string;
+	// upload-only
+	filename?: string;
+	contentType?: string;
+	path?: string;
+	visibility?: 'public' | 'private';
+	// delete-only
+	key?: string;
+}
+
+export type MediaAccessCheckHook = (ctx: MediaHookContext) => Promise<boolean> | boolean;
+export type MediaUploadedHook = (
+	result: { key: string; url?: string; bucket?: string },
+	ctx: MediaHookContext,
+) => Promise<void> | void;
+export type MediaDeletedHook = (ctx: MediaHookContext) => Promise<void> | void;
+
+/**
  * Registry for permission/filtering hooks registered by plugins.
  *
  * Plugins register hooks through the corresponding Panel.register*Hook() methods;
@@ -46,4 +75,8 @@ export class PanelHooks {
 	dataFilter?: DataFilterHook;
 	capabilitiesFilter?: CapabilitiesFilterHook;
 	actionAccessCheck?: ActionAccessCheckHook;
+	mediaUploadAccessCheck?: MediaAccessCheckHook;
+	mediaDeleteAccessCheck?: MediaAccessCheckHook;
+	mediaUploaded?: MediaUploadedHook;
+	mediaDeleted?: MediaDeletedHook;
 }

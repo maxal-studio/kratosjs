@@ -187,6 +187,22 @@ register(panel: Panel): void {
 }
 ```
 
+### Authorize & Observe Media
+
+Plugins can gate and observe media uploads/deletes — authorize what may be uploaded, guard against
+arbitrary-key deletion, and link each stored file to its owner (user/entity):
+
+```typescript
+register(panel: Panel): void {
+  panel.registerMediaUploadAccessCheckHook(async (ctx) => ctx.user?.role === 'editor');
+  panel.registerMediaDeleteAccessCheckHook(async (ctx) => mediaIsOwnedBy(ctx.key, ctx.user?.id));
+  panel.registerMediaUploadedHook(async (result, ctx) => linkMedia(result.key, ctx));
+  panel.registerMediaDeletedHook(async (ctx) => unlinkMedia(ctx.key));
+}
+```
+
+See [Media → Authorization & Hooks](/media/overview#authorization-hooks) for the full hook context.
+
 ### Register Custom Component Names
 
 Server-side, plugins register only the component **names** (used for metadata and validation). The actual React components ship in the plugin's `./client` entry and are bundled by the app:

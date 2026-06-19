@@ -37,6 +37,9 @@ import {
 	DataFilterHook,
 	CapabilitiesFilterHook,
 	ActionAccessCheckHook,
+	MediaAccessCheckHook,
+	MediaUploadedHook,
+	MediaDeletedHook,
 } from './panel/PanelHooks';
 import { buildPanelMetadata, buildPanelBadges } from './panel/metadata';
 import { buildPanelRouter } from './panel/routes';
@@ -1107,6 +1110,50 @@ export class Panel {
 	 */
 	registerActionAccessCheckHook(hook: ActionAccessCheckHook): this {
 		this._hooks.actionAccessCheck = hook;
+		return this;
+	}
+
+	/**
+	 * Register a hook to authorize media uploads (and validate what is uploaded).
+	 * Called by the media controller before storing a file; returning false yields a 403.
+	 * Receives a MediaHookContext (user, resourceSlug, fieldName, recordId, filename, etc.).
+	 * For the global (non-resource) media routes this is the only gate beyond authentication.
+	 * @param hook - Function that returns whether the upload is allowed
+	 */
+	registerMediaUploadAccessCheckHook(hook: MediaAccessCheckHook): this {
+		this._hooks.mediaUploadAccessCheck = hook;
+		return this;
+	}
+
+	/**
+	 * Register a hook to authorize media deletions.
+	 * Called by the media controller before deleting a file; returning false yields a 403.
+	 * This is the guard against arbitrary-key deletion: a media-manager plugin can verify
+	 * the key is owned by the requesting user before allowing it.
+	 * @param hook - Function that returns whether the deletion is allowed
+	 */
+	registerMediaDeleteAccessCheckHook(hook: MediaAccessCheckHook): this {
+		this._hooks.mediaDeleteAccessCheck = hook;
+		return this;
+	}
+
+	/**
+	 * Register a hook notified after a media file is successfully uploaded.
+	 * Lets a media-manager plugin persist an owner link (media -> user/entity).
+	 * @param hook - Function receiving the upload result and the MediaHookContext
+	 */
+	registerMediaUploadedHook(hook: MediaUploadedHook): this {
+		this._hooks.mediaUploaded = hook;
+		return this;
+	}
+
+	/**
+	 * Register a hook notified after a media file is successfully deleted.
+	 * Lets a media-manager plugin remove the corresponding owner link.
+	 * @param hook - Function receiving the MediaHookContext
+	 */
+	registerMediaDeletedHook(hook: MediaDeletedHook): this {
+		this._hooks.mediaDeleted = hook;
 		return this;
 	}
 

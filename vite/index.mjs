@@ -1,6 +1,27 @@
 import react from '@vitejs/plugin-react';
 
 /**
+ * Default chunking: pull third-party dependencies out of the app bundle into
+ * cacheable vendor chunks. React (and friends) rarely change, so isolating
+ * them means an app code change doesn't bust the framework/React bundle.
+ *
+ * @param {string} id Absolute module id being bundled
+ * @returns {string | undefined} Chunk name, or undefined to use Rollup's default
+ */
+function splitVendorChunks(id) {
+	const p = id.replace(/\\/g, '/');
+	// The kratosjs framework (resolved either via node_modules or a linked
+	// workspace path) is the bulk of the bundle and changes on its own cadence —
+	// give it a dedicated chunk separate from third-party libs.
+	if (p.includes('@maxal_studio/kratosjs')) return 'kratos';
+	if (!p.includes('/node_modules/')) return undefined;
+	if (/\/node_modules\/(react|react-dom|scheduler|react-hook-form)\//.test(p)) {
+		return 'react-vendor';
+	}
+	return 'vendor';
+}
+
+/**
  * Vite config factory for KratosJs admin clients.
  *
  * Apps own their admin entry (index.html + src/admin/main.tsx) and use this
@@ -56,6 +77,10 @@ export function kratosAdminVite(options = {}) {
 		build: {
 			outDir,
 			emptyOutDir: true,
+			// The admin panel is a single-page app that bundles the whole
+			// kratosjs-react UI, so the main chunk is legitimately large. Raise
+			// the warning threshold to match (apps can override via options.vite.build).
+			chunkSizeWarningLimit: 2000,
 			...(vite.build ?? {}),
 			commonjsOptions: {
 				// The kratosjs core is CommonJS. In a linked/workspace install it
@@ -65,6 +90,15 @@ export function kratosAdminVite(options = {}) {
 				// module — the only core code the browser bundle pulls in.
 				include: [/node_modules/, /[\\/]dist[\\/]validation[\\/]/],
 				...(vite.build?.commonjsOptions ?? {}),
+			},
+			rollupOptions: {
+				...(vite.build?.rollupOptions ?? {}),
+				output: {
+					// Split third-party deps into cacheable vendor chunks. An app
+					// override (options.vite.build.rollupOptions.output) wins.
+					manualChunks: splitVendorChunks,
+					...(vite.build?.rollupOptions?.output ?? {}),
+				},
 			},
 		},
 	};
