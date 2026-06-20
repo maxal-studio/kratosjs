@@ -13,11 +13,12 @@ hooks](/resources/hooks): array-based handlers that run in registration order, w
 > Media hooks are about the file lifecycle. **Authorization** is a separate, single-handler
 > layer — see [Authorization & Hooks](/media/overview#authorization-hooks).
 
-## Available Hooks
+These hooks fire around each file's physical upload/delete, at storage time — before any
+record exists:
 
 - **`beforeMediaUpload`**: Before storage. Mutate `ctx.file` (the buffer), `ctx.filename`,
-  `ctx.contentType`, `ctx.path`, `ctx.visibility`, `ctx.bucket`, or `ctx.metadata`. Throw to abort.
-- **`afterMediaUpload`**: After storage. Observe `ctx.result` (`{ key, url, bucket }`) — link the file to a user/entity, log, etc.
+  `ctx.contentType`, `ctx.path`, `ctx.bucket`, or `ctx.metadata`. Throw to abort.
+- **`afterMediaUpload`**: After storage. Observe `ctx.result` (`{ key, url, bucket }`) — log, link by key, etc.
 - **`beforeMediaDelete`**: Before deletion. Inspect `ctx.key`. Throw to abort.
 - **`afterMediaDelete`**: After deletion. Observe — remove an owner link, log, etc.
 - **`onMediaError`**: Runs once when an upload/delete throws, with `ctx.error` set. Never rethrows (so an audit handler can't mask the original failure).
@@ -29,25 +30,28 @@ Each hook receives one mutable `MediaHookContext`:
 - **`operation`**: `'upload' | 'delete'`
 - **`user`**: The authenticated user (if available)
 - **`resourceSlug`**: The resource the media belongs to — `undefined` for global (non-resource) uploads
-- **`fieldName`**, **`recordId`**, **`isArray`**, **`existingValue`**: The form field/record the upload is for (when sent by the client)
+- **`fieldName`**, **`isArray`**, **`existingValue`**: Client hints about the form field the upload is for
 - **`bucket`**: Target storage adapter name (mutable in `beforeMediaUpload`)
 - **`file`**: _(upload)_ The file **buffer** — replace it in `beforeMediaUpload` to transform the bytes
-- **`filename`**, **`contentType`**, **`path`**, **`visibility`**, **`metadata`**: _(upload)_ Storage options, all mutable in `beforeMediaUpload`
+- **`filename`**, **`contentType`**, **`path`**, **`metadata`**: _(upload)_ Storage options, all mutable in `beforeMediaUpload`
 - **`key`**: _(delete)_ The storage key being deleted
 - **`result`**: Populated after a successful upload — `{ key, url?, bucket? }`
 - **`error`**: Set only for `onMediaError` hooks
+
+> These hooks fire at storage time, **before any record exists**, so there is no reliable record
+> id here. Associate a file with a record by its storage `key` (e.g. in an `afterMediaUpload`
+> handler), or in a resource `afterCreate`/`afterUpdate` hook.
 
 ### Trust boundary
 
 When making **authorization** decisions, mind where each field comes from:
 
-- **Server-trusted**: `user` (from the JWT), `resourceSlug` (from the route), and `key` (the actual storage key on delete).
-- **Client hints**: `fieldName`, `recordId`, `isArray`, `existingValue` arrive in the request body on the upload/delete routes and can be forged. `recordId` is also absent on create (the record doesn't exist yet). Use them for logging/UX, **not** to gate access. To securely associate a file with a record, do it at record-save time with a resource `afterCreate`/`afterUpdate` hook (keyed by the returned `key`), or verify `key` ownership in `mediaDeleteAccessCheck`.
-- **Exception**: for backend cascade deletes (see below), `resourceSlug`/`recordId` are set by the server and are trustworthy.
+- **Server-trusted**: `user` (from the JWT), `resourceSlug` (from the route), and `key` (the storage key on delete).
+- **Client hints**: `fieldName`, `isArray`, `existingValue` arrive in the request body on the upload route and can be forged. Use them for logging/UX or to scope a transform, **not** to gate access. Verify `key` ownership in `mediaDeleteAccessCheck`.
 
 ### Backend cascade deletes
 
-Media isn't only deleted through the delete route. When a record is **updated** (a file is removed or replaced) or **deleted**, the framework removes the now-orphaned files — and these fire your `beforeMediaDelete` / `afterMediaDelete` / `onMediaError` hooks too, with server-trusted `user` / `resourceSlug` / `recordId`. (The `mediaDeleteAccessCheck` is **not** re-run here — the deletion is a side effect of an already-authorized record operation.) So an `afterMediaDelete` cleanup or audit handler sees every deletion, however it was triggered.
+Media isn't only deleted through the delete route. When a record is **updated** (a file is removed or replaced) or **deleted**, the framework removes the now-orphaned files — and these fire your `beforeMediaDelete` / `afterMediaDelete` / `onMediaError` hooks too, with server-trusted `user` / `resourceSlug`. (The `mediaDeleteAccessCheck` is **not** re-run here — the deletion is a side effect of an already-authorized record operation.) So an `afterMediaDelete` cleanup or audit handler sees every deletion, however it was triggered.
 
 ## Defining Hooks
 
@@ -91,31 +95,25 @@ panel.registerMediaHooks({
 });
 ```
 
-You can also reroute storage (`ctx.bucket = 's3-archive'`), force a path
-(`ctx.path = 'avatars'`), or set `ctx.visibility = 'private'`.
+You can also reroute storage (`ctx.bucket = 's3-archive'`) or force a path
+(`ctx.path = 'avatars'`).
 
-## Linking & Logging
+## Logging & linking
 
-`afterMediaUpload` / `afterMediaDelete` are where you persist relationships or audit
-trails — e.g. a media-manager plugin recording which user/entity owns a file, or the
-logging plugin writing an audit row:
+`afterMediaUpload` / `afterMediaDelete` fire for every physical upload/delete (including
+global/page uploads with no record) — use them for storage-layer audit, or to track files by
+their storage `key`:
 
 ```typescript
 panel.registerMediaHooks({
-	afterMediaUpload: [
-		async (ctx: MediaHookContext) => {
-			await db.media.insert({
-				key: ctx.result!.key,
-				bucket: ctx.result!.bucket,
-				userId: ctx.user?.id,
-				resource: ctx.resourceSlug,
-				recordId: ctx.recordId,
-			});
-		},
-	],
-	afterMediaDelete: [async (ctx: MediaHookContext) => db.media.deleteByKey(ctx.key)],
+	afterMediaUpload: [async (ctx: MediaHookContext) => db.media.track(ctx.result!.key, ctx.user?.id)],
+	afterMediaDelete: [async (ctx: MediaHookContext) => db.media.untrack(ctx.key)],
 });
 ```
+
+To associate a file with a specific **record** (which doesn't exist yet at upload time), do it
+where the record is saved — a resource [`afterCreate`/`afterUpdate`](/resources/hooks) hook has
+the saved record (with its id) and the stored media field values.
 
 ## Multiple Hooks
 

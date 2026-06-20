@@ -32,20 +32,20 @@ export type ActionAccessCheckHook = (
 ) => Promise<boolean> | boolean;
 
 /**
- * Mutable context passed to every media hook describing a single upload/delete
- * request. `before*` hooks mutate it (e.g. swap `file` for a compressed buffer,
- * rename `filename`, reroute `bucket`); `after*` hooks observe `result`.
+ * Mutable context passed to every per-file media hook describing a single
+ * upload/delete at the **storage** layer. `before*` hooks mutate it (e.g. swap
+ * `file` for a compressed buffer, rename `filename`, reroute `bucket`); `after*`
+ * hooks observe `result`.
  *
  * Trust boundary — important for authorization decisions:
  * - **Server-trusted**: `user` (from the JWT), `resourceSlug` (from the route, undefined
  *   for the global non-resource routes), and `key` (the actual storage key on delete).
- * - **Client-provided hints**: `fieldName`, `recordId`, `isArray`, `existingValue` on the
- *   upload/delete *routes* come from the request body and can be forged. `recordId` is also
- *   absent on create (the record doesn't exist yet). Use them for logging/UX, NOT to gate
- *   access. Associate a file with a record securely at record-save time via resource hooks
- *   (keyed by the returned `key`), or rely on `key` ownership in `mediaDeleteAccessCheck`.
- * - Exception: for backend cascade deletes fired by `Panel.deleteMediaFiles` (record
- *   update/delete), `resourceSlug`/`recordId` come from the server and ARE trustworthy.
+ * - **Client-provided hints**: `fieldName`, `isArray`, `existingValue` on the upload route
+ *   come from the request body and can be forged. Use them for logging/UX or to decide a
+ *   transform, NOT to gate access.
+ *
+ * Note: these hooks fire at storage time, before any record exists, so they have NO
+ * reliable record id.
  */
 export interface MediaHookContext {
 	operation: 'upload' | 'delete';
@@ -53,13 +53,11 @@ export interface MediaHookContext {
 	user?: AuthUser;
 	/** Server-trusted: the resource from the route; undefined on global media routes. */
 	resourceSlug?: string;
-	/** Client hint on upload/delete routes (forgeable); server-trusted on backend cascade deletes. */
+	/** Client hint on the upload route (forgeable). Useful to scope a transform to a field. */
 	fieldName?: string;
-	/** Client hint on upload/delete routes (forgeable, absent on create); server-trusted on backend cascade deletes. */
-	recordId?: string;
-	/** Client hint on upload routes. */
+	/** Client hint on the upload route. */
 	isArray?: boolean;
-	/** Client hint on upload routes. */
+	/** Client hint on the upload route. */
 	existingValue?: any;
 	bucket?: string;
 	// upload-only (mutable in beforeMediaUpload)
@@ -68,7 +66,6 @@ export interface MediaHookContext {
 	filename?: string;
 	contentType?: string;
 	path?: string;
-	visibility?: 'public' | 'private';
 	/** Extra storage metadata, forwarded to the adapter's upload options. */
 	metadata?: Record<string, any>;
 	// delete-only
@@ -93,7 +90,7 @@ export type MediaHookHandler = (ctx: MediaHookContext) => Promise<void> | void;
  * concatenated) and run in order so each sees the prior handler's mutations.
  */
 export interface MediaHooks {
-	/** Before storage — mutate ctx.file/filename/contentType/path/visibility/bucket/metadata. Throw to abort. */
+	/** Before storage — mutate ctx.file/filename/contentType/path/bucket/metadata. Throw to abort. */
 	beforeMediaUpload?: MediaHookHandler[];
 	/** After storage — observe ctx.result (link the file to a user/entity, log, etc.). */
 	afterMediaUpload?: MediaHookHandler[];

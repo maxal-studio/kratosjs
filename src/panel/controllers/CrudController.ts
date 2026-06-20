@@ -423,7 +423,6 @@ export class CrudController {
 			await this.panel.deleteMediaFiles(filesToDelete, {
 				user: req.authUser,
 				resourceSlug: registered.resourceClass.getSlug(),
-				recordId: String(req.params.id),
 			});
 
 			// Perform update

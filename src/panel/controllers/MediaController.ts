@@ -59,18 +59,8 @@ export class MediaController {
 	async handleUpload(req: Request, res: Response): Promise<void> {
 		let context: MediaHookContext | undefined;
 		try {
-			const {
-				file,
-				filename,
-				contentType,
-				fieldName,
-				recordId,
-				isArray,
-				existingValue,
-				path,
-				visibility,
-				bucket,
-			} = req.body;
+			const { file, filename, contentType, fieldName, isArray, existingValue, path, visibility, bucket } =
+				req.body;
 
 			if (!file) {
 				res.status(400).json({
@@ -89,7 +79,6 @@ export class MediaController {
 				user: req.authUser,
 				resourceSlug: this.getResourceSlug(req),
 				fieldName,
-				recordId,
 				isArray,
 				existingValue,
 				bucket,
@@ -98,7 +87,6 @@ export class MediaController {
 				filename,
 				contentType,
 				path,
-				visibility,
 			};
 
 			// Plugin authorization hook (the only policy gate for global routes)
@@ -127,12 +115,13 @@ export class MediaController {
 				return;
 			}
 
-			// Upload the (possibly transformed) file using the post-hook options
+			// Upload the (possibly transformed) file using the post-hook options.
+			// `visibility` is a storage option taken straight from the request (not hook-mutable).
 			const uploadResult = await mediaAdapter.upload(context.file as Buffer, {
 				filename: context.filename || 'file',
 				contentType: context.contentType,
 				path: context.path,
-				visibility: context.visibility,
+				visibility,
 				metadata: context.metadata,
 			});
 
@@ -162,7 +151,7 @@ export class MediaController {
 	async handleDelete(req: Request, res: Response): Promise<void> {
 		let context: MediaHookContext | undefined;
 		try {
-			const { key, bucket, fieldName, recordId } = req.body;
+			const { key, bucket, fieldName } = req.body;
 
 			if (!key) {
 				res.status(400).json({
@@ -185,7 +174,6 @@ export class MediaController {
 				user: req.authUser,
 				resourceSlug: this.getResourceSlug(req),
 				fieldName,
-				recordId,
 				bucket: bucketName,
 				key: actualKey,
 			};

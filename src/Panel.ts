@@ -1181,7 +1181,7 @@ export class Panel {
 	 * authorization decision was made at the record level. Deletion is best-effort per
 	 * file (a failure is reported to `onMediaError` and logged, then skipped).
 	 *
-	 * `baseContext` carries the trusted server-side context (user, resourceSlug, recordId).
+	 * `baseContext` carries the trusted server-side context (user, resourceSlug).
 	 */
 	async deleteMediaFiles(files: MediaFileInfo[], baseContext: Partial<MediaHookContext> = {}): Promise<void> {
 		for (const file of files) {

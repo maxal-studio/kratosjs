@@ -197,9 +197,10 @@ describe('MediaController authorization', () => {
 				operation: 'upload',
 				resourceSlug: 'posts',
 				fieldName: 'cover',
-				recordId: '42',
 				user: { id: 'u1' },
 			});
+			// recordId is NOT exposed to per-file upload hooks (forgeable, absent on create)
+			expect(ctx.recordId).toBeUndefined();
 		});
 
 		it('fires afterMediaDelete with the resolved key after deletion', async () => {
@@ -312,7 +313,6 @@ describe('Panel.deleteMediaFiles (backend cascade deletion)', () => {
 		await panel.deleteMediaFiles([{ key: 'uploads/old.png', bucket: 'local' }], {
 			user: { id: 'u1' } as any,
 			resourceSlug: 'posts',
-			recordId: '42',
 		});
 
 		expect(order).toEqual(['before', 'after']);
@@ -321,7 +321,6 @@ describe('Panel.deleteMediaFiles (backend cascade deletion)', () => {
 			key: 'uploads/old.png',
 			bucket: 'local',
 			resourceSlug: 'posts',
-			recordId: '42',
 			user: { id: 'u1' },
 		});
 	});

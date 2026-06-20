@@ -90,7 +90,7 @@ against arbitrary-key deletion.
 register(panel: Panel): void {
   // Authorize / validate an upload. Returning false yields a 403.
   panel.registerMediaUploadAccessCheckHook(async (ctx) => {
-    // ctx: { operation, user, resourceSlug?, fieldName?, recordId?, filename?, contentType?, ... }
+    // ctx: { operation, user, resourceSlug?, fieldName?, filename?, contentType?, ... }
     return ctx.user?.role === 'editor';
   });
 
@@ -110,18 +110,20 @@ mutate the file before it is stored:
 
 ```typescript
 panel.registerMediaHooks({
+	// Transform the bytes before they're stored
 	beforeMediaUpload: [
 		async ctx => {
 			ctx.file = await compress(ctx.file);
 		},
 	],
-	afterMediaUpload: [async ctx => db.media.insert({ key: ctx.result!.key, userId: ctx.user?.id })],
-	afterMediaDelete: [async ctx => db.media.deleteByKey(ctx.key)],
+	// Observe stored/removed files (track by storage key)
+	afterMediaUpload: [async ctx => db.media.track(ctx.result.key)],
+	afterMediaDelete: [async ctx => db.media.untrack(ctx.key)],
 });
 ```
 
 See **[Media Hooks](/media/hooks)** for the full lifecycle, the `MediaHookContext` fields, and
-worked examples (image compression, ownership linking, error auditing).
+worked examples (image compression, key tracking, error auditing).
 
 ## Resolving Media URLs
 
