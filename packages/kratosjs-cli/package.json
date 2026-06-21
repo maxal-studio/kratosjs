@@ -24,7 +24,7 @@
 	"license": "ISC",
 	"repository": {
 		"type": "git",
-		"url": "git+ssh://git@github.com/maxal-studio/kratos-js.git"
+		"url": "git+ssh://git@github.com/maxal-studio/kratosjs.git"
 	},
 	"dependencies": {
 		"@inquirer/prompts": "^8.5.2",

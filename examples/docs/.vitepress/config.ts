@@ -166,7 +166,7 @@ export default defineConfig({
 				},
 			],
 		},
-		socialLinks: [{ icon: 'github', link: 'https://github.com/maxal-studio/kratos-js' }],
+		socialLinks: [{ icon: 'github', link: 'https://github.com/maxal-studio/kratosjs' }],
 		search: {
 			provider: 'local',
 		},

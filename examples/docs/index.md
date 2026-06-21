@@ -14,7 +14,7 @@ hero:
           link: /getting-started
         - theme: alt
           text: View on Github
-          link: https://github.com/maxal-studio/kratos-js
+          link: https://github.com/maxal-studio/kratosjs
 
 features:
     - title: Fluent TypeScript API

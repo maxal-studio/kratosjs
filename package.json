@@ -142,10 +142,10 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+ssh://git@github.com/maxal-studio/kratos-js.git"
+		"url": "git+ssh://git@github.com/maxal-studio/kratosjs.git"
 	},
 	"bugs": {
-		"url": "https://github.com/maxal-studio/kratos-js/issues"
+		"url": "https://github.com/maxal-studio/kratosjs/issues"
 	},
-	"homepage": "https://github.com/maxal-studio/kratos-js#readme"
+	"homepage": "https://github.com/maxal-studio/kratosjs#readme"
 }
