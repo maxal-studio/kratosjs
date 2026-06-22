@@ -2,6 +2,7 @@ import { SerializedForm, ValidationRules as KratosJsValidationRules } from '@max
 import { ColumnRegistry } from '../contexts/ColumnRegistryContext';
 import { WidgetComponent } from '../contexts/WidgetRegistryContext';
 import type { CustomBlockComponent } from '../contexts/BlockRegistryContext';
+import type { AuthChallengeRegistry } from '../contexts/AuthChallengeRegistryContext';
 
 /**
  * Props passed to all field components
@@ -217,4 +218,5 @@ export interface AdminPanelProps {
 	customColumns?: ColumnRegistry;
 	customWidgets?: WidgetRegistry;
 	customBlocks?: BlockRegistry;
+	customAuthChallenges?: AuthChallengeRegistry;
 }

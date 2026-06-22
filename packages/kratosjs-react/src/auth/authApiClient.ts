@@ -1,17 +1,16 @@
-import { AuthUser, AuthProvider, AuthTokens, LoginCredentials } from './types';
-import { tokenStorage } from './tokenStorage';
+import { AuthUser, AuthProvider, AuthTokens, LoginCredentials, LoginResult } from './types';
 
 /**
- * API client for authentication endpoints
+ * API client for authentication endpoints.
+ * Tokens are managed via HTTP-only cookies set by the server — no localStorage involved.
  */
 export class AuthApiClient {
 	constructor(private apiBaseUrl: string) {}
 
-	/**
-	 * Get available authentication providers
-	 */
 	async getProviders(): Promise<AuthProvider[]> {
-		const response = await fetch(`${this.apiBaseUrl}/auth/providers`);
+		const response = await fetch(`${this.apiBaseUrl}/auth/providers`, {
+			credentials: 'include',
+		});
 		if (!response.ok) {
 			throw new Error('Failed to fetch providers');
 		}
@@ -20,18 +19,15 @@ export class AuthApiClient {
 	}
 
 	/**
-	 * Login with a provider
+	 * Attempt login. Returns a discriminated result: `authenticated` (session cookie set)
+	 * or `challenge` (a verification step like 2FA is required before tokens are issued).
 	 */
-	async login(provider: string, credentials: LoginCredentials): Promise<{ user: AuthUser; tokens: AuthTokens }> {
+	async login(provider: string, credentials: LoginCredentials): Promise<LoginResult> {
 		const response = await fetch(`${this.apiBaseUrl}/auth/login`, {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify({
-				provider,
-				...credentials,
-			}),
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ provider, ...credentials }),
 		});
 
 		if (!response.ok) {
@@ -39,38 +35,36 @@ export class AuthApiClient {
 			throw new Error(error.error || 'Login failed');
 		}
 
-		const data = await response.json();
-
-		// Store tokens
-		if (data.tokens) {
-			tokenStorage.setAccessToken(data.tokens.accessToken);
-			tokenStorage.setRefreshToken(data.tokens.refreshToken);
-		}
-
-		return {
-			user: data.user,
-			tokens: data.tokens,
-		};
+		return response.json();
 	}
 
 	/**
-	 * Get current authenticated user
+	 * Respond to a pending login challenge. Returns the next `LoginResult` — either
+	 * `authenticated` (all steps cleared) or another `challenge` (chained step).
 	 */
-	async getCurrentUser(): Promise<AuthUser | null> {
-		const token = tokenStorage.getAccessToken();
-		if (!token) {
-			return null;
+	async verifyChallenge(challengeToken: string, type: string, payload: unknown): Promise<LoginResult> {
+		const response = await fetch(`${this.apiBaseUrl}/auth/challenge`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({ challengeToken, type, payload }),
+		});
+
+		if (!response.ok) {
+			const error = await response.json();
+			throw new Error(error.error || 'Verification failed');
 		}
 
+		return response.json();
+	}
+
+	async getCurrentUser(): Promise<AuthUser | null> {
 		const response = await fetch(`${this.apiBaseUrl}/auth/me`, {
-			headers: {
-				Authorization: `Bearer ${token}`,
-			},
+			credentials: 'include',
 		});
 
 		if (!response.ok) {
 			if (response.status === 401) {
-				// Token expired or invalid - throw error so caller can handle refresh
 				const error: any = new Error('Unauthorized');
 				error.status = 401;
 				throw error;
@@ -82,66 +76,34 @@ export class AuthApiClient {
 		return data.user || null;
 	}
 
-	/**
-	 * Refresh access token using refresh token
-	 */
 	async refreshToken(): Promise<AuthTokens | null> {
-		const refreshToken = tokenStorage.getRefreshToken();
-		if (!refreshToken) {
-			return null;
-		}
-
 		const response = await fetch(`${this.apiBaseUrl}/auth/refresh`, {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify({
-				refreshToken,
-			}),
+			headers: { 'Content-Type': 'application/json' },
+			credentials: 'include',
+			body: JSON.stringify({}),
 		});
 
 		if (!response.ok) {
-			tokenStorage.clear();
 			return null;
 		}
 
 		const data = await response.json();
-
-		// Update stored tokens
-		if (data.tokens) {
-			tokenStorage.setAccessToken(data.tokens.accessToken);
-			tokenStorage.setRefreshToken(data.tokens.refreshToken);
-		}
-
 		return data.tokens || null;
 	}
 
-	/**
-	 * Logout - clear tokens on server and client
-	 */
 	async logout(): Promise<void> {
 		try {
 			await fetch(`${this.apiBaseUrl}/auth/logout`, {
 				method: 'POST',
+				credentials: 'include',
 			});
-		} catch (error) {
-			// Ignore errors - clear tokens anyway
-		} finally {
-			tokenStorage.clear();
+		} catch {
+			// Ignore errors — server-side cookie clearing is best-effort
 		}
 	}
 
-	/**
-	 * Get authorization headers with access token
-	 */
 	getAuthHeaders(): HeadersInit {
-		const token = tokenStorage.getAccessToken();
-		if (!token) {
-			return {};
-		}
-		return {
-			Authorization: `Bearer ${token}`,
-		};
+		return {};
 	}
 }

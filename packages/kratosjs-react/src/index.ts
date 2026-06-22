@@ -172,8 +172,22 @@ export { AuthProvider, useAuth } from './auth/AuthContext';
 export { LoginPage } from './auth/LoginPage';
 export { ProtectedRoute } from './auth/ProtectedRoute';
 export { AuthApiClient } from './auth/authApiClient';
-export { tokenStorage } from './auth/tokenStorage';
-export type { AuthUser, AuthProvider as AuthProviderType, AuthTokens, LoginCredentials } from './auth/types';
+export type {
+	AuthUser,
+	AuthProvider as AuthProviderType,
+	AuthTokens,
+	LoginCredentials,
+	LoginResult,
+	PendingChallenge,
+	AuthChallengeProps,
+	AuthChallengeComponent,
+} from './auth/types';
+export {
+	AuthChallengeRegistryProvider,
+	AuthChallengeRegistryContext,
+	useAuthChallengeRegistry,
+} from './contexts/AuthChallengeRegistryContext';
+export type { AuthChallengeRegistry } from './contexts/AuthChallengeRegistryContext';
 
 // Widget exports
 export { WidgetRegistryProvider, useWidgetRegistry } from './contexts/WidgetRegistryContext';

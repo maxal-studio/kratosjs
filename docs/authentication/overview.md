@@ -44,6 +44,16 @@ KratosJs supports multiple authentication providers:
 - [Email Auth](/authentication/email-auth) - Email and password authentication
 - [OAuth](/authentication/oauth) - OAuth providers (GitHub, Google, etc.)
 
+## Multi-step login
+
+Login can pause for an extra verification step — like two‑factor authentication — added by a
+plugin, not the provider. When a step is required, `POST /auth/login` returns
+`{ status: 'challenge', challenge }` instead of a session, and no auth cookie is set until
+the user completes it at `POST /auth/challenge`. See
+[Extending the Login Flow](/authentication/extending-login) for the hook lifecycle, the
+challenge protocol, and the discriminated `LoginResult` shape, and
+[Auth Challenge Plugins](/plugins/auth-plugins) for building one (2FA as the example).
+
 ## Token Refresh
 
 The frontend automatically handles token refresh when access tokens expire. The refresh happens transparently using the refresh token stored in cookies.

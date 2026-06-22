@@ -5,6 +5,7 @@ import { mergePluginClients } from './plugin';
 import type { KratosPluginClient, MergedPluginRegistries } from './plugin';
 import type { FieldRegistry, WidgetRegistry, BlockRegistry } from './types';
 import type { ColumnRegistry } from './contexts/ColumnRegistryContext';
+import type { AuthChallengeRegistry } from './contexts/AuthChallengeRegistryContext';
 import type { RuleDefinition } from '@maxal_studio/kratosjs';
 import { ValidationEngine } from '@maxal_studio/kratosjs/dist/validation';
 
@@ -23,6 +24,8 @@ export interface MountAdminPanelOptions {
 	widgets?: WidgetRegistry;
 	/** Custom page block components keyed by block type. App entries override plugins. */
 	blocks?: BlockRegistry;
+	/** Challenge UI components keyed by challenge type. App entries override plugins. */
+	authChallenges?: AuthChallengeRegistry;
 	/**
 	 * Custom validation rules keyed by rule name. Authored once and shared with the
 	 * server (via `panel.registerValidationRule`) so they validate identically on
@@ -59,6 +62,7 @@ export function resolveRegistries(options: MountAdminPanelOptions = {}): MergedP
 		columns: options.columns,
 		widgets: options.widgets,
 		blocks: options.blocks,
+		authChallenges: options.authChallenges,
 		rules: options.rules,
 	};
 	return mergePluginClients([...(options.plugins ?? []), appManifest]);
@@ -130,6 +134,7 @@ export function mountAdminPanel(options: MountAdminPanelOptions = {}): void {
 				customColumns={registries.columns}
 				customWidgets={registries.widgets}
 				customBlocks={registries.blocks}
+				customAuthChallenges={registries.authChallenges}
 			/>
 		</React.StrictMode>,
 	);

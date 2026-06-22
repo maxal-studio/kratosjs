@@ -1,5 +1,6 @@
 import type { FieldRegistry, WidgetRegistry, BlockRegistry } from './types';
 import type { ColumnRegistry } from './contexts/ColumnRegistryContext';
+import type { AuthChallengeRegistry } from './contexts/AuthChallengeRegistryContext';
 import type { RuleDefinition } from '@maxal_studio/kratosjs';
 
 /**
@@ -33,6 +34,12 @@ export interface KratosPluginClient {
 	/** Custom page block components keyed by block type */
 	blocks?: BlockRegistry;
 	/**
+	 * Challenge UI components keyed by challenge `type` (e.g. '2fa-totp'). Rendered on the
+	 * login screen when the server returns a matching pending challenge. Pairs with the
+	 * plugin's server-side `panel.registerAuthChallenge(...)`.
+	 */
+	authChallenges?: AuthChallengeRegistry;
+	/**
 	 * Custom validation rules keyed by rule name (e.g. 'phone'). Authored once as
 	 * a `RuleDefinition` and referenced from both the plugin's server `register()`
 	 * (via `panel.registerValidationRule`) and this client manifest, so the rule
@@ -53,6 +60,7 @@ export interface MergedPluginRegistries {
 	columns: ColumnRegistry;
 	widgets: WidgetRegistry;
 	blocks: BlockRegistry;
+	authChallenges: AuthChallengeRegistry;
 	rules: Record<string, RuleDefinition>;
 }
 
@@ -61,13 +69,21 @@ export interface MergedPluginRegistries {
  * Later plugins win on name collisions.
  */
 export function mergePluginClients(plugins: KratosPluginClient[] = []): MergedPluginRegistries {
-	const merged: MergedPluginRegistries = { fields: {}, columns: {}, widgets: {}, blocks: {}, rules: {} };
+	const merged: MergedPluginRegistries = {
+		fields: {},
+		columns: {},
+		widgets: {},
+		blocks: {},
+		authChallenges: {},
+		rules: {},
+	};
 
 	for (const plugin of plugins) {
 		Object.assign(merged.fields, plugin.fields ?? {});
 		Object.assign(merged.columns, plugin.columns ?? {});
 		Object.assign(merged.widgets, plugin.widgets ?? {});
 		Object.assign(merged.blocks, plugin.blocks ?? {});
+		Object.assign(merged.authChallenges, plugin.authChallenges ?? {});
 		Object.assign(merged.rules, plugin.rules ?? {});
 	}
 

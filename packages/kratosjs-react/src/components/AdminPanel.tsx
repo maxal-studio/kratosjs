@@ -333,6 +333,7 @@ export function AdminPanel({
 	customColumns,
 	customWidgets,
 	customBlocks,
+	customAuthChallenges,
 }: AdminPanelProps) {
 	return (
 		<BrowserRouter>
@@ -341,7 +342,8 @@ export function AdminPanel({
 				customFields={customFields}
 				customColumns={customColumns}
 				customWidgets={customWidgets}
-				customBlocks={customBlocks}>
+				customBlocks={customBlocks}
+				customAuthChallenges={customAuthChallenges}>
 				<AdminPanelContent apiBaseUrl={apiBaseUrl} panelId={panelId} />
 			</PanelProviders>
 		</BrowserRouter>

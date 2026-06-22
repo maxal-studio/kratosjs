@@ -79,6 +79,73 @@ export interface AuthTokens {
 }
 
 /**
+ * Context passed to every auth hook and challenge callback. Lives at the AuthManager
+ * level, so it is provider-agnostic — the same hooks run for email, OAuth, or any custom
+ * provider.
+ */
+export interface AuthHookContext {
+	/** Provider name that authenticated (or attempted to). */
+	provider: string;
+	/** Raw Express request (ip, headers, body) — for rate-limit / audit / captcha. */
+	req: import('express').Request;
+	/** Login credentials. Only populated for `beforeAuthenticate`. */
+	credentials?: any;
+	/** Request-scoped EntityManager accessor. */
+	getEm: () => any;
+}
+
+/**
+ * Ordered lifecycle hooks around the login flow. All optional and all async-capable.
+ * Hooks run for every provider because they are registered on the AuthManager, not on
+ * any individual adapter. Throwing from `beforeAuthenticate` rejects the login.
+ */
+export interface AuthHooks {
+	/** Optional name (for debugging / ordering insight). */
+	name?: string;
+	/** Before credentials are checked. May throw to reject (e.g. rate limit, captcha). */
+	beforeAuthenticate?(ctx: AuthHookContext): void | Promise<void>;
+	/** After credentials verified, before challenge resolution. May mutate the user. */
+	afterAuthenticate?(user: AuthUser, ctx: AuthHookContext): void | Promise<void>;
+	/** After all challenges pass, before tokens are generated. */
+	beforeIssueTokens?(user: AuthUser, ctx: AuthHookContext): void | Promise<void>;
+	/** After tokens are generated (before they are returned to the route handler). */
+	afterIssueTokens?(user: AuthUser, tokens: AuthTokens, ctx: AuthHookContext): void | Promise<void>;
+	/** Login fully succeeded (tokens issued). */
+	onLoginSuccess?(user: AuthUser, ctx: AuthHookContext): void | Promise<void>;
+	/** Login failed at any point. */
+	onLoginFailure?(error: Error, ctx: AuthHookContext): void | Promise<void>;
+	/** Before logout cookies are cleared. */
+	beforeLogout?(ctx: AuthHookContext): void | Promise<void>;
+	/** After logout cookies are cleared. */
+	afterLogout?(ctx: AuthHookContext): void | Promise<void>;
+}
+
+/**
+ * High-level "interrupt the login with a verification step" provider, built on top of the
+ * hook + challenge engine. A plugin registers one of these (via
+ * `panel.registerAuthChallenge`) to add a verification step without touching any AuthProvider.
+ */
+export interface AuthChallengeProvider {
+	/** Unique challenge type identifier, e.g. 'email-code'. */
+	type: string;
+	/** Whether this challenge must be satisfied for the given user. */
+	isRequired(user: AuthUser, ctx: AuthHookContext): boolean | Promise<boolean>;
+	/** Verify the user's response to the challenge. Return true to pass. */
+	verify(user: AuthUser, payload: unknown, ctx: AuthHookContext): boolean | Promise<boolean>;
+	/** Optional non-secret data sent to the client with the challenge. Never secrets. */
+	getChallengeData?(user: AuthUser, ctx: AuthHookContext): unknown | Promise<unknown>;
+}
+
+/**
+ * Discriminated result of a login attempt or a challenge verification.
+ * `authenticated` → tokens issued (cookies set by the route handler).
+ * `challenge` → one or more challenges remain; no cookies set, client must continue.
+ */
+export type LoginResult =
+	| { status: 'authenticated'; user: AuthUser; tokens: AuthTokens }
+	| { status: 'challenge'; challenge: { type: string; challengeToken: string; data?: unknown } };
+
+/**
  * Configuration for an authentication provider
  */
 export interface AuthProviderConfig {

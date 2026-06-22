@@ -1,6 +1,15 @@
 import { Router, Request, Response } from 'express';
 import { AuthProvider } from './AuthProvider';
-import { AuthUser, AuthTokens, JWTConfig, AuthButtonConfig } from './types';
+import {
+	AuthUser,
+	AuthTokens,
+	JWTConfig,
+	AuthButtonConfig,
+	AuthHooks,
+	AuthHookContext,
+	AuthChallengeProvider,
+	LoginResult,
+} from './types';
 import { normalizeRoleId } from './normalizeRole';
 import {
 	generateAccessToken,
@@ -8,6 +17,8 @@ import {
 	verifyAccessToken,
 	verifyRefreshToken,
 	getTokenExpiration,
+	generateChallengeToken,
+	verifyChallengeToken,
 } from './jwt';
 import crypto from 'crypto';
 
@@ -18,9 +29,70 @@ import crypto from 'crypto';
 export class AuthManager {
 	private providers: Map<string, AuthProvider> = new Map();
 	private jwtConfig: JWTConfig;
+	/** Ordered login-flow lifecycle hooks (run for every provider). */
+	private hooks: AuthHooks[] = [];
+	/** Registered challenge providers, keyed by challenge type. */
+	private challenges: Map<string, AuthChallengeProvider> = new Map();
 
 	constructor(jwtConfig: JWTConfig) {
 		this.jwtConfig = jwtConfig;
+	}
+
+	// ============================================================================
+	// Extension registries (login-flow hooks + challenge protocol)
+	// ============================================================================
+
+	/**
+	 * Register ordered lifecycle hooks around the login flow. Hooks run for every
+	 * provider in registration order.
+	 */
+	registerHook(hooks: AuthHooks): void {
+		this.hooks.push(hooks);
+	}
+
+	/**
+	 * Register a challenge provider (high-level "interrupt with a verification step").
+	 * Later registrations of the same `type` win.
+	 */
+	registerChallenge(challenge: AuthChallengeProvider): void {
+		this.challenges.set(challenge.type, challenge);
+	}
+
+	/** Run a single lifecycle hook across all registrations, in order, awaiting each. */
+	private async runHook(name: keyof AuthHooks, ...args: any[]): Promise<void> {
+		for (const hook of this.hooks) {
+			const fn = hook[name] as ((...a: any[]) => void | Promise<void>) | undefined;
+			if (typeof fn === 'function') {
+				await fn(...args);
+			}
+		}
+	}
+
+	private setAuthCookies(res: Response, tokens: AuthTokens): void {
+		const override = this.jwtConfig.cookie ?? {};
+		const base: any = {
+			httpOnly: override.httpOnly ?? true,
+			secure: override.secure ?? process.env.NODE_ENV === 'production',
+			sameSite: override.sameSite ?? 'lax',
+			path: '/',
+		};
+		if (override.domain) base.domain = override.domain;
+
+		const accessMaxAge = getTokenExpiration(this.jwtConfig.accessTokenExpiry || '15m') * 1000;
+		const refreshMaxAge = getTokenExpiration(this.jwtConfig.refreshTokenExpiry || '7d') * 1000;
+
+		res.cookie('kratosjs_access_token', tokens.accessToken, { ...base, maxAge: accessMaxAge });
+		res.cookie('kratosjs_refresh_token', tokens.refreshToken, {
+			...base,
+			maxAge: refreshMaxAge,
+			path: '/auth/refresh',
+		});
+	}
+
+	private clearAuthCookies(res: Response): void {
+		const domain = this.jwtConfig.cookie?.domain;
+		res.clearCookie('kratosjs_access_token', { path: '/', domain });
+		res.clearCookie('kratosjs_refresh_token', { path: '/auth/refresh', domain });
 	}
 
 	/**
@@ -66,6 +138,137 @@ export class AuthManager {
 		}
 
 		return this.generateTokens(user);
+	}
+
+	// ============================================================================
+	// Login pipeline (hooks + challenge protocol) — returns LoginResult, no `res`
+	// ============================================================================
+
+	/**
+	 * Authenticate credentials and shape the result into a canonical AuthUser.
+	 * Uses the registered `getUserById` (if any) to load full user data, and normalizes
+	 * the `role` relation to its id.
+	 */
+	private async resolveUser(providerName: string, credentials: any): Promise<AuthUser> {
+		const provider = this.providers.get(providerName);
+		if (!provider) {
+			throw new Error(`Provider '${providerName}' not found`);
+		}
+
+		const authed = await provider.authenticate(credentials);
+		if (!authed) {
+			throw new Error('Invalid credentials');
+		}
+
+		return this.shapeUser(authed);
+	}
+
+	/** Load full user data (if a lookup is configured) and normalize the role to an id. */
+	private async shapeUser(user: AuthUser): Promise<AuthUser> {
+		const getUserById = (this as any)._getUserById as ((id: string) => Promise<AuthUser | null>) | undefined;
+		if (getUserById) {
+			const full = await getUserById(user.id);
+			if (full) {
+				return { ...full, role: normalizeRoleId(full.role) };
+			}
+		}
+		return { ...user, role: normalizeRoleId(user.role) };
+	}
+
+	/**
+	 * Full login attempt: run lifecycle hooks, authenticate, then either issue tokens
+	 * or return a pending challenge. Provider-agnostic — challenges live above adapters.
+	 */
+	async attemptLogin(providerName: string, credentials: any, ctx: AuthHookContext): Promise<LoginResult> {
+		await this.runHook('beforeAuthenticate', ctx);
+		const user = await this.resolveUser(providerName, credentials);
+		await this.runHook('afterAuthenticate', user, ctx);
+		return this.resolveOrIssue(user, ctx);
+	}
+
+	/** Decide whether any challenge is required; if so pause and return the first one. */
+	private async resolveOrIssue(user: AuthUser, ctx: AuthHookContext): Promise<LoginResult> {
+		const pending: string[] = [];
+		for (const challenge of this.challenges.values()) {
+			if (await challenge.isRequired(user, ctx)) {
+				pending.push(challenge.type);
+			}
+		}
+
+		if (pending.length === 0) {
+			return this.issueTokens(user, ctx);
+		}
+
+		const first = this.challenges.get(pending[0])!;
+		const challengeToken = generateChallengeToken(
+			{ userId: user.id, provider: ctx.provider, pending },
+			this.jwtConfig,
+		);
+		return {
+			status: 'challenge',
+			challenge: {
+				type: pending[0],
+				challengeToken,
+				data: await first.getChallengeData?.(user, ctx),
+			},
+		};
+	}
+
+	/**
+	 * Verify the user's response to the active challenge. On success, either issue tokens
+	 * (no challenges left) or return the next pending challenge.
+	 */
+	async verifyChallenge(
+		challengeToken: string,
+		type: string,
+		payload: unknown,
+		ctx: AuthHookContext,
+		getUserById: (id: string) => Promise<AuthUser | null>,
+	): Promise<LoginResult> {
+		const decoded = verifyChallengeToken(challengeToken, this.jwtConfig.secret);
+		if (!decoded || decoded.pending[0] !== type) {
+			throw new Error('Invalid challenge');
+		}
+
+		const rawUser = await getUserById(decoded.userId);
+		const challenge = this.challenges.get(type);
+		if (!rawUser || !challenge) {
+			throw new Error('Invalid challenge');
+		}
+
+		const user: AuthUser = { ...rawUser, role: normalizeRoleId(rawUser.role) };
+		const ok = await challenge.verify(user, payload, ctx);
+		if (!ok) {
+			throw new Error('Verification failed');
+		}
+
+		const remaining = decoded.pending.slice(1);
+		if (remaining.length === 0) {
+			return this.issueTokens(user, ctx);
+		}
+
+		const nextToken = generateChallengeToken(
+			{ userId: user.id, provider: decoded.provider, pending: remaining },
+			this.jwtConfig,
+		);
+		const next = this.challenges.get(remaining[0])!;
+		return {
+			status: 'challenge',
+			challenge: {
+				type: remaining[0],
+				challengeToken: nextToken,
+				data: await next.getChallengeData?.(user, ctx),
+			},
+		};
+	}
+
+	/** Run the issue-tokens hooks and produce an `authenticated` result. */
+	private async issueTokens(user: AuthUser, ctx: AuthHookContext): Promise<LoginResult> {
+		await this.runHook('beforeIssueTokens', user, ctx);
+		const tokens = this.generateTokens(user);
+		await this.runHook('afterIssueTokens', user, tokens, ctx);
+		await this.runHook('onLoginSuccess', user, ctx);
+		return { status: 'authenticated', user, tokens };
 	}
 
 	/**
@@ -129,13 +332,35 @@ export class AuthManager {
 	}
 
 	/**
-	 * Get Express router with all auth routes
+	 * Send a LoginResult to the client. Cookies are set ONLY for the `authenticated`
+	 * branch; a pending `challenge` sets no auth cookies and echoes the challenge back.
 	 */
-	getRoutes(getUserById?: (id: string) => Promise<AuthUser | null>): Router {
+	private respondWithResult(res: Response, result: LoginResult): void {
+		if (result.status === 'authenticated') {
+			this.setAuthCookies(res, result.tokens);
+			res.json({
+				status: 'authenticated',
+				user: result.user,
+				tokens: { expiresIn: result.tokens.expiresIn },
+			});
+			return;
+		}
+
+		// challenge: no cookies, return the continuation token + non-secret data
+		res.json(result);
+	}
+
+	/**
+	 * Get Express router with all auth routes
+	 * @param getUserById - request-scoped user lookup (for /me, /refresh, /challenge)
+	 * @param getEm - request-scoped EntityManager accessor (passed to auth hooks/challenges)
+	 */
+	getRoutes(getUserById?: (id: string) => Promise<AuthUser | null>, getEm?: () => any): Router {
 		const router = Router();
 
 		// Store getUserById for use in route handlers
 		const _getUserById = getUserById || (this as any)._getUserById;
+		const _getEm = getEm || (() => undefined);
 
 		// GET /auth/providers - List available providers
 		router.get('/providers', (_req: Request, res: Response) => {
@@ -147,69 +372,49 @@ export class AuthManager {
 			}
 		});
 
-		// POST /auth/login - Login with provider
+		// POST /auth/login - Login with provider (may return a pending challenge)
 		router.post('/login', async (req: Request, res: Response): Promise<void> => {
+			const { provider, ...credentials } = req.body;
+			const ctx: AuthHookContext = { provider, req, credentials, getEm: _getEm };
 			try {
-				const { provider, ...credentials } = req.body;
-
 				if (!provider) {
 					res.status(400).json({ error: 'Provider name is required' });
 					return;
 				}
 
-				const tokens = await this.login(provider, credentials);
+				const result = await this.attemptLogin(provider, credentials, ctx);
+				this.respondWithResult(res, result);
+			} catch (error: any) {
+				await this.runHook('onLoginFailure', error, ctx);
+				res.status(401).json({ error: error.message || 'Login failed' });
+			}
+		});
 
-				// Decode token to get user ID
-				const tokenUser = await this.getCurrentUser(tokens.accessToken);
-				if (!tokenUser) {
-					res.status(500).json({ error: 'Failed to get user after login' });
+		// POST /auth/challenge - Respond to a pending login challenge (e.g. a one-time code)
+		router.post('/challenge', async (req: Request, res: Response): Promise<void> => {
+			const { challengeToken, type, payload } = req.body;
+			// Derive provider from the (verified) challenge token for the hook context.
+			const decoded = verifyChallengeToken(challengeToken, this.jwtConfig.secret);
+			const ctx: AuthHookContext = {
+				provider: decoded?.provider ?? 'unknown',
+				req,
+				getEm: _getEm,
+			};
+			try {
+				if (!challengeToken || !type) {
+					res.status(400).json({ error: 'challengeToken and type are required' });
+					return;
+				}
+				if (!_getUserById) {
+					res.status(500).json({ error: 'User lookup function not configured' });
 					return;
 				}
 
-				// If getUserById is provided, fetch full user data (including resolved media URLs)
-				// Otherwise, use the user from token
-				let user = tokenUser;
-				if (_getUserById) {
-					const fullUser = await _getUserById(tokenUser.id);
-					if (fullUser) {
-						// `role` may be a relation reference/entity; expose its id consistently.
-						user = { ...fullUser, role: normalizeRoleId(fullUser.role) };
-					}
-				}
-
-				// Set cookies if configured
-				if (this.jwtConfig.cookie) {
-					const cookieOptions: any = {
-						httpOnly: this.jwtConfig.cookie.httpOnly ?? true,
-						secure: this.jwtConfig.cookie.secure ?? false,
-						sameSite: this.jwtConfig.cookie.sameSite || 'lax',
-						path: '/',
-					};
-
-					if (this.jwtConfig.cookie.domain) {
-						cookieOptions.domain = this.jwtConfig.cookie.domain;
-					}
-
-					const expiresIn = getTokenExpiration(this.jwtConfig.accessTokenExpiry || '15m');
-					const refreshExpiresIn = getTokenExpiration(this.jwtConfig.refreshTokenExpiry || '7d');
-
-					res.cookie('kratosjs_access_token', tokens.accessToken, {
-						...cookieOptions,
-						maxAge: expiresIn * 1000,
-					});
-
-					res.cookie('kratosjs_refresh_token', tokens.refreshToken, {
-						...cookieOptions,
-						maxAge: refreshExpiresIn * 1000,
-					});
-				}
-
-				res.json({
-					user,
-					tokens,
-				});
+				const result = await this.verifyChallenge(challengeToken, type, payload, ctx, _getUserById);
+				this.respondWithResult(res, result);
 			} catch (error: any) {
-				res.status(401).json({ error: error.message || 'Login failed' });
+				await this.runHook('onLoginFailure', error, ctx);
+				res.status(401).json({ error: error.message || 'Challenge verification failed' });
 			}
 		});
 
@@ -266,53 +471,20 @@ export class AuthManager {
 					return;
 				}
 
-				// Set new cookies if configured
-				if (this.jwtConfig.cookie) {
-					const cookieOptions: any = {
-						httpOnly: this.jwtConfig.cookie.httpOnly ?? true,
-						secure: this.jwtConfig.cookie.secure ?? false,
-						sameSite: this.jwtConfig.cookie.sameSite || 'lax',
-						path: '/',
-					};
+				this.setAuthCookies(res, tokens);
 
-					if (this.jwtConfig.cookie.domain) {
-						cookieOptions.domain = this.jwtConfig.cookie.domain;
-					}
-
-					const expiresIn = getTokenExpiration(this.jwtConfig.accessTokenExpiry || '15m');
-					const refreshExpiresIn = getTokenExpiration(this.jwtConfig.refreshTokenExpiry || '7d');
-
-					res.cookie('kratosjs_access_token', tokens.accessToken, {
-						...cookieOptions,
-						maxAge: expiresIn * 1000,
-					});
-
-					res.cookie('kratosjs_refresh_token', tokens.refreshToken, {
-						...cookieOptions,
-						maxAge: refreshExpiresIn * 1000,
-					});
-				}
-
-				res.json({ tokens });
+				res.json({ tokens: { expiresIn: tokens.expiresIn } });
 			} catch (error: any) {
 				res.status(401).json({ error: error.message || 'Token refresh failed' });
 			}
 		});
 
 		// POST /auth/logout - Logout (clear tokens)
-		router.post('/logout', (_req: Request, res: Response) => {
-			// Clear cookies if they exist
-			if (this.jwtConfig.cookie) {
-				res.clearCookie('kratosjs_access_token', {
-					path: '/',
-					domain: this.jwtConfig.cookie.domain,
-				});
-				res.clearCookie('kratosjs_refresh_token', {
-					path: '/',
-					domain: this.jwtConfig.cookie.domain,
-				});
-			}
-
+		router.post('/logout', async (req: Request, res: Response): Promise<void> => {
+			const ctx: AuthHookContext = { provider: 'unknown', req, getEm: _getEm };
+			await this.runHook('beforeLogout', ctx);
+			this.clearAuthCookies(res);
+			await this.runHook('afterLogout', ctx);
 			res.json({ message: 'Logged out successfully' });
 		});
 
@@ -426,41 +598,11 @@ export class AuthManager {
 					expiresIn: getTokenExpiration(this.jwtConfig.accessTokenExpiry || '15m'),
 				};
 
-				// Set cookies if configured
-				if (this.jwtConfig.cookie) {
-					const cookieOptions: any = {
-						httpOnly: this.jwtConfig.cookie.httpOnly ?? true,
-						secure: this.jwtConfig.cookie.secure ?? false,
-						sameSite: this.jwtConfig.cookie.sameSite || 'lax',
-						path: '/',
-					};
+				this.setAuthCookies(res, tokens);
 
-					if (this.jwtConfig.cookie.domain) {
-						cookieOptions.domain = this.jwtConfig.cookie.domain;
-					}
-
-					const expiresIn = getTokenExpiration(this.jwtConfig.accessTokenExpiry || '15m');
-					const refreshExpiresIn = getTokenExpiration(this.jwtConfig.refreshTokenExpiry || '7d');
-
-					res.cookie('kratosjs_access_token', tokens.accessToken, {
-						...cookieOptions,
-						maxAge: expiresIn * 1000,
-					});
-
-					res.cookie('kratosjs_refresh_token', tokens.refreshToken, {
-						...cookieOptions,
-						maxAge: refreshExpiresIn * 1000,
-					});
-				}
-
-				// Redirect to frontend with tokens in query params
-				// Use the redirect_uri from cookie if available, otherwise default to backend root
+				// Redirect to frontend — cookies carry the session, no tokens in URL
 				const finalRedirectUri = redirectUri || req.protocol + '://' + req.get('host') + '/';
-				const redirectUrl = new URL(finalRedirectUri);
-				redirectUrl.searchParams.set('access_token', tokens.accessToken);
-				redirectUrl.searchParams.set('refresh_token', tokens.refreshToken);
-
-				res.redirect(redirectUrl.toString());
+				res.redirect(finalRedirectUri);
 			} catch (error: any) {
 				res.status(500).json({ error: error.message || 'OAuth callback failed' });
 			}

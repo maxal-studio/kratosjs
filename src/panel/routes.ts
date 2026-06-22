@@ -56,7 +56,10 @@ export function buildPanelRouter(panel: Panel): Router {
 	const authManager = panel.getAuthManager();
 	if (authManager) {
 		const getUserById = (authManager as any)._getUserById;
-		router.use('/auth', authManager.getRoutes(getUserById));
+		router.use(
+			'/auth',
+			authManager.getRoutes(getUserById, () => panel.getEm()),
+		);
 	}
 
 	// Middleware to resolve resource from URL parameter

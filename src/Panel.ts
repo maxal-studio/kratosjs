@@ -11,7 +11,15 @@ import { MikroOrmAdapter } from './adapters/database/MikroOrmAdapter';
 import { AuthManager } from './auth/AuthManager';
 import { AuthProvider } from './auth/AuthProvider';
 import { EmailAuthProvider } from './auth/providers/EmailAuthProvider';
-import { JWTConfig, AuthUser, UserFieldMap, ResolvedUserFieldMap, AuthDefaultsContext } from './auth/types';
+import {
+	JWTConfig,
+	AuthUser,
+	UserFieldMap,
+	ResolvedUserFieldMap,
+	AuthDefaultsContext,
+	AuthHooks,
+	AuthChallengeProvider,
+} from './auth/types';
 import { formatUserDisplayName } from './auth/formatUserDisplayName';
 import { verifyPassword as defaultVerifyPassword } from './auth/password';
 import { authMiddleware, optionalAuthMiddleware } from './auth/middleware';
@@ -834,6 +842,36 @@ export class Panel {
 	 */
 	getAuthManager(): AuthManager | undefined {
 		return this._authManager;
+	}
+
+	/**
+	 * Register lifecycle hooks around the login flow (low-level extension point).
+	 * Hooks run for every provider, in registration order. Use this for cross-cutting
+	 * concerns like rate-limiting, audit logging, or captcha.
+	 *
+	 * Must be called after `panel.auth(...)`.
+	 */
+	registerAuthHook(hooks: AuthHooks): this {
+		if (!this._authManager) {
+			throw new Error('Call panel.auth(...) before registering auth hooks.');
+		}
+		this._authManager.registerHook(hooks);
+		return this;
+	}
+
+	/**
+	 * Register a challenge provider (high-level "interrupt the login with a verification
+	 * step" extension point, e.g. a one-time-code verification). Built on top of the auth
+	 * hook + challenge engine.
+	 *
+	 * Must be called after `panel.auth(...)`.
+	 */
+	registerAuthChallenge(challenge: AuthChallengeProvider): this {
+		if (!this._authManager) {
+			throw new Error('Call panel.auth(...) before registering auth challenges.');
+		}
+		this._authManager.registerChallenge(challenge);
+		return this;
 	}
 
 	/**

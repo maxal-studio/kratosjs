@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { AuthProvider, LoginCredentials } from './types';
+import { AuthProvider, LoginCredentials, PendingChallenge } from './types';
 import { AuthApiClient } from './authApiClient';
 import { useAuth } from './AuthContext';
-import { tokenStorage } from './tokenStorage';
+import { useAuthChallengeRegistry } from '../contexts/AuthChallengeRegistryContext';
 import { Icon } from '../components/utils/Icon';
 import { cn } from '../utils/classNames';
 import { Button, IconButton, Input, Label, ErrorAlert, Spinner } from '../components/ui';
@@ -84,17 +84,68 @@ function ProviderButton({ provider, onSelect }: ProviderButtonProps) {
 }
 
 /**
+ * Renders the active login challenge (e.g. 2FA) using the plugin-registered component for
+ * its `type`. Owns the per-attempt submitting/error state and wires the challenge UI to
+ * `verifyChallenge` / `cancelChallenge` from the auth context.
+ */
+function ChallengeStep({ challenge }: { challenge: PendingChallenge }) {
+	const { verifyChallenge, cancelChallenge } = useAuth();
+	const registry = useAuthChallengeRegistry();
+	const ChallengeComponent = registry[challenge.type];
+	const [error, setError] = useState<string | null>(null);
+	const [submitting, setSubmitting] = useState(false);
+
+	if (!ChallengeComponent) {
+		return (
+			<div className="space-y-4">
+				<ErrorAlert message={`No UI is registered for challenge type "${challenge.type}".`} />
+				<Button
+					type="button"
+					variant="ghost"
+					size="sm"
+					className="-ml-2 h-8 px-2 text-fg-secondary"
+					icon={<ArrowLeft className="h-4 w-4" />}
+					onClick={cancelChallenge}>
+					Back to sign in
+				</Button>
+			</div>
+		);
+	}
+
+	const handleSubmit = async (payload: unknown) => {
+		setSubmitting(true);
+		setError(null);
+		try {
+			await verifyChallenge(payload);
+		} catch (err: any) {
+			setError(err.message || 'Verification failed');
+		} finally {
+			setSubmitting(false);
+		}
+	};
+
+	return (
+		<ChallengeComponent
+			data={challenge.data}
+			onSubmit={handleSubmit}
+			onCancel={cancelChallenge}
+			error={error}
+			submitting={submitting}
+		/>
+	);
+}
+
+/**
  * LoginPage - Displays authentication providers and handles login
  */
 export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
-	const { login, refreshUser } = useAuth();
+	const { login, pendingChallenge } = useAuth();
 	const [providers, setProviders] = useState<AuthProvider[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [selectedProvider, setSelectedProvider] = useState<AuthProvider | null>(null);
 	const [credentials, setCredentials] = useState<LoginCredentials>({ email: '', password: '' });
 	const [submitting, setSubmitting] = useState(false);
-	const [processingOAuth, setProcessingOAuth] = useState(false);
 	const [panelBranding, setPanelBranding] = useState<PanelBranding>({});
 	const [darkMode, setDarkMode] = useDarkMode();
 
@@ -127,32 +178,6 @@ export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
 
 		fetchBranding();
 	}, [apiBaseUrl]);
-
-	// Handle OAuth callback - check for tokens in URL params
-	useEffect(() => {
-		const urlParams = new URLSearchParams(window.location.search);
-		const accessToken = urlParams.get('access_token');
-		const refreshToken = urlParams.get('refresh_token');
-
-		if (accessToken && refreshToken) {
-			setProcessingOAuth(true);
-			tokenStorage.setAccessToken(accessToken);
-			tokenStorage.setRefreshToken(refreshToken);
-			window.history.replaceState({}, document.title, window.location.pathname);
-
-			refreshUser()
-				.then(() => {
-					onSuccess?.();
-				})
-				.catch(err => {
-					console.error('Failed to refresh user after OAuth:', err);
-					setError('Failed to complete authentication');
-				})
-				.finally(() => {
-					setProcessingOAuth(false);
-				});
-		}
-	}, [onSuccess, refreshUser]);
 
 	// Fetch available providers
 	useEffect(() => {
@@ -202,14 +227,12 @@ export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
 		}
 	};
 
-	if (loading || processingOAuth) {
+	if (loading) {
 		return (
 			<div className="flex min-h-screen items-center justify-center bg-base px-6">
 				<div className="text-center">
 					<Spinner size="lg" className="mx-auto text-accent" />
-					<p className="mt-4 text-sm text-fg-secondary">
-						{processingOAuth ? 'Completing authentication…' : 'Preparing sign in…'}
-					</p>
+					<p className="mt-4 text-sm text-fg-secondary">Preparing sign in…</p>
 				</div>
 			</div>
 		);
@@ -238,15 +261,25 @@ export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
 						<PanelBrandMark icon={panelBranding.icon} favicon={panelBranding.favicon} size="lg" />
 					</div>
 					<h1 className="text-2xl font-semibold tracking-tight text-fg">
-						{panelBranding.title ? `Sign in to ${panelBranding.title}` : 'Welcome back'}
+						{pendingChallenge
+							? 'Verify your identity'
+							: panelBranding.title
+								? `Sign in to ${panelBranding.title}`
+								: 'Welcome back'}
 					</h1>
-					<p className="mt-2 text-sm text-fg-secondary">{subtitle}</p>
+					<p className="mt-2 text-sm text-fg-secondary">
+						{pendingChallenge ? 'Complete the additional step to finish signing in' : subtitle}
+					</p>
 				</header>
 
 				<div className="rounded-xl border border-border bg-surface p-6 shadow-soft sm:p-8">
-					{error && <ErrorAlert message={error} onDismiss={() => setError(null)} className="mb-6" />}
+					{pendingChallenge && <ChallengeStep challenge={pendingChallenge} />}
 
-					{showProviderPicker && (
+					{!pendingChallenge && error && (
+						<ErrorAlert message={error} onDismiss={() => setError(null)} className="mb-6" />
+					)}
+
+					{!pendingChallenge && showProviderPicker && (
 						<div className="space-y-3">
 							{providers.map(provider => (
 								<ProviderButton
@@ -258,7 +291,7 @@ export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
 						</div>
 					)}
 
-					{showOAuthPrompt && activeProvider && (
+					{!pendingChallenge && showOAuthPrompt && activeProvider && (
 						<div className="space-y-4">
 							<ProviderButton provider={activeProvider} onSelect={handleProviderSelect} />
 							<p className="text-center text-xs text-fg-muted">
@@ -267,7 +300,7 @@ export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
 						</div>
 					)}
 
-					{showCredentialsForm && (
+					{!pendingChallenge && showCredentialsForm && (
 						<form onSubmit={handleSubmit} className="space-y-5">
 							{showBackLink && (
 								<Button
@@ -322,7 +355,7 @@ export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
 						</form>
 					)}
 
-					{!showProviderPicker && !showOAuthPrompt && !showCredentialsForm && (
+					{!pendingChallenge && !showProviderPicker && !showOAuthPrompt && !showCredentialsForm && (
 						<p className="text-center text-sm text-fg-secondary">
 							No authentication providers are configured.
 						</p>

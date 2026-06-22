@@ -80,6 +80,50 @@ export function verifyRefreshToken(token: string, secret: string): { userId: str
 }
 
 /**
+ * Payload carried by a short-lived challenge ("half-authenticated continuation") token.
+ * Issued after credentials are verified but before any auth cookie is set, while one or
+ * more challenges (e.g. a one-time code) are still pending. It is returned in the response body so the
+ * client can echo it back to `/auth/challenge` — it is NOT a session credential.
+ */
+export interface ChallengePayload {
+	/** Authenticated user id (challenges still pending). */
+	userId: string;
+	/** Provider name that authenticated the credentials. */
+	provider: string;
+	/** Ordered list of challenge types still to satisfy; index 0 is the active one. */
+	pending: string[];
+}
+
+/**
+ * Generate a short-lived (5 min) challenge continuation token.
+ */
+export function generateChallengeToken(payload: ChallengePayload, config: JWTConfig): string {
+	return jwt.sign({ ...payload, type: 'challenge' }, config.secret, { expiresIn: '5m' });
+}
+
+/**
+ * Verify and decode a challenge token. Returns null if invalid, expired, or not a
+ * challenge token — guaranteeing it can never be mistaken for an access token.
+ */
+export function verifyChallengeToken(token: string, secret: string): ChallengePayload | null {
+	try {
+		const decoded = jwt.verify(token, secret) as any;
+
+		if (decoded.type !== 'challenge') {
+			return null;
+		}
+
+		return {
+			userId: decoded.userId,
+			provider: decoded.provider,
+			pending: decoded.pending ?? [],
+		};
+	} catch (error) {
+		return null;
+	}
+}
+
+/**
  * Get token expiration time in seconds
  */
 export function getTokenExpiration(expiryString: string): number {

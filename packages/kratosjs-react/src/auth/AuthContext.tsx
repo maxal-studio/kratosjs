@@ -1,13 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { AuthUser, LoginCredentials, AuthTokens } from './types';
+import { AuthUser, LoginCredentials, PendingChallenge } from './types';
 import { AuthApiClient } from './authApiClient';
-import { tokenStorage } from './tokenStorage';
-import { getTokenExpirationTime } from './jwtUtils';
 
 interface AuthContextValue {
 	user: AuthUser | null;
 	loading: boolean;
+	/** A challenge (e.g. 2FA) awaiting the user's response, or null. */
+	pendingChallenge: PendingChallenge | null;
 	login: (provider: string, credentials: LoginCredentials) => Promise<void>;
+	/** Submit a response to the active `pendingChallenge`. */
+	verifyChallenge: (payload: unknown) => Promise<void>;
+	/** Abandon the active challenge and return to the login form. */
+	cancelChallenge: () => void;
 	logout: () => Promise<void>;
 	refreshUser: () => Promise<void>;
 }
@@ -19,47 +23,39 @@ interface AuthProviderProps {
 	apiBaseUrl: string;
 }
 
-/**
- * AuthProvider - Provides authentication context to the app
- */
 export function AuthProvider({ children, apiBaseUrl }: AuthProviderProps) {
 	const [user, setUser] = useState<AuthUser | null>(null);
 	const [loading, setLoading] = useState(true);
+	const [pendingChallenge, setPendingChallenge] = useState<PendingChallenge | null>(null);
 	const apiClient = useRef(new AuthApiClient(apiBaseUrl));
 	const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-	/**
-	 * Refresh access token before it expires
-	 */
 	const scheduleTokenRefresh = useCallback((expiresIn: number) => {
-		// Clear existing timer
 		if (refreshTimerRef.current) {
 			clearTimeout(refreshTimerRef.current);
 		}
 
-		// Schedule refresh 1 minute before expiry
-		const refreshTime = Math.max((expiresIn - 60) * 1000, 60000); // At least 1 minute
+		// Refresh 1 minute before expiry, minimum 1 minute
+		const refreshTime = Math.max((expiresIn - 60) * 1000, 60000);
 
 		refreshTimerRef.current = setTimeout(async () => {
 			try {
 				const tokens = await apiClient.current.refreshToken();
-				if (tokens) {
-					// Schedule next refresh
+				if (tokens?.expiresIn) {
 					scheduleTokenRefresh(tokens.expiresIn);
 				} else {
-					// Refresh failed - user needs to login again
 					setUser(null);
 				}
-			} catch (error) {
-				console.error('Token refresh failed:', error);
+			} catch {
 				setUser(null);
 			}
 		}, refreshTime);
 	}, []);
 
 	/**
-	 * Fetch current user from API
-	 * Attempts to refresh token if 401 error occurs
+	 * Fetch the current user from /auth/me.
+	 * On 401, attempts a silent token refresh via the cookie before giving up.
+	 * Seeds the proactive refresh timer when a refresh response includes expiresIn.
 	 */
 	const fetchUser = useCallback(async () => {
 		try {
@@ -67,66 +63,81 @@ export function AuthProvider({ children, apiBaseUrl }: AuthProviderProps) {
 			setUser(currentUser);
 			return currentUser;
 		} catch (error: any) {
-			// If 401, try to refresh token and retry
-			if (error?.status === 401 || error?.message?.includes('401')) {
+			if (error?.status === 401) {
 				try {
 					const tokens = await apiClient.current.refreshToken();
 					if (tokens) {
-						// Retry getting user with new token
+						if (tokens.expiresIn) scheduleTokenRefresh(tokens.expiresIn);
 						const currentUser = await apiClient.current.getCurrentUser();
 						setUser(currentUser);
-						if (currentUser) {
-							// Schedule next refresh based on new token
-							const token = tokenStorage.getAccessToken();
-							if (token) {
-								const expiresIn = getTokenExpirationTime(token);
-								if (expiresIn) {
-									scheduleTokenRefresh(expiresIn);
-								}
-							}
-						}
 						return currentUser;
 					}
-				} catch (refreshError) {
-					console.error('Token refresh failed:', refreshError);
+				} catch {
+					// refresh failed — fall through to null
 				}
 			}
-			console.error('Failed to fetch user:', error);
 			setUser(null);
 			return null;
 		}
 	}, [scheduleTokenRefresh]);
 
-	/**
-	 * Login with provider and credentials
-	 */
-	const login = useCallback(
-		async (provider: string, credentials: LoginCredentials) => {
-			try {
-				const result = await apiClient.current.login(provider, credentials);
-				setUser(result.user);
-
-				// Schedule token refresh
-				if (result.tokens) {
-					scheduleTokenRefresh(result.tokens.expiresIn);
-				}
-			} catch (error: any) {
-				throw new Error(error.message || 'Login failed');
+	/** Apply an `authenticated` result: set the user and seed the refresh timer. */
+	const applyAuthenticated = useCallback(
+		(authUser: AuthUser, expiresIn?: number) => {
+			setPendingChallenge(null);
+			setUser(authUser);
+			if (expiresIn) {
+				scheduleTokenRefresh(expiresIn);
 			}
 		},
 		[scheduleTokenRefresh],
 	);
 
-	/**
-	 * Logout - clear user and tokens
-	 */
+	const login = useCallback(
+		async (provider: string, credentials: LoginCredentials) => {
+			const result = await apiClient.current.login(provider, credentials);
+			if (result.status === 'authenticated') {
+				applyAuthenticated(result.user, result.tokens?.expiresIn);
+			} else {
+				// Pause here: a challenge (e.g. 2FA) must be satisfied before tokens are issued.
+				setPendingChallenge(result.challenge);
+			}
+		},
+		[applyAuthenticated],
+	);
+
+	const verifyChallenge = useCallback(
+		async (payload: unknown) => {
+			if (!pendingChallenge) {
+				throw new Error('No challenge in progress');
+			}
+			const result = await apiClient.current.verifyChallenge(
+				pendingChallenge.challengeToken,
+				pendingChallenge.type,
+				payload,
+			);
+			if (result.status === 'authenticated') {
+				applyAuthenticated(result.user, result.tokens?.expiresIn);
+			} else {
+				// Chained step: replace with the next pending challenge.
+				setPendingChallenge(result.challenge);
+			}
+		},
+		[pendingChallenge, applyAuthenticated],
+	);
+
+	const cancelChallenge = useCallback(() => {
+		setPendingChallenge(null);
+	}, []);
+
 	const logout = useCallback(async () => {
 		try {
 			await apiClient.current.logout();
-		} catch (error) {
-			// Ignore errors
+		} catch {
+			// ignore
 		} finally {
 			setUser(null);
+			setPendingChallenge(null);
 			if (refreshTimerRef.current) {
 				clearTimeout(refreshTimerRef.current);
 				refreshTimerRef.current = null;
@@ -134,67 +145,33 @@ export function AuthProvider({ children, apiBaseUrl }: AuthProviderProps) {
 		}
 	}, []);
 
-	/**
-	 * Refresh user data
-	 */
 	const refreshUser = useCallback(async () => {
-		const user = await fetchUser();
-		if (user) {
-			// Update token refresh schedule if we have a token
-			const token = tokenStorage.getAccessToken();
-			if (token) {
-				const expiresIn = getTokenExpirationTime(token);
-				if (expiresIn) {
-					scheduleTokenRefresh(expiresIn);
-				}
-			}
-		}
-	}, [fetchUser, scheduleTokenRefresh]);
+		await fetchUser();
+	}, [fetchUser]);
 
-	// Initialize - fetch user on mount if token exists
 	useEffect(() => {
 		const init = async () => {
 			setLoading(true);
-			const token = tokenStorage.getAccessToken();
-			if (token) {
-				const currentUser = await fetchUser();
-				if (currentUser) {
-					// Get actual token expiry from JWT
-					const expiresIn = getTokenExpirationTime(token);
-					if (expiresIn) {
-						scheduleTokenRefresh(expiresIn);
-					} else {
-						// Fallback: try to refresh token to get new expiry
-						const tokens = await apiClient.current.refreshToken();
-						if (tokens) {
-							const newToken = tokenStorage.getAccessToken();
-							if (newToken) {
-								const newExpiresIn = getTokenExpirationTime(newToken);
-								if (newExpiresIn) {
-									scheduleTokenRefresh(newExpiresIn);
-								}
-							}
-						}
-					}
-				}
-			}
+			await fetchUser();
 			setLoading(false);
 		};
 
 		init();
 
-		// Cleanup on unmount
 		return () => {
 			if (refreshTimerRef.current) {
 				clearTimeout(refreshTimerRef.current);
 			}
 		};
-	}, [fetchUser, scheduleTokenRefresh]);
+	}, [fetchUser]);
 
 	const value: AuthContextValue = {
 		user,
 		loading,
+		pendingChallenge,
 		login,
+		verifyChallenge,
+		cancelChallenge,
 		logout,
 		refreshUser,
 	};
@@ -202,9 +179,6 @@ export function AuthProvider({ children, apiBaseUrl }: AuthProviderProps) {
 	return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-/**
- * Hook to access authentication context
- */
 export function useAuth(): AuthContextValue {
 	const context = useContext(AuthContext);
 	if (!context) {

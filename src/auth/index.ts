@@ -8,6 +8,10 @@ export type {
 	UserFieldMap,
 	ResolvedUserFieldMap,
 	AuthDefaultsContext,
+	AuthHooks,
+	AuthHookContext,
+	AuthChallengeProvider,
+	LoginResult,
 } from './types';
 
 // Base provider
@@ -33,7 +37,10 @@ export {
 	verifyAccessToken,
 	verifyRefreshToken,
 	getTokenExpiration,
+	generateChallengeToken,
+	verifyChallengeToken,
 } from './jwt';
+export type { ChallengePayload } from './jwt';
 
 // Role helpers
 export { normalizeRoleId } from './normalizeRole';
