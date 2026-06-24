@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { SerializedFilter } from '@maxal_studio/kratosjs';
 import { cn } from '../../utils/classNames';
 import { PillButton } from '../ui/PillButton';
+import { translate } from '../../i18n/activeLocale';
 
 interface QueryBuilderFilterProps {
 	filter: SerializedFilter;
@@ -111,7 +112,9 @@ export function QueryBuilderFilterComponent({ filter, value, onChange, embedded 
 								: 'absolute left-0 right-0 top-full z-[70] mt-2 max-h-[500px] rounded-lg shadow-xl',
 						)}>
 						<div className="flex items-center justify-between p-4 border-b border-border shrink-0">
-							<h3 className="text-base font-semibold text-fg">Query Builder</h3>
+							<h3 className="text-base font-semibold text-fg">
+								{translate('core:filters.query_builder')}
+							</h3>
 							<button
 								onClick={() => setIsOpen(false)}
 								type="button"
@@ -287,7 +290,9 @@ export function QueryBuilderFilterComponent({ filter, value, onChange, embedded 
 																					},
 																				});
 																			}}
-																			placeholder="From date..."
+																			placeholder={translate(
+																				'core:filters.from_date',
+																			)}
 																			className="w-full h-9 px-2 text-sm rounded-md border bg-input text-fg border-border focus:outline-none focus:ring-2 focus:ring-ring"
 																		/>
 																		<input
@@ -308,7 +313,9 @@ export function QueryBuilderFilterComponent({ filter, value, onChange, embedded 
 																					},
 																				});
 																			}}
-																			placeholder="To date..."
+																			placeholder={translate(
+																				'core:filters.to_date',
+																			)}
 																			className="w-full h-9 px-2 text-sm rounded-md border bg-input text-fg border-border focus:outline-none focus:ring-2 focus:ring-ring"
 																		/>
 																	</>
@@ -350,7 +357,7 @@ export function QueryBuilderFilterComponent({ filter, value, onChange, embedded 
 																					},
 																				});
 																			}}
-																			placeholder="From..."
+																			placeholder={translate('core:filters.from')}
 																			className="w-full h-9 px-2 text-sm rounded-md border bg-input text-fg border-border focus:outline-none focus:ring-2 focus:ring-ring"
 																		/>
 																		<input
@@ -371,7 +378,7 @@ export function QueryBuilderFilterComponent({ filter, value, onChange, embedded 
 																					},
 																				});
 																			}}
-																			placeholder="To..."
+																			placeholder={translate('core:filters.to')}
 																			className="w-full h-9 px-2 text-sm rounded-md border bg-input text-fg border-border focus:outline-none focus:ring-2 focus:ring-ring"
 																		/>
 																	</>
@@ -394,7 +401,7 @@ export function QueryBuilderFilterComponent({ filter, value, onChange, embedded 
 																	},
 																})
 															}
-															placeholder="Date..."
+															placeholder={translate('core:filters.date')}
 															className="w-full h-9 px-2 text-sm rounded-md border bg-input text-fg border-border focus:outline-none focus:ring-2 focus:ring-ring"
 														/>
 													) : rule.dataType === 'number' ? (
@@ -413,7 +420,7 @@ export function QueryBuilderFilterComponent({ filter, value, onChange, embedded 
 																	},
 																})
 															}
-															placeholder="Value..."
+															placeholder={translate('core:filters.value')}
 															className="w-full h-9 px-2 text-sm rounded-md border bg-input text-fg border-border focus:outline-none focus:ring-2 focus:ring-ring"
 														/>
 													) : (
@@ -432,7 +439,7 @@ export function QueryBuilderFilterComponent({ filter, value, onChange, embedded 
 																	},
 																})
 															}
-															placeholder="Value..."
+															placeholder={translate('core:filters.value')}
 															className="w-full h-9 px-2 text-sm rounded-md border bg-input text-fg border-border focus:outline-none focus:ring-2 focus:ring-ring"
 														/>
 													)}
@@ -457,8 +464,8 @@ export function QueryBuilderFilterComponent({ filter, value, onChange, embedded 
 											d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
 										/>
 									</svg>
-									<p className="text-sm mb-1">No rules added yet</p>
-									<p className="text-xs">Click "Add Rule" to start building your query</p>
+									<p className="text-sm mb-1">{translate('core:filters.no_rules')}</p>
+									<p className="text-xs">{translate('core:filters.add_rule_hint')}</p>
 								</div>
 							)}
 
@@ -476,14 +483,14 @@ export function QueryBuilderFilterComponent({ filter, value, onChange, embedded 
 								type="button"
 								className="text-sm font-medium text-fg-secondary hover:text-fg"
 								disabled={localRules.length === 0}>
-								Clear all
+								{translate('core:common.clear_all')}
 							</button>
 							<div className="flex gap-2">
 								<PillButton type="button" onClick={() => setIsOpen(false)}>
-									Cancel
+									{translate('core:common.cancel')}
 								</PillButton>
 								<PillButton type="button" variant="primary" onClick={applyChanges}>
-									Apply
+									{translate('core:common.apply')}
 								</PillButton>
 							</div>
 						</div>

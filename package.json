@@ -13,6 +13,10 @@
 			"types": "./dist/validation/index.d.ts",
 			"default": "./dist/validation/index.js"
 		},
+		"./dist/i18n": {
+			"types": "./dist/i18n/index.d.ts",
+			"default": "./dist/i18n/index.js"
+		},
 		"./vite": {
 			"types": "./vite/index.d.mts",
 			"import": "./vite/index.mjs"
@@ -106,6 +110,8 @@
 		"cookie-parser": "^1.4.7",
 		"cors": "^2.8.6",
 		"express": "^5.2.1",
+		"i18next": "^26.3.1",
+		"i18next-icu": "^2.4.0",
 		"jsonwebtoken": "^9.0.3",
 		"vite": "^7.3.5",
 		"vite-express": "^0.22.1"

@@ -2,20 +2,23 @@ import React, { useState } from 'react';
 import { SerializedFilter } from '@maxal_studio/kratosjs';
 import { cn } from '../../utils/classNames';
 import { PillButton } from '../ui/PillButton';
+import { translate } from '../../i18n/activeLocale';
 
 /** Date filter value sent to API: always from/to (YYYY-MM-DD) */
 export type DateFilterValue = undefined | { from?: string; to?: string };
 
+// Labels are catalog keys (not literals): translating here at module load would
+// freeze them to the default locale, so they're resolved at render time instead.
 const PRESET_OPTIONS: {
 	value: 'today' | 'yesterday' | 'this_week' | 'this_month' | 'this_year' | 'custom';
-	label: string;
+	labelKey: string;
 }[] = [
-	{ value: 'today', label: 'Today' },
-	{ value: 'yesterday', label: 'Yesterday' },
-	{ value: 'this_week', label: 'This Week' },
-	{ value: 'this_month', label: 'This Month' },
-	{ value: 'this_year', label: 'This Year' },
-	{ value: 'custom', label: 'Custom' },
+	{ value: 'today', labelKey: 'core:filters.preset_today' },
+	{ value: 'yesterday', labelKey: 'core:filters.preset_yesterday' },
+	{ value: 'this_week', labelKey: 'core:filters.preset_this_week' },
+	{ value: 'this_month', labelKey: 'core:filters.preset_this_month' },
+	{ value: 'this_year', labelKey: 'core:filters.preset_this_year' },
+	{ value: 'custom', labelKey: 'core:filters.preset_custom' },
 ];
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -80,7 +83,8 @@ function inferPresetFromValue(
 }
 
 function getPresetLabel(preset: string): string {
-	return PRESET_OPTIONS.find(o => o.value === preset)?.label ?? preset;
+	const opt = PRESET_OPTIONS.find(o => o.value === preset);
+	return opt ? translate(opt.labelKey) : preset;
 }
 
 interface DateFilterProps {
@@ -108,8 +112,8 @@ export function DateFilterComponent({ filter, value, onChange, embedded = false 
 		const from = (value as any).from;
 		const to = (value as any).to;
 		if (from && to) return `${from} – ${to}`;
-		if (from) return `From ${from}`;
-		if (to) return `Until ${to}`;
+		if (from) return translate('core:filters.from_value', { date: from });
+		if (to) return translate('core:filters.until_value', { date: to });
 		return '';
 	};
 
@@ -159,7 +163,7 @@ export function DateFilterComponent({ filter, value, onChange, embedded = false 
 								? inferredPreset !== 'custom'
 									? getPresetLabel(inferredPreset)
 									: formatDisplay()
-								: filter.placeholder || 'Select date range...'}
+								: filter.placeholder || translate('core:filters.select_range')}
 						</span>
 						<div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
 							{hasValue && (
@@ -192,7 +196,9 @@ export function DateFilterComponent({ filter, value, onChange, embedded = false 
 							<div className="p-4 space-y-3">
 								{/* Preset dropdown */}
 								<div>
-									<label className="block text-xs font-medium text-fg-secondary mb-1.5">Range</label>
+									<label className="block text-xs font-medium text-fg-secondary mb-1.5">
+										{translate('core:filters.range')}
+									</label>
 									<select
 										value={localPreset}
 										onChange={e => setLocalPreset(e.target.value as any)}
@@ -203,7 +209,7 @@ export function DateFilterComponent({ filter, value, onChange, embedded = false 
 										)}>
 										{PRESET_OPTIONS.map(opt => (
 											<option key={opt.value} value={opt.value}>
-												{opt.label}
+												{translate(opt.labelKey)}
 											</option>
 										))}
 									</select>
@@ -214,7 +220,7 @@ export function DateFilterComponent({ filter, value, onChange, embedded = false 
 									<>
 										<div className="relative">
 											<label className="block text-xs font-medium text-fg-secondary mb-1.5">
-												From
+												{translate('core:filters.label_from')}
 											</label>
 											<input
 												type="date"
@@ -229,7 +235,7 @@ export function DateFilterComponent({ filter, value, onChange, embedded = false 
 										</div>
 										<div className="relative">
 											<label className="block text-xs font-medium text-fg-secondary mb-1.5">
-												To
+												{translate('core:filters.label_to')}
 											</label>
 											<input
 												type="date"
@@ -251,10 +257,10 @@ export function DateFilterComponent({ filter, value, onChange, embedded = false 
 									onClick={clearFilter}
 									type="button"
 									className="text-sm font-medium text-fg-secondary hover:text-fg">
-									Clear
+									{translate('core:common.clear')}
 								</button>
 								<PillButton type="button" variant="primary" onClick={applyChanges}>
-									Apply
+									{translate('core:common.apply')}
 								</PillButton>
 							</div>
 						</div>

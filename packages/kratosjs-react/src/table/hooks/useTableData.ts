@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { QueryParams, TableApiClient } from '../../api/tableApi';
+import { translate } from '../../i18n/activeLocale';
 
 export interface TableDataApi {
 	data: any[];
@@ -55,7 +56,7 @@ export function useTableData({ apiClient, queryParams, refreshKey, onLoaded }: U
 				onLoadedRef.current?.(result.data);
 			} catch (err) {
 				if (cancelled) return;
-				setError(err instanceof Error ? err.message : 'Failed to load data');
+				setError(err instanceof Error ? err.message : translate('core:error.load_data'));
 				console.error('Error loading table data:', err);
 			} finally {
 				if (!cancelled) {

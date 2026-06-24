@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Icon } from './Icon';
+import { translate } from '../../i18n/activeLocale';
 
 export type MediaType = 'image' | 'video' | 'audio';
 
@@ -65,7 +66,7 @@ export function MediaPreviewModal({
 					<button
 						onClick={onClose}
 						className="p-2 rounded-full bg-hover hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-						title="Close">
+						title={translate('core:modal.close')}>
 						<Icon name="X" size={20} className="text-fg" />
 					</button>
 				</div>
@@ -102,7 +103,7 @@ export function MediaPreviewModal({
 					) : (
 						<img
 							src={mediaUrl}
-							alt={title || 'Preview'}
+							alt={title || translate('core:common.preview')}
 							className="max-w-full max-h-[80vh] object-contain mx-auto rounded"
 						/>
 					)}

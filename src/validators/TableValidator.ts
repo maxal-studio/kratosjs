@@ -1,5 +1,6 @@
 import { SerializedTable } from '../tablebuilder/types';
 import { ValidationError } from '../resource/types';
+import { formatValidationMessage } from '../validation/messages';
 
 /**
  * Validates data against table schemas
@@ -49,7 +50,13 @@ export class TableValidator {
 				filtered[key] = value;
 			} else {
 				// Attempting to update a read-only column
-				throw new ValidationError(`Column "${key}" is not editable`, key, 'readonly');
+				throw new ValidationError({
+					message: formatValidationMessage('validation.readonly', { label: key }),
+					field: key,
+					rule: 'readonly',
+					messageKey: 'validation.readonly',
+					params: { label: key },
+				});
 			}
 		}
 

@@ -7,6 +7,7 @@ import { getGridClasses } from './components/utils/layoutHelpers';
 import { Button } from './components/ui/Button';
 import { SerializedComponent } from '@maxal_studio/kratosjs';
 import { getChildComponents, isArrayScope, isLayout } from './runtime/formTraversal';
+import { useTranslation } from './i18n/useTranslation';
 
 /**
  * Extract default values from a schema using the declarative children contract.
@@ -71,6 +72,7 @@ export function FormRenderer({
 	operation,
 	children,
 }: FormRendererProps) {
+	const { t } = useTranslation();
 	// Extract default values from schema and merge with user-provided defaults
 	const mergedDefaults = useMemo(() => {
 		const schemaDefaults = extractDefaultValues(schema.components);
@@ -113,10 +115,10 @@ export function FormRenderer({
 
 				<div className="flex justify-end gap-3 pt-6">
 					<Button variant="secondary" onClick={() => methods.reset()}>
-						Reset
+						{t('core:common.reset')}
 					</Button>
 					<Button type="submit" loading={methods.formState.isSubmitting}>
-						{methods.formState.isSubmitting ? 'Submitting...' : 'Submit'}
+						{methods.formState.isSubmitting ? t('core:common.submitting') : t('core:common.submit')}
 					</Button>
 				</div>
 			</form>

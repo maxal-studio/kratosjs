@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import path from 'path';
-import { Panel, LocalMediaAdapter, EmailAuthProvider } from '@maxal_studio/kratosjs';
+import { Panel, LocalMediaAdapter, EmailAuthProvider, t, withLocale } from '@maxal_studio/kratosjs';
+import enApp from './lang/en';
+import sqApp from './lang/sq';
 import { MySqlDriver } from '@mikro-orm/mysql';
 import { Migrator } from '@mikro-orm/migrations';
 import { UserResource } from './resources/UserResource';
@@ -45,9 +47,25 @@ const adminPanel = Panel.make('admin')
 			isDefault: true,
 		}),
 	])
+	// Multilingual: English + Albanian. The `app` catalog is the SAME module the
+	// admin client imports (src/admin/main.tsx), so each string is authored once.
+	.i18n({ locales: ['en', 'sq'], defaultLocale: 'en', fallbackLocale: 'en' })
+	.registerTranslations('app', { en: enApp, sq: sqApp })
 	.resources([UserResource, ShowcaseResource])
 	.pages([DashboardPage])
 	.registerMigrations([Migration20250100000000CreateUserTable]);
+
+// Custom route demonstrating server-side t(): resolves against the request locale
+// (?locale / X-KratosJs-Locale / Accept-Language), with an explicit override too.
+adminPanel.registerRoute('get', '/greet', (req: any, res: any) => {
+	const name = (req.query.name as string) || 'there';
+	res.json({
+		// Active request locale:
+		message: t('app:greeting', { name, count: 3 }),
+		// Forced Albanian (e.g. a per-recipient email), regardless of request locale:
+		albanian: withLocale('sq', () => t('app:greeting', { name, count: 1 })),
+	});
+});
 
 // App-level custom component names (informational metadata only — rendering is
 // driven by the client registry in src/admin/main.tsx). Optional, but keeps the

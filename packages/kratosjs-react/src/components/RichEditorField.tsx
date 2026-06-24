@@ -18,6 +18,7 @@ import { ViewFieldWrapper } from './utils/ViewFieldWrapper';
 import { useToast } from './ui/Toast';
 import { authenticatedFetch } from '../api/authenticatedFetch';
 import { useValidation } from '../hooks/useValidation';
+import { translate } from '../i18n/activeLocale';
 
 // Custom Video extension
 const Video = Node.create({
@@ -334,7 +335,7 @@ export function RichEditorField({
 		const baseExtensions = [
 			StarterKit,
 			Placeholder.configure({
-				placeholder: placeholder || 'Start typing...',
+				placeholder: placeholder || translate('core:editor.start_typing'),
 			}),
 		];
 
@@ -427,7 +428,7 @@ export function RichEditorField({
 
 			const uploadResult = await uploadFile(file);
 			if (!uploadResult || !uploadResult.url) {
-				toast.error('Failed to upload file');
+				toast.error(translate('core:toast.upload_failed'));
 				return;
 			}
 
@@ -481,7 +482,7 @@ export function RichEditorField({
 				setValue(name, htmlSourceValue, { shouldValidate: true });
 			} catch (error) {
 				console.error('Error parsing HTML:', error);
-				toast.error('Invalid HTML. Please check your code.');
+				toast.error(translate('core:toast.invalid_html'));
 			}
 		}
 		setIsHtmlView(!isHtmlView);
@@ -491,37 +492,37 @@ export function RichEditorField({
 		bold: {
 			action: () => editor?.chain().focus().toggleBold().run(),
 			icon: <strong>B</strong>,
-			title: 'Bold',
+			title: translate('core:editor.bold'),
 		},
 		italic: {
 			action: () => editor?.chain().focus().toggleItalic().run(),
 			icon: <em>I</em>,
-			title: 'Italic',
+			title: translate('core:editor.italic'),
 		},
 		strike: {
 			action: () => editor?.chain().focus().toggleStrike().run(),
 			icon: <s>S</s>,
-			title: 'Strikethrough',
+			title: translate('core:editor.strikethrough'),
 		},
 		code: {
 			action: () => editor?.chain().focus().toggleCode().run(),
 			icon: <code>{'</>'}</code>,
-			title: 'Code',
+			title: translate('core:editor.code'),
 		},
 		h1: {
 			action: () => editor?.chain().focus().toggleHeading({ level: 1 }).run(),
 			icon: <span className="text-lg font-bold">H1</span>,
-			title: 'Heading 1',
+			title: translate('core:editor.heading1'),
 		},
 		h2: {
 			action: () => editor?.chain().focus().toggleHeading({ level: 2 }).run(),
 			icon: <span className="text-base font-bold">H2</span>,
-			title: 'Heading 2',
+			title: translate('core:editor.heading2'),
 		},
 		h3: {
 			action: () => editor?.chain().focus().toggleHeading({ level: 3 }).run(),
 			icon: <span className="text-sm font-bold">H3</span>,
-			title: 'Heading 3',
+			title: translate('core:editor.heading3'),
 		},
 		bulletList: {
 			action: () => editor?.chain().focus().toggleBulletList().run(),
@@ -530,7 +531,7 @@ export function RichEditorField({
 					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
 				</svg>
 			),
-			title: 'Bullet List',
+			title: translate('core:editor.bullet_list'),
 		},
 		orderedList: {
 			action: () => editor?.chain().focus().toggleOrderedList().run(),
@@ -539,17 +540,17 @@ export function RichEditorField({
 					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h18M3 12h18M3 20h18" />
 				</svg>
 			),
-			title: 'Ordered List',
+			title: translate('core:editor.ordered_list'),
 		},
 		blockquote: {
 			action: () => editor?.chain().focus().toggleBlockquote().run(),
 			icon: <span>"</span>,
-			title: 'Blockquote',
+			title: translate('core:editor.blockquote'),
 		},
 		codeBlock: {
 			action: () => editor?.chain().focus().toggleCodeBlock().run(),
 			icon: <code>{'{ }'}</code>,
-			title: 'Code Block',
+			title: translate('core:editor.code_block'),
 		},
 		undo: {
 			action: () => editor?.chain().focus().undo().run(),
@@ -563,7 +564,7 @@ export function RichEditorField({
 					/>
 				</svg>
 			),
-			title: 'Undo',
+			title: translate('core:editor.undo'),
 		},
 		redo: {
 			action: () => editor?.chain().focus().redo().run(),
@@ -577,7 +578,7 @@ export function RichEditorField({
 					/>
 				</svg>
 			),
-			title: 'Redo',
+			title: translate('core:editor.redo'),
 		},
 		link: {
 			action: () => {
@@ -596,12 +597,12 @@ export function RichEditorField({
 					/>
 				</svg>
 			),
-			title: 'Link',
+			title: translate('core:editor.link'),
 		},
 		underline: {
 			action: () => editor?.chain().focus().toggleUnderline().run(),
 			icon: <u>U</u>,
-			title: 'Underline',
+			title: translate('core:editor.underline'),
 		},
 		subscript: {
 			action: () => editor?.chain().focus().toggleSubscript().run(),
@@ -610,7 +611,7 @@ export function RichEditorField({
 					X<sub className="text-xs">2</sub>
 				</span>
 			),
-			title: 'Subscript',
+			title: translate('core:editor.subscript'),
 		},
 		superscript: {
 			action: () => editor?.chain().focus().toggleSuperscript().run(),
@@ -619,7 +620,7 @@ export function RichEditorField({
 					X<sup className="text-xs">2</sup>
 				</span>
 			),
-			title: 'Superscript',
+			title: translate('core:editor.superscript'),
 		},
 		highlight: {
 			action: () => editor?.chain().focus().toggleHighlight().run(),
@@ -633,7 +634,7 @@ export function RichEditorField({
 					/>
 				</svg>
 			),
-			title: 'Highlight',
+			title: translate('core:editor.highlight'),
 		},
 		alignLeft: {
 			action: () => editor?.chain().focus().setTextAlign('left').run(),
@@ -642,7 +643,7 @@ export function RichEditorField({
 					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h10M4 18h16" />
 				</svg>
 			),
-			title: 'Align Left',
+			title: translate('core:editor.align_left'),
 		},
 		alignCenter: {
 			action: () => editor?.chain().focus().setTextAlign('center').run(),
@@ -651,7 +652,7 @@ export function RichEditorField({
 					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M7 12h10M4 18h16" />
 				</svg>
 			),
-			title: 'Align Center',
+			title: translate('core:editor.align_center'),
 		},
 		alignRight: {
 			action: () => editor?.chain().focus().setTextAlign('right').run(),
@@ -660,7 +661,7 @@ export function RichEditorField({
 					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M10 12h10M4 18h16" />
 				</svg>
 			),
-			title: 'Align Right',
+			title: translate('core:editor.align_right'),
 		},
 		image: {
 			action: () => {
@@ -678,7 +679,7 @@ export function RichEditorField({
 					/>
 				</svg>
 			),
-			title: 'Insert Image',
+			title: translate('core:editor.insert_image'),
 		},
 		video: {
 			action: () => {
@@ -696,7 +697,7 @@ export function RichEditorField({
 					/>
 				</svg>
 			),
-			title: 'Insert Video',
+			title: translate('core:editor.insert_video'),
 		},
 		audio: {
 			action: () => {
@@ -714,7 +715,7 @@ export function RichEditorField({
 					/>
 				</svg>
 			),
-			title: 'Insert Audio',
+			title: translate('core:editor.insert_audio'),
 		},
 		embed: {
 			action: () => {
@@ -748,7 +749,7 @@ export function RichEditorField({
 					/>
 				</svg>
 			),
-			title: 'Insert Embed',
+			title: translate('core:editor.insert_embed'),
 		},
 		htmlSource: {
 			action: handleToggleHtmlView,
@@ -763,7 +764,7 @@ export function RichEditorField({
 					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 6l3 3-3 3M18 6l-3 3 3 3" />
 				</svg>
 			),
-			title: 'HTML Source', // Title will be updated dynamically in render
+			title: translate('core:editor.html_source'), // Title will be updated dynamically in render
 		},
 	};
 
@@ -836,7 +837,9 @@ export function RichEditorField({
 						let buttonTitle = action.title;
 						if (button === 'htmlSource') {
 							isActive = isHtmlView;
-							buttonTitle = isHtmlView ? 'Rich Text View' : 'HTML Source';
+							buttonTitle = isHtmlView
+								? translate('core:editor.rich_text_view')
+								: translate('core:editor.html_source');
 						}
 
 						return (
@@ -892,7 +895,7 @@ export function RichEditorField({
 							onChange={e => setHtmlSourceValue(e.target.value)}
 							disabled={disabled}
 							className="w-full h-full min-h-[200px] font-mono text-sm k-input resize-none focus:outline-none"
-							placeholder="Enter HTML code here..."
+							placeholder={translate('core:editor.html_placeholder')}
 						/>
 					</div>
 				) : (

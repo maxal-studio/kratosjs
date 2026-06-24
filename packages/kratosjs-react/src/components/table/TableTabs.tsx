@@ -2,6 +2,7 @@ import React from 'react';
 import { Icon } from '../utils/Icon';
 import { cn } from '../../utils/classNames';
 import { pillTabClass } from '../ui/PillButton';
+import { translate } from '../../i18n/activeLocale';
 
 export interface TableTab {
 	key: string;
@@ -24,13 +25,13 @@ export function TableTabs({ tabs, activeTab, onTabChange }: TableTabsProps) {
 			)}
 			style={{ WebkitOverflowScrolling: 'touch' }}
 			role="tablist"
-			aria-label="Table view tabs">
+			aria-label={translate('core:table.view_tabs')}>
 			<button
 				role="tab"
 				aria-selected={activeTab === null}
 				onClick={() => onTabChange(null)}
 				className={pillTabClass(activeTab === null)}>
-				All
+				{translate('core:common.all')}
 			</button>
 			{tabs.map(tab => (
 				<button

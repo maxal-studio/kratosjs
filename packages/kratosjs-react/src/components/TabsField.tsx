@@ -9,6 +9,7 @@ import { cn } from '../utils/classNames';
 import { SerializedComponent } from '@maxal_studio/kratosjs';
 import { evaluateCondition } from '../runtime/conditions';
 import { getChildComponents, isArrayScope, someComponent } from '../runtime/formTraversal';
+import { translate } from '../i18n/activeLocale';
 
 const isEmptyValue = (value: any): boolean => value === undefined || value === null || value === '';
 
@@ -342,7 +343,7 @@ export function TabsField({
 								{showIndicator && (
 									<span
 										className="ml-1 w-2 h-2 rounded-full bg-red-500 dark:bg-red-400"
-										aria-label="Has validation errors or required fields"
+										aria-label={translate('core:a11y.tab_errors')}
 									/>
 								)}
 							</span>

@@ -71,7 +71,13 @@ export function kratosAdminVite(options = {}) {
 		optimizeDeps: {
 			// Pre-bundle the (pure, server-free) validation engine so the dev
 			// server can serve its named exports as ESM.
-			include: ['react', 'react-dom', 'react-hook-form', '@maxal_studio/kratosjs/dist/validation'],
+			include: [
+				'react',
+				'react-dom',
+				'react-hook-form',
+				'@maxal_studio/kratosjs/dist/validation',
+				'@maxal_studio/kratosjs/dist/i18n',
+			],
 			...(vite.optimizeDeps ?? {}),
 		},
 		build: {
@@ -86,9 +92,9 @@ export function kratosAdminVite(options = {}) {
 				// The kratosjs core is CommonJS. In a linked/workspace install it
 				// resolves OUTSIDE node_modules, so the default CJS transform
 				// (node_modules only) would skip it and Rollup couldn't see named
-				// exports like `ValidationEngine`. Widen it to the pure validation
-				// module — the only core code the browser bundle pulls in.
-				include: [/node_modules/, /[\\/]dist[\\/]validation[\\/]/],
+				// exports like `ValidationEngine` / `createI18n`. Widen it to the pure
+				// validation + i18n modules — the core code the browser bundle pulls in.
+				include: [/node_modules/, /[\\/]dist[\\/]validation[\\/]/, /[\\/]dist[\\/]i18n[\\/]/],
 				...(vite.build?.commonjsOptions ?? {}),
 			},
 			rollupOptions: {

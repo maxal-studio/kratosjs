@@ -3,6 +3,7 @@ import { ColumnProps } from './TextColumnComponent';
 import { formatValue } from '../../utils/tableFormatters';
 import { getColumnMediaDimensions } from '../../utils/columnMediaDimensions';
 import { Icon } from '../utils/Icon';
+import { translate } from '../../i18n/activeLocale';
 
 interface VideoPreviewModalProps {
 	isOpen: boolean;
@@ -53,11 +54,11 @@ function VideoPreviewModal({
 				onClick={e => e.stopPropagation()}>
 				{/* Header */}
 				<div className="flex items-center justify-between px-4 py-3 border-b border-border">
-					<h3 className="text-lg font-semibold text-fg">{title || 'Video Preview'}</h3>
+					<h3 className="text-lg font-semibold text-fg">{title || translate('core:file.video_preview')}</h3>
 					<button
 						onClick={onClose}
 						className="p-2 rounded-full bg-hover hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-						title="Close">
+						title={translate('core:modal.close')}>
 						<Icon name="X" size={20} className="text-fg" />
 					</button>
 				</div>
@@ -197,7 +198,11 @@ export function VideoColumnComponent({ column, record }: ColumnProps) {
 			<div className={getContainerClasses()} style={dimensions} onClick={handleClick}>
 				{thumbnailUrl ? (
 					<>
-						<img src={thumbnailUrl} alt="Video thumbnail" className="w-full h-full object-cover" />
+						<img
+							src={thumbnailUrl}
+							alt={translate('core:common.video_thumbnail')}
+							className="w-full h-full object-cover"
+						/>
 						{/* Play overlay */}
 						<div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
 							<div className="w-8 h-8 flex items-center justify-center bg-white/90 rounded-full">

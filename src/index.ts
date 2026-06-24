@@ -44,6 +44,24 @@ export type {
 	ValidationEngineImpl,
 } from './validation';
 
+// Internationalization (i18n). The universal server `t()` and `withLocale()` are
+// SERVER-ONLY (they use AsyncLocalStorage), exported here from the server entry.
+// The engine + types come from the browser-safe barrel and are reusable on both sides.
+export { t, withLocale, getServerI18n, resolveServerLocale, registerServerI18n } from './i18n/serverT';
+export { KratosI18n, createI18n } from './i18n/KratosI18n';
+export { resolveRequestLocale, parseAcceptLanguage } from './i18n/resolveRequestLocale';
+export type { LocaleSources } from './i18n/resolveRequestLocale';
+export { coreResources } from './i18n/locales/core';
+export type {
+	I18nConfig,
+	I18nResources,
+	NamespaceResources,
+	Catalog,
+	Direction,
+	TranslateOptions,
+	Translator,
+} from './i18n/types';
+
 // Panel Types
 export type {
 	ActionHandler,

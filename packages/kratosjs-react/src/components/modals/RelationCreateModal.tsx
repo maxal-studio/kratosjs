@@ -5,6 +5,7 @@ import { SerializedRelation } from '../../types';
 import { ModalDrawer } from '../ModalDrawer';
 import { Spinner } from '../ui/Spinner';
 import { ResourceFormModal } from './ResourceFormModal';
+import { translate } from '../../i18n/activeLocale';
 
 export interface RelationCreateModalProps {
 	isOpen: boolean;
@@ -82,7 +83,7 @@ export function RelationCreateModal({
 				depth={depth}
 				onCloseAll={onCloseAll}>
 				<div className="flex items-center justify-center py-8">
-					<Spinner size="lg" label="Loading form..." />
+					<Spinner size="lg" label={translate('core:common.loading_ellipsis')} />
 				</div>
 			</ModalDrawer>
 		);

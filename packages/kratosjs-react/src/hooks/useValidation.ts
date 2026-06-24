@@ -6,6 +6,7 @@ import type { ValidationRule } from '@maxal_studio/kratosjs';
 // code), so it never drags Panel/MikroORM/Express into the browser bundle.
 import { ValidationEngine } from '@maxal_studio/kratosjs/dist/validation';
 import { evaluateCondition } from '../runtime/conditions';
+import { useI18nContext } from '../i18n/I18nProvider';
 
 /**
  * Validation rule with optional condition
@@ -37,6 +38,7 @@ export function useValidation(
 ): RHFValidationRules {
 	const { control } = useFormContext();
 	const formState = useWatch({ control }) || {};
+	const { t } = useI18nContext();
 
 	return useMemo(() => {
 		const validation: RHFValidationRules = {};
@@ -65,7 +67,7 @@ export function useValidation(
 
 		// `required` → RHF native (drives the asterisk + empty-value enforcement).
 		if (activeRules.includes('required')) {
-			validation.required = 'This field is required';
+			validation.required = t('core:validation.required_generic');
 		}
 
 		// Everything else is delegated to the shared engine. `required` is handled
@@ -79,11 +81,15 @@ export function useValidation(
 						allValues: formValues || {},
 						field: fieldName,
 					});
-					return violations.length > 0 ? violations[0].message : true;
+					if (violations.length === 0) return true;
+					const v = violations[0];
+					// Render in the active locale when the rule provides an i18n key;
+					// otherwise use the already-rendered message (overrides/inline).
+					return v.messageKey ? t(`core:${v.messageKey}`, v.params) : v.message;
 				},
 			};
 		}
 
 		return validation;
-	}, [rules, formState, operation, fieldName]);
+	}, [rules, formState, operation, fieldName, t]);
 }

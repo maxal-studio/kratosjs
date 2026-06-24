@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FormRenderer } from '../../FormRenderer';
 import { authenticatedFetch } from '../../api/authenticatedFetch';
 import { handleRedirect } from '../../utils/redirectHandler';
+import { translate } from '../../i18n/activeLocale';
 
 export interface FormBlockRendererProps {
 	block: any;
@@ -52,7 +53,7 @@ export function FormBlockRenderer({ block, apiBaseUrl }: FormBlockRendererProps)
 						return;
 					}
 					const errorData = await response.json();
-					const errorMsg = errorData.error || errorData.message || 'Failed to fetch form data';
+					const errorMsg = errorData.error || errorData.message || translate('core:error.fetch_form_data');
 					setError(errorMsg);
 					return;
 				}
@@ -62,7 +63,7 @@ export function FormBlockRenderer({ block, apiBaseUrl }: FormBlockRendererProps)
 				// This prevents metadata from being included in form state
 				setInitialData(responseData.data || responseData || {});
 			} catch (err: any) {
-				setError(err.message || 'An error occurred while fetching form data');
+				setError(err.message || translate('core:error.fetch_form_data_generic'));
 				// On error, fall back to initialData if available
 				if (block.initialData) {
 					setInitialData(block.initialData);
@@ -114,7 +115,7 @@ export function FormBlockRenderer({ block, apiBaseUrl }: FormBlockRendererProps)
 					return;
 				}
 				// Extract error message from backend response
-				const errorMsg = responseData.error || responseData.message || 'Failed to submit form';
+				const errorMsg = responseData.error || responseData.message || translate('core:error.submit_form');
 				setError(errorMsg);
 				return;
 			}
@@ -126,10 +127,10 @@ export function FormBlockRenderer({ block, apiBaseUrl }: FormBlockRendererProps)
 			}
 
 			// Extract success message from backend response
-			const successMsg = responseData.message || 'Form submitted successfully!';
+			const successMsg = responseData.message || translate('core:form.submitted');
 			setSuccessMessage(successMsg);
 		} catch (err: any) {
-			setError(err.message || 'An error occurred');
+			setError(err.message || translate('core:error.generic'));
 		}
 	};
 

@@ -7,6 +7,7 @@ import { authenticatedFetch } from '../api/authenticatedFetch';
 import { useResourceModal } from '../contexts/ResourceModalContext';
 import { useTableRefresh } from '../contexts/TableRefreshContext';
 import { PillButton } from '../components/ui/PillButton';
+import { translate } from '../i18n/activeLocale';
 
 export interface ResourceListPageProps {
 	apiBaseUrl: string;
@@ -110,7 +111,7 @@ export function ResourceListPage({ apiBaseUrl, resourceSlug, resourceName, plura
 				setCanDelete(data.canDelete !== false); // Default to true if undefined
 				setCanView(data.canView !== false); // Default to true if undefined
 			} catch (err) {
-				setError(err instanceof Error ? err.message : 'Failed to load table schema');
+				setError(err instanceof Error ? err.message : translate('core:error.load_schema'));
 			} finally {
 				setLoading(false);
 			}
@@ -144,7 +145,7 @@ export function ResourceListPage({ apiBaseUrl, resourceSlug, resourceName, plura
 		return (
 			<div className="flex items-center justify-center py-12">
 				<Loader2 className="w-8 h-8 text-accent animate-spin" />
-				<span className="ml-3 text-fg-secondary">Loading...</span>
+				<span className="ml-3 text-fg-secondary">{translate('core:common.loading_ellipsis')}</span>
 			</div>
 		);
 	}
@@ -153,7 +154,7 @@ export function ResourceListPage({ apiBaseUrl, resourceSlug, resourceName, plura
 		return (
 			<div className="flex items-center justify-center py-12">
 				<Loader2 className="w-8 h-8 text-accent animate-spin" />
-				<span className="ml-3 text-fg-secondary">Loading...</span>
+				<span className="ml-3 text-fg-secondary">{translate('core:common.loading_ellipsis')}</span>
 			</div>
 		);
 	}
@@ -164,7 +165,7 @@ export function ResourceListPage({ apiBaseUrl, resourceSlug, resourceName, plura
 				<div className="text-center py-12">
 					<p className="text-red-600 mb-4">{error}</p>
 					<PillButton variant="primary" onClick={() => window.location.reload()}>
-						Retry
+						{translate('core:common.retry')}
 					</PillButton>
 				</div>
 			</div>
@@ -174,7 +175,7 @@ export function ResourceListPage({ apiBaseUrl, resourceSlug, resourceName, plura
 	if (!tableSchema) {
 		return (
 			<div className="">
-				<div className="text-center py-12 text-fg-secondary">No table schema available for this resource</div>
+				<div className="text-center py-12 text-fg-secondary">{translate('core:state.no_table_schema')}</div>
 			</div>
 		);
 	}

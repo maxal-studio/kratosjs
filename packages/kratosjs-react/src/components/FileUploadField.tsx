@@ -9,6 +9,7 @@ import { ViewFieldWrapper } from './utils/ViewFieldWrapper';
 import { MediaPreviewModal } from './utils/MediaPreviewModal';
 import { authenticatedFetch } from '../api/authenticatedFetch';
 import { useValidation } from '../hooks/useValidation';
+import { translate } from '../i18n/activeLocale';
 
 /**
  * Represents a file in the upload field
@@ -151,7 +152,7 @@ function FileUploadViewField({ label, value }: { label?: string; value: any }) {
 							<div key={index} className="relative">
 								<img
 									src={fileUrl}
-									alt={`${label || 'Image'} ${index + 1}`}
+									alt={`${label || translate('core:common.image')} ${index + 1}`}
 									className="w-40 h-40 object-cover rounded-lg border border-border cursor-pointer hover:opacity-80 transition-opacity"
 									onClick={() => openPreview(fileUrl, 'image')}
 								/>
@@ -165,7 +166,9 @@ function FileUploadViewField({ label, value }: { label?: string; value: any }) {
 							className="flex items-center gap-2 p-2 border border-border rounded-lg bg-surface">
 							<File size={20} className="text-fg-secondary" />
 							<span className="text-sm text-fg">
-								{typeof file === 'object' && file !== null ? file.key || 'File' : 'File'}
+								{typeof file === 'object' && file !== null
+									? file.key || translate('core:common.file')
+									: translate('core:common.file')}
 							</span>
 						</div>
 					);
@@ -663,7 +666,7 @@ export function FileUploadField({
 								Maximum of <span className="font-semibold">{maxFiles}</span> files reached
 							</>
 						) : (
-							<>File uploaded</>
+							<>{translate('core:file.uploaded')}</>
 						)}
 					</p>
 					<p className="mt-1 text-xs text-gray-500">
@@ -682,10 +685,13 @@ export function FileUploadField({
 					<Upload className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" strokeWidth={1.5} />
 					<p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
 						{isDragActive ? (
-							<span className="font-semibold text-accent">Drop files here</span>
+							<span className="font-semibold text-accent">{translate('core:file.drop_here')}</span>
 						) : (
 							<>
-								<span className="font-semibold text-accent">Click to upload</span> or drag and drop
+								<span className="font-semibold text-accent">
+									{translate('core:file.click_to_upload')}
+								</span>{' '}
+								or drag and drop
 							</>
 						)}
 					</p>
@@ -750,11 +756,11 @@ export function FileUploadField({
 												/>
 											) : isVideo ? (
 												<div className="h-full w-full flex items-center justify-center bg-black text-white text-xs">
-													<span className="px-1">Video</span>
+													<span className="px-1">{translate('core:file.video')}</span>
 												</div>
 											) : (
 												<div className="h-full w-full flex items-center justify-center bg-linear-to-r from-blue-600 to-purple-600 text-white text-xs">
-													<span className="px-1">Audio</span>
+													<span className="px-1">{translate('core:file.audio')}</span>
 												</div>
 											)}
 										</button>
@@ -783,14 +789,18 @@ export function FileUploadField({
 										)}
 										{file.status === 'error' && (
 											<p className="text-xs text-red-500 dark:text-red-400">
-												{file.error || 'Error'}
+												{file.error || translate('core:common.error')}
 											</p>
 										)}
 										{file.status === 'uploaded' && (
-											<p className="text-xs text-green-500 dark:text-green-400">Uploaded</p>
+											<p className="text-xs text-green-500 dark:text-green-400">
+												{translate('core:file.saved')}
+											</p>
 										)}
 										{file.status === 'existing' && (
-											<p className="text-xs text-green-500 dark:text-green-400">Saved</p>
+											<p className="text-xs text-green-500 dark:text-green-400">
+												{translate('core:file.saved')}
+											</p>
 										)}
 										{file.file && file.status !== 'error' && (
 											<p className="text-xs text-gray-500 dark:text-gray-400">

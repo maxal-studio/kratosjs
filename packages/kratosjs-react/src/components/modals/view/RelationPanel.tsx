@@ -5,6 +5,7 @@ import { TableRenderer } from '../../../TableRenderer';
 import { SerializedRelation } from '../../../types';
 import { Spinner } from '../../ui/Spinner';
 import { PillButton } from '../../ui/PillButton';
+import { translate } from '../../../i18n/activeLocale';
 
 export interface RelationPanelProps {
 	relation: SerializedRelation;
@@ -35,7 +36,7 @@ export function RelationPanel({
 	if (!schema) {
 		return (
 			<div className="flex justify-center py-8">
-				<Spinner label="Loading..." />
+				<Spinner label={translate('core:common.loading_ellipsis')} />
 			</div>
 		);
 	}

@@ -25,10 +25,16 @@ import { verifyPassword as defaultVerifyPassword } from './auth/password';
 import { authMiddleware, optionalAuthMiddleware } from './auth/middleware';
 import { MediaAdapter } from './adapters/media/MediaAdapter';
 import { Page } from './Page';
+import { Widget } from './widgets/Widget';
 import { getRequestContext } from './RequestContextStorage';
 import { SerializedForm } from './formbuilder/types';
 import { ValidationEngine } from './validation/ValidationEngine';
 import { RuleDefinition } from './validation/types';
+import { KratosI18n, createI18n } from './i18n/KratosI18n';
+import { registerServerI18n } from './i18n/serverT';
+import { resolveRequestLocale, LocaleSources } from './i18n/resolveRequestLocale';
+import { coreResources } from './i18n/locales/core';
+import type { I18nConfig, I18nResources, NamespaceResources } from './i18n/types';
 import { HttpAdapter } from './adapters/http/HttpAdapter';
 import { ExpressAdapter } from './adapters/http/ExpressAdapter';
 import { Plugin } from './plugins/Plugin';
@@ -59,6 +65,20 @@ import './panel/request';
 
 /** Default panel favicon path — served from bundled assets or app `assets/` via `useStatic`. */
 export const DEFAULT_PANEL_FAVICON = '/assets/icon.png';
+
+/**
+ * Deep-merge i18n resources (`namespace -> locale -> catalog`) from `source` into
+ * `target`. Later sources overwrite earlier keys, which is how core → plugins →
+ * app precedence is enforced.
+ */
+function mergeResources(target: I18nResources, source: I18nResources): void {
+	for (const [namespace, byLocale] of Object.entries(source)) {
+		const ns = (target[namespace] ??= {});
+		for (const [locale, catalog] of Object.entries(byLocale)) {
+			ns[locale] = { ...(ns[locale] ?? {}), ...catalog };
+		}
+	}
+}
 
 /**
  * Panel - Central orchestrator for KratosJs admin panels
@@ -109,6 +129,14 @@ export class Panel {
 	private _customColumns: Set<string> = new Set();
 	private _customWidgets: Set<string> = new Set();
 	private _exporters: Map<string, Exporter> = new Map();
+
+	// i18n: config + accumulated catalogs (kept in separate buckets so app-level
+	// translations always win over plugin-level ones regardless of timing).
+	private _i18nConfig?: Omit<I18nConfig, 'resources'>;
+	private _appTranslations: I18nResources = {};
+	private _pluginTranslations: I18nResources = {};
+	private _registeringPlugins = false;
+	private _serverI18n?: KratosI18n;
 
 	private readonly _ormManager = new OrmManager();
 	private readonly _mediaManager = new MediaManager();
@@ -205,6 +233,112 @@ export class Panel {
 	 */
 	getBasePath(): string {
 		return this._basePath;
+	}
+
+	// ============================================================================
+	// Internationalization (i18n)
+	// ============================================================================
+
+	/**
+	 * Configure multilingual support for the panel and plugins.
+	 *
+	 * Sets the supported locales, the default active locale, and the fallback
+	 * locale. Catalogs may be passed here via `resources` or registered separately
+	 * with {@link registerTranslations}. The server `t()` resolves keys against the
+	 * active request locale ({@link resolveLocale}).
+	 *
+	 * @example
+	 * panel.i18n({ locales: ['en', 'sq'], defaultLocale: 'en', fallbackLocale: 'en' })
+	 *   .registerTranslations('app', { en: enCatalog, sq: sqCatalog });
+	 */
+	i18n(config: I18nConfig): this {
+		const { resources, ...rest } = config;
+		this._i18nConfig = { ...this._i18nConfig, ...rest };
+		if (resources) {
+			for (const [namespace, byLocale] of Object.entries(resources)) {
+				this.registerTranslations(namespace, byLocale);
+			}
+		}
+		return this;
+	}
+
+	/**
+	 * Register translation catalogs under a namespace.
+	 *
+	 * Called by the app (defaults to the `app` namespace) and by plugins (in their
+	 * `register()`, namespaced by plugin name). App-level registrations always win
+	 * over plugin-level ones, so a host app can override any plugin string and add
+	 * locales a plugin didn't ship.
+	 *
+	 * @example panel.registerTranslations({ en: { 'users.label': 'Users' }, sq: {...} });
+	 * @example panel.registerTranslations('2fa', { en: {...}, sq: {...} });
+	 */
+	registerTranslations(resources: NamespaceResources): this;
+	registerTranslations(namespace: string, resources: NamespaceResources): this;
+	registerTranslations(a: string | NamespaceResources, b?: NamespaceResources): this {
+		const namespace = typeof a === 'string' ? a : 'app';
+		const resources = (typeof a === 'string' ? b : a) ?? {};
+		const bucket = this._registeringPlugins ? this._pluginTranslations : this._appTranslations;
+		const ns = (bucket[namespace] ??= {});
+		for (const [locale, catalog] of Object.entries(resources)) {
+			ns[locale] = { ...(ns[locale] ?? {}), ...catalog };
+		}
+		return this;
+	}
+
+	/**
+	 * Build the merged server i18n instance (core → plugins → app precedence) and
+	 * register it for the global server `t()`. Called once during {@link start}
+	 * after all plugins have registered.
+	 */
+	private buildServerI18n(): void {
+		const merged: I18nResources = {};
+		mergeResources(merged, { core: coreResources });
+		mergeResources(merged, this._pluginTranslations);
+		mergeResources(merged, this._appTranslations);
+
+		// Locales: explicit config wins; otherwise discover from registered app/plugin
+		// catalogs (core's own translations don't force extra locales on a panel).
+		const declared = this._i18nConfig?.locales;
+		const discovered = new Set<string>();
+		for (const bucket of [this._pluginTranslations, this._appTranslations]) {
+			for (const byLocale of Object.values(bucket)) {
+				for (const locale of Object.keys(byLocale)) discovered.add(locale);
+			}
+		}
+		const defaultLocale = this._i18nConfig?.defaultLocale ?? 'en';
+		const localeSet = new Set<string>(declared ?? (discovered.size ? [...discovered] : ['en']));
+		localeSet.add(defaultLocale);
+		const locales = [...localeSet];
+
+		this._serverI18n = createI18n({
+			locales,
+			defaultLocale,
+			fallbackLocale: this._i18nConfig?.fallbackLocale ?? defaultLocale,
+			directions: this._i18nConfig?.directions,
+			resources: merged,
+		});
+		registerServerI18n(this._serverI18n, defaultLocale);
+	}
+
+	/** The merged server i18n instance (available after {@link start}). */
+	getServerI18n(): KratosI18n | undefined {
+		return this._serverI18n;
+	}
+
+	/** The locales this panel supports. */
+	getLocales(): string[] {
+		return this._serverI18n?.getLocales() ?? this._i18nConfig?.locales ?? ['en'];
+	}
+
+	/** The panel's default locale. */
+	getDefaultLocale(): string {
+		return this._serverI18n?.getDefaultLocale() ?? this._i18nConfig?.defaultLocale ?? 'en';
+	}
+
+	/** Resolve the active locale for a request from its query/headers. */
+	resolveLocale(sources: LocaleSources): string {
+		return resolveRequestLocale(sources, this.getLocales(), this.getDefaultLocale());
 	}
 
 	/**
@@ -557,7 +691,10 @@ export class Panel {
 		this.mountDefaultAssetsIfNeeded();
 
 		// 1. Register all plugins (after all configuration is complete, before ORM init)
-		// Plugins can register resources, entities, and migrations at this point
+		// Plugins can register resources, entities, and migrations at this point.
+		// The flag routes plugin `registerTranslations` calls into the plugin bucket
+		// so app-level translations always win over them.
+		this._registeringPlugins = true;
 		for (const pluginOrClass of this._plugins) {
 			const plugin = typeof pluginOrClass === 'function' ? new pluginOrClass() : pluginOrClass;
 			try {
@@ -571,6 +708,11 @@ export class Panel {
 				console.error(`Error registering plugin ${plugin.getName?.() ?? 'unknown'}:`, error);
 			}
 		}
+		this._registeringPlugins = false;
+
+		// Build the merged server i18n instance (core → plugins → app) now that all
+		// plugin catalogs are registered, and wire it to the global server `t()`.
+		this.buildServerI18n();
 
 		// 2. Initialize the ORM with all entities (resources + plugins), run migrations,
 		// create adapters, and run plugin boot hooks (seeding)
@@ -976,21 +1118,31 @@ export class Panel {
 		const registeredHooks = this._resourceHooks.get(ResourceClass) || {};
 		const mergedHooks = mergeHooks(staticHooks, registeredHooks);
 
-		// Get widget instances from resource
-		const widgetInstances = ResourceClass.widgets?.() || [];
-		const widgets = new Map<string, any>();
-		for (const widget of widgetInstances) {
-			widgets.set(widget.getName(), widget);
-		}
-
-		// Register the resource
+		// Register the resource. Widgets are NOT built here: like form()/table(),
+		// `widgets()` must run per request (inside the request context) so any t()
+		// calls in widget labels resolve against the active locale — see
+		// {@link buildResourceWidgets}.
 		this._resources.set(slug, {
 			resourceClass: ResourceClass,
 			adapter,
 			actions,
 			hooks: mergedHooks,
-			widgets,
 		});
+	}
+
+	/**
+	 * Build a fresh `name -> Widget` map for a resource by calling its `widgets()`
+	 * per request. Running this inside the request context (controllers are) means
+	 * widget labels authored with `t(...)` resolve to the active locale, mirroring
+	 * how form/table schemas are rebuilt per request.
+	 */
+	buildResourceWidgets(registered: RegisteredResource): Map<string, Widget> {
+		const map = new Map<string, Widget>();
+		const instances = registered.resourceClass.widgets?.() || [];
+		for (const widget of instances) {
+			map.set(widget.getName(), widget);
+		}
+		return map;
 	}
 
 	/**

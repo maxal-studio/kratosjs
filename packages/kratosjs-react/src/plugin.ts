@@ -46,6 +46,12 @@ export interface KratosPluginClient {
 	 * behaves identically on both sides.
 	 */
 	rules?: Record<string, RuleDefinition>;
+	/**
+	 * Frontend translation catalogs keyed by locale, e.g.
+	 * `{ en: { 'rate.hint': 'Tap to rate' }, sq: {...} }`. Auto-namespaced by the
+	 * plugin `name`, so the plugin's components use `t('<name>:rate.hint')`.
+	 */
+	translations?: Record<string, Record<string, string>>;
 }
 
 /**

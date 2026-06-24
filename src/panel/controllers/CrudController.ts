@@ -10,6 +10,7 @@ import {
 } from '../../utils/panelHelpers';
 import { checkOperationAccess } from '../access';
 import { getPanelResource } from './utils';
+import { t } from '../../i18n/serverT';
 
 /**
  * CRUD + custom action endpoints for resources:
@@ -91,7 +92,7 @@ export class CrudController {
 
 			if (!result) {
 				res.status(404).json({
-					message: 'Record not found',
+					message: t('core:record.not_found'),
 				});
 				return;
 			}
@@ -106,7 +107,7 @@ export class CrudController {
 				);
 				if (filtered.length === 0) {
 					res.status(403).json({
-						message: 'Access denied to view this record',
+						message: t('core:record.access_denied_view'),
 					});
 					return;
 				}
@@ -160,10 +161,13 @@ export class CrudController {
 
 			const tableSchema = resourceInstance.getTableSchema();
 
+			// Build widgets per request so their t() labels resolve to the active locale.
+			const resourceWidgets = this.panel.buildResourceWidgets(registered);
+
 			// Create table schema with widgets for filtering (same as in handleTableSchema)
 			const tableSchemaWithWidgets = { ...resourceInstance.getTableSchema() };
-			if (registered.widgets && registered.widgets.size > 0) {
-				tableSchemaWithWidgets.widgets = Array.from(registered.widgets.values()).map(widget => widget.toJSON());
+			if (resourceWidgets.size > 0) {
+				tableSchemaWithWidgets.widgets = Array.from(resourceWidgets.values()).map(widget => widget.toJSON());
 			}
 
 			// Get filtered table schema (with widgets filtered by permissions)
@@ -224,8 +228,8 @@ export class CrudController {
 				const widgetPromises: Array<Promise<{ name: string; data: any }>> = [];
 
 				for (const widgetSchema of filteredTableSchema.widgets) {
-					if (widgetSchema.name && registered.widgets) {
-						const widget = registered.widgets.get(widgetSchema.name);
+					if (widgetSchema.name) {
+						const widget = resourceWidgets.get(widgetSchema.name);
 						if (widget) {
 							widgetPromises.push(
 								widget
@@ -319,7 +323,7 @@ export class CrudController {
 					req.authUser,
 				);
 				if (!allowed) {
-					res.status(403).json({ message: 'You do not have permission to export this resource' });
+					res.status(403).json({ message: t('core:export.no_permission') });
 					return;
 				}
 			}
@@ -327,7 +331,7 @@ export class CrudController {
 			const format = (req.body.format as string) || 'csv';
 			const exporter = this.panel.getExporter(format);
 			if (!exporter) {
-				res.status(400).json({ message: `No exporter registered for format "${format}"` });
+				res.status(400).json({ message: t('core:export.no_exporter', { format }) });
 				return;
 			}
 
@@ -406,7 +410,7 @@ export class CrudController {
 			const existingRecord = await resourceInstance.findById(req.params.id);
 
 			if (!existingRecord) {
-				res.status(404).json({ message: 'Record not found' });
+				res.status(404).json({ message: t('core:record.not_found') });
 				return;
 			}
 
@@ -468,7 +472,7 @@ export class CrudController {
 			const { ids } = req.body;
 
 			if (!ids || !Array.isArray(ids) || ids.length === 0) {
-				res.status(400).json({ message: 'ids array is required' });
+				res.status(400).json({ message: t('core:request.ids_required') });
 				return;
 			}
 
@@ -516,14 +520,14 @@ export class CrudController {
 
 			if (!action) {
 				res.status(400).json({
-					message: 'Action name is required',
+					message: t('core:action.name_required'),
 				});
 				return;
 			}
 
 			if (!data) {
 				res.status(400).json({
-					message: 'Action data is required',
+					message: t('core:action.data_required'),
 				});
 				return;
 			}
@@ -533,7 +537,7 @@ export class CrudController {
 
 			if (!handler) {
 				res.status(404).json({
-					message: `Action handler "${action}" not found`,
+					message: t('core:action.handler_not_found', { action }),
 				});
 				return;
 			}
@@ -546,7 +550,7 @@ export class CrudController {
 					req.authUser,
 				);
 				if (!allowed) {
-					res.status(403).json({ message: 'You do not have permission to perform this action' });
+					res.status(403).json({ message: t('core:action.no_permission') });
 					return;
 				}
 			}
@@ -558,7 +562,7 @@ export class CrudController {
 
 			if (recordIds.length > 0 && records.length === 0) {
 				res.status(404).json({
-					message: 'No valid records found',
+					message: t('core:action.no_valid_records'),
 				});
 				return;
 			}
@@ -573,7 +577,7 @@ export class CrudController {
 					req.authUser,
 				);
 				if (records.length === 0) {
-					res.status(403).json({ message: 'You do not have permission to act on these records' });
+					res.status(403).json({ message: t('core:action.no_permission_bulk') });
 					return;
 				}
 			}
@@ -596,13 +600,13 @@ export class CrudController {
 				}
 				res.status(200).json({
 					...(result.redirect ? { redirect: result.redirect } : {}),
-					message: result.message || 'Action completed successfully',
+					message: result.message || t('core:action.completed'),
 					data: result.data,
 					...(result.refreshBadges ? { refreshBadges: true } : {}),
 				});
 			} else {
 				res.status(400).json({
-					message: result.message || 'Action failed',
+					message: result.message || t('core:action.failed'),
 				});
 			}
 		} catch (error: any) {

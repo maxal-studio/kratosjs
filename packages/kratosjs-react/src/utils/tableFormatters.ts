@@ -1,5 +1,6 @@
 import { SerializedColumn } from '@maxal_studio/kratosjs';
 import { executeSerializedFunction } from '../runtime/serializedFunctions';
+import { getActiveLocale } from '../i18n/activeLocale';
 
 /**
  * Format a value based on column configuration
@@ -18,19 +19,19 @@ export function formatValue(value: any, column: SerializedColumn, row?: Record<s
 		const date = new Date(value);
 		if (isNaN(date.getTime())) return value;
 
+		const locale = getActiveLocale();
 		switch (column.dateFormat) {
 			case 'date':
-				return date.toLocaleDateString();
+				return date.toLocaleDateString(locale);
 			case 'dateTime':
-				return date.toLocaleString();
+				return date.toLocaleString(locale);
 			case 'time':
-				return date.toLocaleTimeString();
+				return date.toLocaleTimeString(locale);
 			case 'since':
-				return getRelativeTime(date);
 			case 'until':
-				return getRelativeTime(date, true);
+				return getRelativeTime(date);
 			default:
-				return date.toLocaleDateString();
+				return date.toLocaleDateString(locale);
 		}
 	}
 
@@ -39,7 +40,7 @@ export function formatValue(value: any, column: SerializedColumn, row?: Record<s
 		const numValue = typeof value === 'number' ? value : parseFloat(value);
 		if (isNaN(numValue)) return value;
 
-		return new Intl.NumberFormat('en-US', {
+		return new Intl.NumberFormat(getActiveLocale(), {
 			style: 'currency',
 			currency: column.moneyFormat || 'USD',
 		}).format(numValue);
@@ -79,27 +80,25 @@ export function stripHtml(html: string): string {
 }
 
 /**
- * Get relative time string (e.g., "2 hours ago", "in 3 days")
+ * Locale-aware relative time (e.g. "2 hours ago", "in 3 days"), using the active
+ * locale via `Intl.RelativeTimeFormat`. The true signed delta (date − now) drives
+ * direction, so past dates read "ago" and future dates read "in …".
  */
-function getRelativeTime(date: Date, future: boolean = false): string {
-	const now = new Date();
-	const diffMs = future ? date.getTime() - now.getTime() : now.getTime() - date.getTime();
-	const diffSec = Math.floor(diffMs / 1000);
-	const diffMin = Math.floor(diffSec / 60);
-	const diffHour = Math.floor(diffMin / 60);
-	const diffDay = Math.floor(diffHour / 24);
-	const diffWeek = Math.floor(diffDay / 7);
-	const diffMonth = Math.floor(diffDay / 30);
-	const diffYear = Math.floor(diffDay / 365);
+function getRelativeTime(date: Date): string {
+	const deltaSec = Math.round((date.getTime() - Date.now()) / 1000);
+	const abs = Math.abs(deltaSec);
+	const rtf = new Intl.RelativeTimeFormat(getActiveLocale(), { numeric: 'auto' });
 
-	const prefix = future ? 'in ' : '';
-	const suffix = future ? '' : ' ago';
-
-	if (diffSec < 60) return `${prefix}just now`;
-	if (diffMin < 60) return `${prefix}${diffMin} minute${diffMin > 1 ? 's' : ''}${suffix}`;
-	if (diffHour < 24) return `${prefix}${diffHour} hour${diffHour > 1 ? 's' : ''}${suffix}`;
-	if (diffDay < 7) return `${prefix}${diffDay} day${diffDay > 1 ? 's' : ''}${suffix}`;
-	if (diffWeek < 4) return `${prefix}${diffWeek} week${diffWeek > 1 ? 's' : ''}${suffix}`;
-	if (diffMonth < 12) return `${prefix}${diffMonth} month${diffMonth > 1 ? 's' : ''}${suffix}`;
-	return `${prefix}${diffYear} year${diffYear > 1 ? 's' : ''}${suffix}`;
+	const units: [Intl.RelativeTimeFormatUnit, number][] = [
+		['year', 31536000],
+		['month', 2592000],
+		['week', 604800],
+		['day', 86400],
+		['hour', 3600],
+		['minute', 60],
+	];
+	for (const [unit, secs] of units) {
+		if (abs >= secs) return rtf.format(Math.round(deltaSec / secs), unit);
+	}
+	return rtf.format(0, 'second');
 }

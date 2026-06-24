@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { Button } from './Button';
+import { translate } from '../../i18n/activeLocale';
 
 export interface ConfirmOptions {
 	title?: string;
@@ -57,7 +58,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
 					<div
 						role="alertdialog"
 						aria-modal="true"
-						aria-label={pending.title || 'Confirm'}
+						aria-label={pending.title || translate('core:common.confirm')}
 						className="relative w-full max-w-md rounded-lg border border-border bg-raised p-6 shadow-soft-lg">
 						<div className="flex items-start gap-4">
 							<div
@@ -69,19 +70,21 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
 								<AlertTriangle className="h-5 w-5" />
 							</div>
 							<div className="min-w-0 flex-1">
-								<h3 className="text-base font-semibold text-fg">{pending.title || 'Are you sure?'}</h3>
+								<h3 className="text-base font-semibold text-fg">
+									{pending.title || translate('core:confirm.are_you_sure')}
+								</h3>
 								<div className="mt-1.5 text-sm text-fg-secondary">{pending.message}</div>
 							</div>
 						</div>
 						<div className="mt-6 flex justify-end gap-2">
 							<Button variant="secondary" onClick={() => settle(false)}>
-								{pending.cancelLabel || 'Cancel'}
+								{pending.cancelLabel || translate('core:common.cancel')}
 							</Button>
 							<Button
 								ref={confirmButtonRef}
 								variant={pending.danger ? 'danger' : 'primary'}
 								onClick={() => settle(true)}>
-								{pending.confirmLabel || 'Confirm'}
+								{pending.confirmLabel || translate('core:common.confirm')}
 							</Button>
 						</div>
 					</div>
@@ -100,6 +103,10 @@ export function useConfirm(): ConfirmFn {
 	return (
 		context ??
 		(async (options: ConfirmOptions) =>
-			window.confirm(typeof options.message === 'string' ? options.message : options.title || 'Are you sure?'))
+			window.confirm(
+				typeof options.message === 'string'
+					? options.message
+					: options.title || translate('core:confirm.are_you_sure'),
+			))
 	);
 }

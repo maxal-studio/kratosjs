@@ -3,6 +3,7 @@ import { Edit, Trash2 } from 'lucide-react';
 import { PillButton } from '../../ui/PillButton';
 import { Icon } from '../../utils/Icon';
 import { cn } from '../../../utils/classNames';
+import { translate } from '../../../i18n/activeLocale';
 
 export interface RecordActionsProps {
 	actions: any[];
@@ -35,13 +36,13 @@ export function RecordActions({ actions, canEdit, canDelete, onAction, onEdit, o
 
 			{canEdit && (
 				<PillButton variant="primary" onClick={onEdit} icon={<Edit className="h-4 w-4" />}>
-					Edit
+					{translate('core:common.edit')}
 				</PillButton>
 			)}
 
 			{canDelete && (
 				<PillButton variant="danger" onClick={onDelete} icon={<Trash2 className="h-4 w-4" />}>
-					Delete
+					{translate('core:common.delete')}
 				</PillButton>
 			)}
 		</div>

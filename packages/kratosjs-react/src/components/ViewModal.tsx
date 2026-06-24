@@ -19,6 +19,7 @@ import { handleRedirect } from '../utils/redirectHandler';
 import { usePanelMetadata } from '../contexts/PanelMetadataContext';
 import { useResourceModal } from '../contexts/ResourceModalContext';
 import { SerializedRelation } from '../types';
+import { translate } from '../i18n/activeLocale';
 
 export type { SerializedRelation };
 
@@ -84,7 +85,9 @@ export function ViewModal({
 	// Modal title (breadcrumb)
 	const label = getResourceLabel(resourceSlug) || resourceName;
 	const modalKey = `${resourceSlug}-view-${recordId}`;
-	const modalTitle = view.recordTitle ? `View "${view.recordTitle}"` : `View ${label}`;
+	const modalTitle = view.recordTitle
+		? translate('core:modal.view_record', { title: view.recordTitle })
+		: translate('core:modal.view_title', { label });
 
 	useEffect(() => {
 		setModalTitle(modalKey, modalTitle);
@@ -115,19 +118,19 @@ export function ViewModal({
 
 	const handleDelete = async () => {
 		const confirmed = await confirm({
-			title: 'Delete item',
-			message: 'Are you sure you want to delete this item? This cannot be undone.',
-			confirmLabel: 'Delete',
+			title: translate('core:confirm.delete_item_title'),
+			message: translate('core:confirm.delete_item_message'),
+			confirmLabel: translate('core:common.delete'),
 			danger: true,
 		});
 		if (!confirmed) return;
 
 		try {
 			await bulkDelete(apiBaseUrl!, resourceSlug, [recordId]);
-			toast.success('Item deleted successfully');
+			toast.success(translate('core:toast.deleted'));
 			onClose();
 		} catch (error: any) {
-			toast.error(error.message || 'Failed to delete item');
+			toast.error(error.message || translate('core:toast.delete_failed'));
 		}
 	};
 
@@ -148,7 +151,9 @@ export function ViewModal({
 		if (action.requiresConfirmation) {
 			const confirmed = await confirm({
 				title: action.label,
-				message: action.modalDescription || `Are you sure you want to ${action.label.toLowerCase()}?`,
+				message:
+					action.modalDescription ||
+					translate('core:confirm.action_generic', { action: action.label.toLowerCase() }),
 			});
 			if (!confirmed) return;
 		}
@@ -168,10 +173,10 @@ export function ViewModal({
 				}
 				view.refreshRecord();
 			} else {
-				toast.error(result.message || 'Action failed');
+				toast.error(result.message || translate('core:form.action_failed'));
 			}
 		} catch (error: any) {
-			toast.error(error.message || 'Failed to execute action');
+			toast.error(error.message || translate('core:error.action_failed'));
 		}
 	};
 
@@ -210,7 +215,7 @@ export function ViewModal({
 				<div className="-mx-4 -mt-4 flex h-full flex-col sm:-mx-6 sm:-mt-6">
 					{view.loading && (
 						<div className="flex items-center justify-center py-12">
-							<Spinner size="lg" label="Loading..." />
+							<Spinner size="lg" label={translate('core:common.loading_ellipsis')} />
 						</div>
 					)}
 

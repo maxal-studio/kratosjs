@@ -49,6 +49,7 @@ The database schema is created on first boot via `updateSchema: true`. A `src/mi
 - [Creating Resources](/resources/overview) — build complete resources
 - [Form Fields](/forms/overview) — all available field types
 - [Authentication](/authentication/overview) — JWT and providers
+- [Internationalization](/i18n/overview) — multilingual panels and plugins
 - [Creating Plugins](/plugins/creating-plugins) — scaffold and build custom plugins
 
 For full working examples, see `examples/app/` (MongoDB) and `examples/sql-app/` (MySQL with plugins) in the monorepo.

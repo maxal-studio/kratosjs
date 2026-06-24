@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { SerializedTable } from '@maxal_studio/kratosjs';
 import { Icon } from '../utils/Icon';
 import { cn } from '../../utils/classNames';
+import { translate } from '../../i18n/activeLocale';
 
 interface TableActionsDropdownProps {
 	schema: SerializedTable;
@@ -66,8 +67,8 @@ export function TableActionsDropdown({
 					'hover:bg-hover hover:text-fg',
 					isOpen && 'bg-raised text-fg shadow-soft-sm ring-1 ring-border',
 				)}
-				title="Actions"
-				aria-label="Row actions"
+				title={translate('core:common.actions')}
+				aria-label={translate('core:table.row_actions')}
 				aria-expanded={isOpen}>
 				<Icon name="MoreVertical" size={16} />
 			</button>

@@ -5,6 +5,7 @@ import { Icon } from '../utils/Icon';
 import { cn } from '../../utils/classNames';
 import { IconButton } from '../ui';
 import { PanelBrandMark } from './PanelBrandMark';
+import { translate } from '../../i18n/activeLocale';
 
 export interface ResourceMetadata {
 	slug: string;
@@ -223,14 +224,14 @@ export function Sidebar({
 					<IconButton
 						variant="ghost"
 						size="sm"
-						aria-label="Close navigation menu"
+						aria-label={translate('core:panel.open_menu')}
 						onClick={onMobileClose}
 						className="ml-auto lg:hidden">
 						<X className="h-4 w-4" />
 					</IconButton>
 				</div>
 
-				<nav className="flex-1 overflow-y-auto px-3 py-3" aria-label="Main navigation">
+				<nav className="flex-1 overflow-y-auto px-3 py-3" aria-label={translate('core:a11y.main_navigation')}>
 					<div className="space-y-0.5">
 						{navElements.map(element => {
 							if (element.type === 'ungrouped') {

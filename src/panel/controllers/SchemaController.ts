@@ -96,9 +96,10 @@ export class SchemaController {
 			}));
 		}
 
-		// Add widget metadata to schema
-		if (resource.widgets && resource.widgets.size > 0) {
-			schema.widgets = Array.from(resource.widgets.values()).map(widget => widget.toJSON());
+		// Add widget metadata to schema (built per request so t() labels localize).
+		const resourceWidgets = this.panel.buildResourceWidgets(resource);
+		if (resourceWidgets.size > 0) {
+			schema.widgets = Array.from(resourceWidgets.values()).map(widget => widget.toJSON());
 		}
 
 		// Apply table schema filter hook if registered

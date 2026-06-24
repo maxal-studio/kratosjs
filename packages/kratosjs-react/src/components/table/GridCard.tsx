@@ -5,6 +5,7 @@ import { cn } from '../../utils/classNames';
 import { TableActionsDropdown } from './TableActionsDropdown';
 import { Checkbox } from '../Checkbox';
 import { PillButton } from '../ui/PillButton';
+import { translate } from '../../i18n/activeLocale';
 
 interface GridCardProps {
 	schema: SerializedTable;
@@ -98,7 +99,9 @@ export function GridCard({
 									<div className="mb-1 text-[11px] font-medium uppercase tracking-wider text-fg-muted">
 										{column.label || column.name}
 									</div>
-									<div className="text-fg-secondary">Unknown column type: {column.type}</div>
+									<div className="text-fg-secondary">
+										{translate('core:state.unknown_column', { type: column.type })}
+									</div>
 								</div>
 							);
 						}
@@ -133,11 +136,17 @@ export function GridCard({
 
 			{hasChanges && (
 				<div className="flex items-center justify-end gap-2 border-t border-border/60 bg-muted px-3 py-2.5">
-					<PillButton variant="primary" onClick={() => onSaveRow(rowId)} title="Save changes">
-						Save
+					<PillButton
+						variant="primary"
+						onClick={() => onSaveRow(rowId)}
+						title={translate('core:table.save_changes')}>
+						{translate('core:common.save')}
 					</PillButton>
-					<PillButton variant="default" onClick={() => onResetRow(rowId)} title="Reset changes">
-						Reset
+					<PillButton
+						variant="default"
+						onClick={() => onResetRow(rowId)}
+						title={translate('core:table.reset_changes')}>
+						{translate('core:common.reset')}
 					</PillButton>
 				</div>
 			)}

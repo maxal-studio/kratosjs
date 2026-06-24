@@ -4,8 +4,9 @@
 // `ValidationEngine.validateValue(...)` with the same rule strings and get the
 // same verdicts and messages. Plugins extend it via `register(...)`.
 
-import { RuleDefinition, RuleViolation, ValidateValueOptions } from './types';
+import { RuleContext, RuleDefinition, RuleViolation, ValidateValueOptions } from './types';
 import { builtInRules, kindOf, isEmpty } from './rules';
+import { formatValidationMessage } from './messages';
 
 class ValidationEngineImpl {
 	private rules = new Map<string, RuleDefinition>();
@@ -75,19 +76,34 @@ class ValidationEngineImpl {
 			if (result === true) continue;
 
 			const override = opts.messages?.[name];
-			const message =
-				override ??
-				(typeof result === 'string'
-					? result
-					: def.message
-						? def.message(ctx)
-						: `Field "${opts.label || opts.field}" is invalid`);
+			let messageKey: string | undefined;
+			let params: Record<string, unknown> | undefined;
+			let message: string;
 
-			violations.push({ field: opts.field, rule: name, message });
+			if (override !== undefined) {
+				// Developer-provided literal (may itself be a resolved `t('...')` string).
+				message = override;
+			} else if (typeof result === 'string') {
+				// Inline custom message returned by `validate`.
+				message = result;
+			} else {
+				messageKey = resolveMessageKey(def, ctx, name);
+				params = def.params ? def.params(ctx) : { label: ctx.label ?? ctx.field, param: ctx.param };
+				// Default English render — the client may re-render via `t(messageKey, params)`.
+				message = formatValidationMessage(messageKey, params);
+			}
+
+			violations.push({ field: opts.field, rule: name, message, messageKey, params });
 		}
 
 		return violations;
 	}
+}
+
+/** Resolve a rule's i18n key, defaulting to `validation.<name>`. */
+function resolveMessageKey(def: RuleDefinition, ctx: RuleContext, name: string): string {
+	if (typeof def.messageKey === 'function') return def.messageKey(ctx);
+	return def.messageKey ?? `validation.${name}`;
 }
 
 /** Process-wide singleton engine, seeded with the built-in rules. */

@@ -154,6 +154,9 @@ export function handleError(res: Response, error: any): void {
 			message: error.message,
 			field: error.field,
 			rule: error.rule,
+			// Structured fields let the client render the message in the active locale.
+			...(error.messageKey ? { messageKey: error.messageKey } : {}),
+			...(error.params ? { params: error.params } : {}),
 		});
 	} else if (error.message?.includes('not found')) {
 		res.status(404).json({

@@ -67,7 +67,7 @@ describe('ErrorAlert', () => {
 		const onDismiss = vi.fn();
 		render(<ErrorAlert message="Something broke" onDismiss={onDismiss} />);
 		expect(screen.getByRole('alert')).toHaveTextContent('Something broke');
-		await userEvent.setup().click(screen.getByLabelText('Dismiss error'));
+		await userEvent.setup().click(screen.getByLabelText('Dismiss'));
 		expect(onDismiss).toHaveBeenCalled();
 	});
 

@@ -3,6 +3,7 @@ import { X, ArrowLeft, Copy, Check } from 'lucide-react';
 import { cn } from '../utils/classNames';
 import { ModalBreadcrumb } from './ModalBreadcrumb';
 import { PillIconButton } from './ui/PillButton';
+import { translate } from '../i18n/activeLocale';
 
 export interface ModalDrawerProps {
 	isOpen: boolean;
@@ -83,7 +84,11 @@ export function ModalDrawer({
 				{/* Header — matches app header height and tone */}
 				<div className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border/60 bg-base/80 px-4 backdrop-blur-sm">
 					<div className="flex min-w-0 flex-1 items-center gap-2">
-						<PillIconButton variant="ghost" onClick={onClose} aria-label="Close" title="Close">
+						<PillIconButton
+							variant="ghost"
+							onClick={onClose}
+							aria-label={translate('core:modal.close')}
+							title={translate('core:modal.close')}>
 							<ArrowLeft className="h-4 w-4" />
 						</PillIconButton>
 
@@ -96,8 +101,8 @@ export function ModalDrawer({
 								variant="ghost"
 								active={urlCopied}
 								onClick={onCopyUrl}
-								aria-label="Copy URL"
-								title="Copy URL"
+								aria-label={translate('core:common.copy_url')}
+								title={translate('core:common.copy_url')}
 								className={urlCopied ? 'text-success' : undefined}>
 								{urlCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
 							</PillIconButton>
@@ -106,8 +111,8 @@ export function ModalDrawer({
 							<PillIconButton
 								variant="danger"
 								onClick={onCloseAll}
-								aria-label="Close all"
-								title="Close all">
+								aria-label={translate('core:modal.close_all')}
+								title={translate('core:modal.close_all')}>
 								<X className="h-4 w-4" />
 							</PillIconButton>
 						)}

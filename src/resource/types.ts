@@ -16,18 +16,40 @@ export interface ResourceConfig {
 	resourceClass: typeof BaseResource;
 }
 
+/** Structured initializer for a {@link ValidationError}. */
+export interface ValidationErrorInit {
+	/** Default English message (for `Error.message`, logs, and non-i18n consumers). */
+	message: string;
+	field?: string;
+	rule?: string;
+	/** i18n key (e.g. `validation.required`) so the client can render it in the active locale. */
+	messageKey?: string;
+	/** Interpolation params for `messageKey` (e.g. `{ label, param }`). */
+	params?: Record<string, unknown>;
+}
+
 /**
- * Custom validation error
+ * Custom validation error.
+ *
+ * Carries a rendered English `message` (for logs / `toThrow` matchers) plus the
+ * structured `messageKey` + `params`, so the HTTP layer can hand the client what
+ * it needs to render the message in the active locale. Accepts either the legacy
+ * positional form or a structured init object.
  */
 export class ValidationError extends Error {
 	public field?: string;
 	public rule?: string;
+	public messageKey?: string;
+	public params?: Record<string, unknown>;
 
-	constructor(message: string, field?: string, rule?: string) {
-		super(message);
+	constructor(init: string | ValidationErrorInit, field?: string, rule?: string) {
+		const opts: ValidationErrorInit = typeof init === 'string' ? { message: init, field, rule } : init;
+		super(opts.message);
 		this.name = 'ValidationError';
-		this.field = field;
-		this.rule = rule;
+		this.field = opts.field;
+		this.rule = opts.rule;
+		this.messageKey = opts.messageKey;
+		this.params = opts.params;
 	}
 }
 

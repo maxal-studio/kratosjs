@@ -1,4 +1,5 @@
 import React from 'react';
+import { getActiveLocale, translate } from '../i18n/activeLocale';
 
 /**
  * Utility functions for formatting field values in view mode
@@ -32,7 +33,7 @@ export function formatDate(value: any, format?: string): string {
 				.replace('ss', seconds);
 		}
 
-		return date.toLocaleString();
+		return date.toLocaleString(getActiveLocale());
 	} catch {
 		return String(value);
 	}
@@ -48,7 +49,7 @@ export function formatNumber(value: any, options?: { decimals?: number; currency
 	if (isNaN(num)) return String(value);
 
 	if (options?.currency) {
-		return new Intl.NumberFormat('en-US', {
+		return new Intl.NumberFormat(getActiveLocale(), {
 			style: 'currency',
 			currency: options.currency,
 			minimumFractionDigits: options.decimals ?? 2,
@@ -60,7 +61,7 @@ export function formatNumber(value: any, options?: { decimals?: number; currency
 		return num.toFixed(options.decimals);
 	}
 
-	return num.toLocaleString();
+	return num.toLocaleString(getActiveLocale());
 }
 
 /**
@@ -68,7 +69,7 @@ export function formatNumber(value: any, options?: { decimals?: number; currency
  */
 export function formatBoolean(value: any): string {
 	if (value === null || value === undefined) return '-';
-	return value ? 'Yes' : 'No';
+	return value ? translate('core:common.yes') : translate('core:common.no');
 }
 
 /**

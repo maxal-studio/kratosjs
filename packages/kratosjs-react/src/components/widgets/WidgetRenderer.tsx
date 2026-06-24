@@ -5,6 +5,7 @@ import { ErrorBoundary } from '../errors/ErrorBoundary';
 import { cn } from '../../utils/classNames';
 import { widgetVisibilityStorage, getDefaultWidgetsExpanded } from '../../utils/widgetVisibilityStorage';
 import { PillButton } from '../ui/PillButton';
+import { translate } from '../../i18n/activeLocale';
 
 export interface WidgetRendererProps {
 	widgets?: any[];
@@ -64,7 +65,7 @@ export function WidgetRenderer({
 						aria-controls="widgets-content"
 						id="widgets-toggle"
 						icon={expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}>
-						Widgets
+						{translate('core:common.widgets')}
 					</PillButton>
 				</div>
 			)}

@@ -167,6 +167,26 @@ export { TextInputColumnComponent } from './components/columns/TextInputColumnCo
 export { AdminPanel } from './components/AdminPanel';
 export type { AdminPanelProps, BlockRegistry } from './types';
 
+// Internationalization (i18n)
+export {
+	I18nProvider,
+	useI18nContext,
+	useTranslation,
+	useLocale,
+	useFormatter,
+	LocaleSwitcher,
+	getActiveLocale,
+	translate,
+	buildClientI18n,
+} from './i18n';
+export type {
+	I18nContextValue,
+	I18nProviderProps,
+	ClientI18nConfig,
+	ClientTranslations,
+	LocaleSwitcherProps,
+} from './i18n';
+
 // Auth components
 export { AuthProvider, useAuth } from './auth/AuthContext';
 export { LoginPage } from './auth/LoginPage';

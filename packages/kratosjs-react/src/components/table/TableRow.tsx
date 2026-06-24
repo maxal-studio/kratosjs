@@ -5,6 +5,7 @@ import { cn } from '../../utils/classNames';
 import { TableActionsDropdown } from './TableActionsDropdown';
 import { Checkbox } from '../Checkbox';
 import { PillButton } from '../ui/PillButton';
+import { translate } from '../../i18n/activeLocale';
 
 interface TableRowProps {
 	schema: SerializedTable;
@@ -114,11 +115,17 @@ export function TableRow({
 				<div className="flex items-center justify-end gap-2">
 					{hasChanges && (
 						<>
-							<PillButton variant="primary" onClick={() => onSaveRow(rowId)} title="Save changes">
-								Save
+							<PillButton
+								variant="primary"
+								onClick={() => onSaveRow(rowId)}
+								title={translate('core:table.save_changes')}>
+								{translate('core:common.save')}
 							</PillButton>
-							<PillButton variant="default" onClick={() => onResetRow(rowId)} title="Reset changes">
-								Reset
+							<PillButton
+								variant="default"
+								onClick={() => onResetRow(rowId)}
+								title={translate('core:table.reset_changes')}>
+								{translate('core:common.reset')}
 							</PillButton>
 							<div className="hidden h-5 w-px bg-border sm:block" aria-hidden />
 						</>

@@ -7,6 +7,7 @@ import { ErrorAlert } from '../../components/ui/ErrorAlert';
 import { useTableContext } from '../TableContext';
 import { TableQueryApi } from '../hooks/useTableQuery';
 import { cn } from '../../utils/classNames';
+import { translate } from '../../i18n/activeLocale';
 
 export interface TableViewProps {
 	query: TableQueryApi;
@@ -60,15 +61,15 @@ export function TableView({ query, embedded = false }: TableViewProps) {
 						{isLoading ? (
 							<tr>
 								<td colSpan={colSpan} className="px-4 py-12 text-center">
-									<Spinner label="Loading..." />
+									<Spinner label={translate('core:common.loading_ellipsis')} />
 								</td>
 							</tr>
 						) : data.length === 0 ? (
 							<tr>
 								<td colSpan={colSpan}>
 									<EmptyState
-										title="No records found"
-										description="Try adjusting your search or filters."
+										title={translate('core:table.no_records')}
+										description={translate('core:table.no_records_hint')}
 									/>
 								</td>
 							</tr>

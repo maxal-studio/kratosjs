@@ -6,6 +6,7 @@ import { FieldRenderer } from '../FieldRenderer';
 import { HintDisplay } from './utils/HintDisplay';
 import { ViewFieldWrapper } from './utils/ViewFieldWrapper';
 import { PillButton } from './ui/PillButton';
+import { translate } from '../i18n/activeLocale';
 
 export function RepeaterField(props: FieldProps) {
 	const {
@@ -187,7 +188,7 @@ export function RepeaterField(props: FieldProps) {
 	// Helper function to get dynamic label for an item
 	const getItemLabel = (index: number): string => {
 		// Default label format
-		const baseLabel = itemLabel || 'Item';
+		const baseLabel = itemLabel || translate('core:common.item');
 
 		// Check if itemLabel has a field name specified (e.g., "Product: {name}")
 		if (typeof itemLabel === 'string' && itemLabel.includes('{') && itemLabel.includes('}')) {
@@ -257,7 +258,7 @@ export function RepeaterField(props: FieldProps) {
 							d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
 						/>
 					</svg>
-					<p className="mb-4">No items yet. Click the button below to add one.</p>
+					<p className="mb-4">{translate('core:repeater.empty')}</p>
 				</div>
 			) : collapsible ? (
 				/* Collapsible/Accordion Mode */
@@ -301,8 +302,8 @@ export function RepeaterField(props: FieldProps) {
 												onClick={() => handleMoveUp(index)}
 												disabled={!canMoveUp(index)}
 												className="p-2 text-fg-secondary hover:text-fg hover:bg-hover rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-												aria-label="Move up"
-												title="Move up">
+												aria-label={translate('core:common.move_up')}
+												title={translate('core:common.move_up')}>
 												<svg
 													className="w-4 h-4"
 													fill="none"
@@ -325,8 +326,8 @@ export function RepeaterField(props: FieldProps) {
 												onClick={() => handleMoveDown(index)}
 												disabled={!canMoveDown(index)}
 												className="p-2 text-fg-secondary hover:text-fg hover:bg-hover rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-												aria-label="Move down"
-												title="Move down">
+												aria-label={translate('core:common.move_down')}
+												title={translate('core:common.move_down')}>
 												<svg
 													className="w-4 h-4"
 													fill="none"
@@ -348,8 +349,8 @@ export function RepeaterField(props: FieldProps) {
 											onClick={() => handleDelete(index)}
 											disabled={!canDelete(index)}
 											className="p-2 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-											aria-label="Delete"
-											title="Delete">
+											aria-label={translate('core:common.delete')}
+											title={translate('core:common.delete')}>
 											<svg
 												className="w-4 h-4"
 												fill="none"
@@ -419,7 +420,7 @@ export function RepeaterField(props: FieldProps) {
 										{isActive && (
 											<span
 												className="w-2 h-2 bg-accent rounded-full"
-												aria-label="Active tab"></span>
+												aria-label={translate('core:repeater.active_tab')}></span>
 										)}
 									</button>
 								);
@@ -435,8 +436,8 @@ export function RepeaterField(props: FieldProps) {
 									onClick={() => handleMoveUp(activeTab)}
 									disabled={!canMoveUp(activeTab)}
 									className="p-2 text-fg-secondary hover:text-fg hover:bg-hover rounded disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none transition-colors"
-									aria-label="Move left"
-									title="Move left">
+									aria-label={translate('core:common.move_left')}
+									title={translate('core:common.move_left')}>
 									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path
 											strokeLinecap="round"
@@ -455,8 +456,8 @@ export function RepeaterField(props: FieldProps) {
 									onClick={() => handleMoveDown(activeTab)}
 									disabled={!canMoveDown(activeTab)}
 									className="p-2 text-fg-secondary hover:text-fg hover:bg-hover rounded disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none transition-colors"
-									aria-label="Move right"
-									title="Move right">
+									aria-label={translate('core:common.move_right')}
+									title={translate('core:common.move_right')}>
 									<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 										<path
 											strokeLinecap="round"
@@ -474,8 +475,8 @@ export function RepeaterField(props: FieldProps) {
 								onClick={() => handleDelete(activeTab)}
 								disabled={!canDelete(activeTab)}
 								className="p-2 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 rounded disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none transition-colors"
-								aria-label="Delete"
-								title="Delete">
+								aria-label={translate('core:common.delete')}
+								title={translate('core:common.delete')}>
 								<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 									<path
 										strokeLinecap="round"
@@ -527,7 +528,7 @@ export function RepeaterField(props: FieldProps) {
 					<svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
 					</svg>
-					Add
+					{translate('core:common.add')}
 					{maxItems !== undefined && ` (${fields.length}/${maxItems})`}
 				</span>
 			</PillButton>

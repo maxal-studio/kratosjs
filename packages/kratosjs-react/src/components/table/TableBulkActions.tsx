@@ -2,6 +2,7 @@ import React from 'react';
 import { SerializedTable } from '@maxal_studio/kratosjs';
 import { Icon } from '../utils/Icon';
 import { cn } from '../../utils/classNames';
+import { translate } from '../../i18n/activeLocale';
 
 interface TableBulkActionsProps {
 	schema: SerializedTable;
@@ -56,7 +57,7 @@ export function TableBulkActions({
 				<button
 					onClick={onClearSelection}
 					className="rounded-full px-3 py-1.5 text-sm font-medium text-fg-muted transition-colors hover:bg-hover/70 hover:text-fg">
-					Clear
+					{translate('core:common.clear')}
 				</button>
 			</div>
 		</div>
