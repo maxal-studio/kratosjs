@@ -9,6 +9,7 @@ import { FiltersPanel } from './FiltersPanel';
 import { TableQueryApi } from '../hooks/useTableQuery';
 import { cn } from '../../utils/classNames';
 import { TableToolbarButton, TableToolbarIconButton } from './TableToolbarButton';
+import { translate } from '../../i18n/activeLocale';
 
 export interface TableToolbarProps {
 	schema: SerializedTable;
@@ -100,8 +101,16 @@ export function TableToolbar({
 						aria-expanded={widgetsExpanded}
 						aria-pressed={widgetsExpanded}
 						aria-controls="widgets-content"
-						title={widgetsExpanded ? 'Hide widgets' : 'Show widgets'}
-						aria-label={widgetsExpanded ? 'Hide widgets' : 'Show widgets'}>
+						title={
+							widgetsExpanded
+								? translate('core:table.hide_widgets')
+								: translate('core:table.show_widgets')
+						}
+						aria-label={
+							widgetsExpanded
+								? translate('core:table.hide_widgets')
+								: translate('core:table.show_widgets')
+						}>
 						<LayoutDashboard className="h-4 w-4" />
 						{widgetsExpanded && (
 							<span
@@ -120,8 +129,8 @@ export function TableToolbar({
 					<div className="relative">
 						<TableToolbarIconButton
 							className={cn(isColumnToggleOpen && 'bg-raised text-fg shadow-soft-sm')}
-							aria-label="Column settings"
-							title="Column settings"
+							aria-label={translate('core:table.column_settings')}
+							title={translate('core:table.column_settings')}
 							aria-expanded={isColumnToggleOpen}
 							onClick={() => setIsColumnToggleOpen(!isColumnToggleOpen)}>
 							<Columns3Cog className="h-4 w-4" />

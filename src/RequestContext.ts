@@ -37,6 +37,13 @@ export interface RequestContext {
 	headers: Record<string, string | string[] | undefined>;
 
 	/**
+	 * The active locale resolved for this request (from `?locale`, the
+	 * `X-KratosJs-Locale` header, `Accept-Language`, or the panel default).
+	 * Read by the server `t()` so translations resolve to the right language.
+	 */
+	activeLocale?: string;
+
+	/**
 	 * Helper to resolve media URLs
 	 */
 	resolveMediaUrl?: (mediaValue: any) => Promise<string | undefined>;

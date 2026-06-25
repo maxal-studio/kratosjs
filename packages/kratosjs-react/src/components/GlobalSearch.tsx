@@ -6,6 +6,7 @@ import { cn } from '../utils/classNames';
 import { authenticatedFetch } from '../api/authenticatedFetch';
 import { useResourceModal } from '../contexts/ResourceModalContext';
 import { Spinner } from './ui';
+import { translate } from '../i18n/activeLocale';
 
 export interface GlobalSearchResult {
 	_id: string;
@@ -203,13 +204,13 @@ export function GlobalSearch({ apiBaseUrl, onResultClick }: GlobalSearchProps) {
 						type="button"
 						className="absolute inset-0 bg-black/45 backdrop-blur-md"
 						onClick={closePalette}
-						aria-label="Close search"
+						aria-label={translate('core:search.close')}
 					/>
 
 					<div
 						role="dialog"
 						aria-modal="true"
-						aria-label="Search records"
+						aria-label={translate('core:search.records')}
 						className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-border/80 bg-surface/95 shadow-soft-lg backdrop-blur-xl">
 						<div className="flex items-center gap-3 border-b border-border px-4">
 							<Search className="h-5 w-5 shrink-0 text-fg-muted" />
@@ -219,7 +220,7 @@ export function GlobalSearch({ apiBaseUrl, onResultClick }: GlobalSearchProps) {
 								value={query}
 								onChange={event => setQuery(event.target.value)}
 								onKeyDown={handleKeyDown}
-								placeholder="Search records…"
+								placeholder={translate('core:common.search')}
 								autoComplete="off"
 								spellCheck={false}
 								className="h-14 min-w-0 flex-1 bg-transparent text-base text-fg placeholder:text-fg-muted focus:outline-none"
@@ -236,7 +237,7 @@ export function GlobalSearch({ apiBaseUrl, onResultClick }: GlobalSearchProps) {
 										inputRef.current?.focus();
 									}}
 									className="rounded-md p-1 text-fg-muted transition-colors hover:bg-hover hover:text-fg"
-									aria-label="Clear search">
+									aria-label={translate('core:search.clear')}>
 									<X className="h-4 w-4" />
 								</button>
 							)}
@@ -245,8 +246,10 @@ export function GlobalSearch({ apiBaseUrl, onResultClick }: GlobalSearchProps) {
 						<div className="max-h-[min(420px,52vh)] overflow-y-auto">
 							{!hasQuery && (
 								<div className="px-4 py-8 text-center">
-									<p className="text-sm text-fg-secondary">Search across all records in this panel</p>
-									<p className="mt-1 text-xs text-fg-muted">Start typing to see results</p>
+									<p className="text-sm text-fg-secondary">{translate('core:search.subtitle')}</p>
+									<p className="mt-1 text-xs text-fg-muted">
+										{translate('core:search.start_typing')}
+									</p>
 								</div>
 							)}
 
@@ -382,15 +385,15 @@ export function GlobalSearch({ apiBaseUrl, onResultClick }: GlobalSearchProps) {
 						<div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border px-4 py-2.5 text-[11px] text-fg-muted">
 							<span className="inline-flex items-center gap-1.5">
 								<KeyboardHint>↑↓</KeyboardHint>
-								Navigate
+								{translate('core:search.nav_navigate')}
 							</span>
 							<span className="inline-flex items-center gap-1.5">
 								<KeyboardHint>↵</KeyboardHint>
-								Open
+								{translate('core:search.nav_open')}
 							</span>
 							<span className="inline-flex items-center gap-1.5">
 								<KeyboardHint>esc</KeyboardHint>
-								Close
+								{translate('core:search.nav_close')}
 							</span>
 						</div>
 					</div>
@@ -404,7 +407,7 @@ export function GlobalSearch({ apiBaseUrl, onResultClick }: GlobalSearchProps) {
 			<button
 				type="button"
 				onClick={openPalette}
-				aria-label="Search records"
+				aria-label={translate('core:search.records')}
 				className={cn(
 					'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-input/60 transition-colors sm:hidden',
 					'hover:border-border-strong hover:bg-hover',
@@ -422,7 +425,7 @@ export function GlobalSearch({ apiBaseUrl, onResultClick }: GlobalSearchProps) {
 					'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
 				)}>
 				<Search className="h-4 w-4 shrink-0 text-fg-muted" />
-				<span className="min-w-0 flex-1 truncate text-fg-muted">Search records…</span>
+				<span className="min-w-0 flex-1 truncate text-fg-muted">{translate('core:common.search')}</span>
 				<kbd className="ml-auto shrink-0 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-medium text-fg-muted">
 					⌘K
 				</kbd>

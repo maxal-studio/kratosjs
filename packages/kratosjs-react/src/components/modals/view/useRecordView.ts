@@ -3,6 +3,7 @@ import { SerializedTable } from '@maxal_studio/kratosjs';
 import { getRecord, getRelations, getTableSchema } from '../../../api/resourceApi';
 import { SerializedRelation } from '../../../types';
 import { useResourceModal } from '../../../contexts/ResourceModalContext';
+import { translate } from '../../../i18n/activeLocale';
 
 export interface RecordViewApi {
 	recordData: any;
@@ -48,7 +49,7 @@ export function useRecordView(
 		try {
 			await fetchRecord();
 		} catch (err: any) {
-			setError(err.message || 'Failed to load record');
+			setError(err.message || translate('core:error.load_record'));
 		} finally {
 			setLoading(false);
 		}

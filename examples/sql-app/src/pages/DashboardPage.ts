@@ -1,4 +1,4 @@
-import { Page } from '@maxal_studio/kratosjs';
+import { Page, t } from '@maxal_studio/kratosjs';
 import { CalloutBlock } from '../blocks/CalloutBlock';
 
 /**
@@ -7,7 +7,10 @@ import { CalloutBlock } from '../blocks/CalloutBlock';
  */
 export class DashboardPage extends Page {
 	static slug = 'dashboard';
-	static label = 'Dashboard';
+	// Static label → getter so it localizes per request.
+	static get label() {
+		return t('app:dashboard.label');
+	}
 	static icon = 'LayoutDashboard';
 	static navigationGroup = 'App';
 	static navigationSort = -1;
@@ -15,10 +18,8 @@ export class DashboardPage extends Page {
 	static async blocks() {
 		return [
 			CalloutBlock.make()
-				.title('Welcome to KratosJs 👋')
-				.message(
-					'KratosJs is a powerful, opinionated framework for building Node.js admin panels with React frontends. Define your resources, forms, and tables once in TypeScript — and they render everywhere, automatically. This entire dashboard (including these callouts) is built with it.',
-				)
+				.title(t('app:dashboard.welcome.title'))
+				.message(t('app:dashboard.welcome.message'))
 				.tone('info')
 				.columns(12),
 			CalloutBlock.make()

@@ -4,6 +4,7 @@ import { formatValue } from '../../utils/tableFormatters';
 import { getColumnMediaDimensions } from '../../utils/columnMediaDimensions';
 import { Icon } from '../utils/Icon';
 import { DeeplinkWrapper } from './DeeplinkWrapper';
+import { translate } from '../../i18n/activeLocale';
 
 interface ImagePreviewModalProps {
 	isOpen: boolean;
@@ -33,7 +34,7 @@ function ImagePreviewModal({ isOpen, onClose, imageUrl, title }: ImagePreviewMod
 				<button
 					onClick={onClose}
 					className="absolute top-2 right-2 p-2 rounded-full bg-hover hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors z-10"
-					title="Close">
+					title={translate('core:modal.close')}>
 					<Icon name="X" size={20} className="text-fg" />
 				</button>
 
@@ -41,7 +42,7 @@ function ImagePreviewModal({ isOpen, onClose, imageUrl, title }: ImagePreviewMod
 				<div className="p-4">
 					<img
 						src={imageUrl}
-						alt={title || 'Preview'}
+						alt={title || translate('core:common.preview')}
 						className="max-w-full max-h-[80vh] object-contain rounded"
 					/>
 				</div>
@@ -80,7 +81,7 @@ export function ImageColumnComponent({ column, record }: ColumnProps) {
 	imageUrl = imageUrl || column.defaultImageUrl;
 
 	if (!imageUrl) {
-		return <span className="text-fg-secondary">No image</span>;
+		return <span className="text-fg-secondary">{translate('core:file.no_image')}</span>;
 	}
 
 	const getImageClasses = (circular: boolean) => {

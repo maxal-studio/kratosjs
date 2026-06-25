@@ -7,7 +7,6 @@ export function HasLabel<TBase extends Constructor>(Base: TBase): TBase & Constr
 	return class extends Base {
 		public _label?: Resolvable<string>;
 		public _isLabelHidden: boolean = false;
-		public _shouldTranslateLabel: boolean = false;
 
 		label(label: Resolvable<string>): this {
 			this._label = label;
@@ -19,20 +18,15 @@ export function HasLabel<TBase extends Constructor>(Base: TBase): TBase & Constr
 			return this;
 		}
 
-		translateLabel(shouldTranslate: boolean = true): this {
-			this._shouldTranslateLabel = shouldTranslate;
-			return this;
-		}
-
 		getLabel(): string | undefined {
 			if (this._label === undefined) {
 				return undefined;
 			}
 
-			const label = this.evaluate(this._label);
-
-			// In a real implementation, you'd use an i18n library here
-			return this._shouldTranslateLabel ? label : label;
+			// Translation is the developer's responsibility: pass `t('key')` (a
+			// resolved string) to `.label(...)`. Because builder methods run
+			// per-request, the active locale is already in effect here.
+			return this.evaluate(this._label);
 		}
 
 		isLabelHidden(): boolean {
@@ -52,7 +46,6 @@ export function HasLabel<TBase extends Constructor>(Base: TBase): TBase & Constr
 export interface HasLabel {
 	label(label: Resolvable<string>): this;
 	hiddenLabel(condition?: boolean): this;
-	translateLabel(shouldTranslate?: boolean): this;
 	getLabel(): string | undefined;
 	isLabelHidden(): boolean;
 	hasCustomLabel(): boolean;

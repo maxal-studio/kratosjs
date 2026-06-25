@@ -11,6 +11,7 @@ import { executeSerializedFunction } from '../runtime/serializedFunctions';
 import { ViewFieldWrapper } from './utils/ViewFieldWrapper';
 import { formatSelectLabel } from '../utils/formatValue';
 import { authenticatedFetch } from '../api/authenticatedFetch';
+import { translate } from '../i18n/activeLocale';
 
 /**
  * Component for rendering SelectField in view mode with relationship data fetching
@@ -167,7 +168,7 @@ function SelectFieldViewMode({
 	if (isLoading) {
 		return (
 			<ViewFieldWrapper label={label}>
-				<span className="text-fg-secondary">Loading...</span>
+				<span className="text-fg-secondary">{translate('core:select.loading')}</span>
 			</ViewFieldWrapper>
 		);
 	}
@@ -711,7 +712,11 @@ export function SelectField(props: FieldProps) {
 									setIsOpen(true);
 								}}
 								onFocus={() => setIsOpen(true)}
-								placeholder={selectedValues.length === 0 ? props.placeholder || 'Select...' : ''}
+								placeholder={
+									selectedValues.length === 0
+										? props.placeholder || translate('core:select.placeholder')
+										: ''
+								}
 								className="flex-1 min-w-[120px] outline-none bg-transparent text-fg"
 								disabled={props.disabled}
 							/>
@@ -732,7 +737,7 @@ export function SelectField(props: FieldProps) {
 						{isLoadingRelationship && (
 							<div className="px-3 py-2 text-sm text-fg-secondary flex items-center gap-2">
 								<Icon name="Loader2" size={16} className="animate-spin" />
-								<span>Loading...</span>
+								<span>{translate('core:select.loading')}</span>
 							</div>
 						)}
 
@@ -741,7 +746,9 @@ export function SelectField(props: FieldProps) {
 							!canCreateNew &&
 							!canCreateRelationship && (
 								<div className="px-3 py-2 text-sm text-fg-secondary">
-									{searchTerm ? 'No matching options found' : 'No options available'}
+									{searchTerm
+										? translate('core:select.no_matching')
+										: translate('core:filters.no_options')}
 								</div>
 							)}
 
@@ -785,7 +792,7 @@ export function SelectField(props: FieldProps) {
 								)}>
 								<div className="flex items-center gap-2">
 									<Icon name="Plus" size={16} />
-									<span>Create "{searchTerm}"</span>
+									<span>{translate('core:select.create', { term: searchTerm })}</span>
 								</div>
 							</div>
 						)}
@@ -803,7 +810,7 @@ export function SelectField(props: FieldProps) {
 								)}>
 								<div className="flex items-center gap-2">
 									<Icon name="Plus" size={16} />
-									<span>{props.createOptionModalHeading || 'Create New'}</span>
+									<span>{props.createOptionModalHeading || translate('core:select.create_new')}</span>
 								</div>
 							</div>
 						)}
@@ -823,7 +830,7 @@ export function SelectField(props: FieldProps) {
 					isOpen={showCreateModal}
 					onClose={() => setShowCreateModal(false)}
 					mode="create"
-					resourceName={props.createOptionModalHeading || 'Record'}
+					resourceName={props.createOptionModalHeading || translate('core:common.record')}
 					resourceSlug={props.relationship!.resource || props.relationship!.name}
 					apiBaseUrl={(props as any).apiBaseUrl}
 					formSchema={{ type: 'form', components: props.createOptionForm || [] } as any}

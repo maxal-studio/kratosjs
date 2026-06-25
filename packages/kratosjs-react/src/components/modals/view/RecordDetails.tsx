@@ -3,6 +3,7 @@ import { SerializedForm } from '@maxal_studio/kratosjs';
 import { FieldRenderer } from '../../../FieldRenderer';
 import { cn } from '../../../utils/classNames';
 import { getGridClasses } from '../../utils/layoutHelpers';
+import { translate } from '../../../i18n/activeLocale';
 
 export interface RecordDetailsProps {
 	formSchema: SerializedForm;
@@ -19,7 +20,7 @@ export function RecordDetails({ formSchema, recordData, apiBaseUrl, resourceSlug
 	const componentsArray = formSchema.components;
 
 	if (!componentsArray || !Array.isArray(componentsArray) || componentsArray.length === 0) {
-		return <div className="py-8 text-center text-fg-secondary">No fields to display</div>;
+		return <div className="py-8 text-center text-fg-secondary">{translate('core:state.no_fields')}</div>;
 	}
 
 	const detailsGridClasses =

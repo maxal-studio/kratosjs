@@ -9,6 +9,7 @@ import { RelationController } from './controllers/RelationController';
 import { MediaController } from './controllers/MediaController';
 import { SearchController } from './controllers/SearchController';
 import { PageController } from './controllers/PageController';
+import { t } from '../i18n/serverT';
 
 /**
  * Build request context from Express request
@@ -20,6 +21,10 @@ function buildRequestContext(panel: Panel, req: Request): RequestContext {
 		body: req.body as Record<string, any> | undefined,
 		headers: req.headers as Record<string, string | string[] | undefined>,
 		resolveMediaUrl: (mediaValue: any) => panel.resolveMediaUrl(mediaValue),
+		activeLocale: panel.resolveLocale({
+			query: req.query as Record<string, unknown>,
+			headers: req.headers as Record<string, string | string[] | undefined>,
+		}),
 	};
 }
 
@@ -39,6 +44,22 @@ export function buildPanelRouter(panel: Panel): Router {
 
 	// Create a request-scoped MikroORM context (forked EntityManager) for every request
 	router.use(panel.ormContextMiddleware());
+
+	// Resolve the active locale for EVERY route (auth, resource, media…) up front, so
+	// server `t()` localizes to the client's locale even on routes that run before the
+	// richer resource context (auth login/refresh, auth middleware, resource resolution).
+	// The resource `contextRunner` below nests a fuller context (with user) inside this.
+	router.use((req: Request, _res: Response, next: NextFunction) => {
+		const localeContext: RequestContext = {
+			activeLocale: panel.resolveLocale({
+				query: req.query as Record<string, unknown>,
+				headers: req.headers as Record<string, string | string[] | undefined>,
+			}),
+			query: req.query as Record<string, any>,
+			headers: req.headers as Record<string, string | string[] | undefined>,
+		};
+		requestContextStorage.run(localeContext, () => next());
+	});
 
 	// Apply panel-level middleware
 	const panelMiddleware = panel.getMiddleware();
@@ -69,7 +90,7 @@ export function buildPanelRouter(panel: Panel): Router {
 
 		if (!resource) {
 			res.status(404).json({
-				message: `Resource "${resourceSlug}" not found`,
+				message: t('core:resource.not_found', { slug: resourceSlug }),
 			});
 			return;
 		}

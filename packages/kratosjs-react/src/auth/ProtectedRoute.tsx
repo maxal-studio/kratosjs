@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from './AuthContext';
 import { Loader2 } from 'lucide-react';
 import { LoginPage } from './LoginPage';
+import { translate } from '../i18n/activeLocale';
 
 interface ProtectedRouteProps {
 	children: React.ReactNode;
@@ -21,7 +22,7 @@ export function ProtectedRoute({ children, apiBaseUrl, fallback }: ProtectedRout
 			<div className="min-h-screen bg-base flex items-center justify-center">
 				<div className="text-center">
 					<Loader2 className="w-12 h-12 text-accent animate-spin mx-auto" />
-					<p className="mt-4 text-fg-secondary">Loading...</p>
+					<p className="mt-4 text-fg-secondary">{translate('core:common.loading_ellipsis')}</p>
 				</div>
 			</div>
 		);

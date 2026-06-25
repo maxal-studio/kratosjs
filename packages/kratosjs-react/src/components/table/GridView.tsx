@@ -5,6 +5,7 @@ import { cn } from '../../utils/classNames';
 import { Spinner } from '../ui/Spinner';
 import { EmptyState } from '../ui/EmptyState';
 import { ErrorAlert } from '../ui/ErrorAlert';
+import { translate } from '../../i18n/activeLocale';
 
 interface GridViewProps {
 	schema: SerializedTable;
@@ -74,7 +75,7 @@ export function GridView({
 		return (
 			<div className={stateWrapper}>
 				<div className="flex items-center justify-center">
-					<Spinner label="Loading..." />
+					<Spinner label={translate('core:common.loading_ellipsis')} />
 				</div>
 			</div>
 		);
@@ -91,7 +92,10 @@ export function GridView({
 	if (data.length === 0) {
 		return (
 			<div className={stateWrapper}>
-				<EmptyState title="No records found" description="Try adjusting your search or filters." />
+				<EmptyState
+					title={translate('core:table.no_records')}
+					description={translate('core:table.no_records_hint')}
+				/>
 			</div>
 		);
 	}

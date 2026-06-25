@@ -1,5 +1,6 @@
 import React from 'react';
 import { PillButton } from '../ui/PillButton';
+import { translate } from '../../i18n/activeLocale';
 
 export interface ErrorBoundaryProps {
 	children: React.ReactNode;
@@ -49,7 +50,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 				</p>
 				<p className="mt-1 text-sm k-text-secondary break-words">{error.message}</p>
 				<PillButton type="button" variant="default" onClick={this.reset} className="mt-3">
-					Try again
+					{translate('core:common.try_again')}
 				</PillButton>
 			</div>
 		);

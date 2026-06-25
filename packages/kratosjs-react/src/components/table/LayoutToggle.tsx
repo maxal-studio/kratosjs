@@ -1,6 +1,7 @@
 import React from 'react';
 import { Icon } from '../utils/Icon';
 import { TableToolbarIconButton } from '../../table/components/TableToolbarButton';
+import { translate } from '../../i18n/activeLocale';
 
 interface LayoutToggleProps {
 	layout: 'table' | 'grid';
@@ -14,8 +15,8 @@ export function LayoutToggle({ layout, onLayoutChange }: LayoutToggleProps) {
 	return (
 		<TableToolbarIconButton
 			onClick={() => onLayoutChange(nextLayout)}
-			title={isTable ? 'Switch to grid view' : 'Switch to table view'}
-			aria-label={isTable ? 'Switch to grid view' : 'Switch to table view'}
+			title={isTable ? translate('core:table.switch_grid') : translate('core:table.switch_table')}
+			aria-label={isTable ? translate('core:table.switch_grid') : translate('core:table.switch_table')}
 			aria-pressed={!isTable}>
 			<Icon name={isTable ? 'Table' : 'LayoutGrid'} size={16} />
 		</TableToolbarIconButton>

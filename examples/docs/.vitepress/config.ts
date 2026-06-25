@@ -41,6 +41,7 @@ export default defineConfig({
 			{ text: 'Tables', link: '/tables/overview' },
 			{ text: 'Auth', link: '/authentication/overview' },
 			{ text: 'Media', link: '/media/overview' },
+			{ text: 'i18n', link: '/i18n/overview' },
 			{ text: 'Plugins', link: '/plugins/overview' },
 		],
 		sidebar: {
@@ -151,6 +152,17 @@ export default defineConfig({
 						{ text: 'Hooks', link: '/media/hooks' },
 						{ text: 'Local Storage', link: '/media/local-storage' },
 						{ text: 'S3 Storage', link: '/media/s3-storage' },
+					],
+				},
+			],
+			'/i18n/': [
+				{
+					text: 'Internationalization',
+					items: [
+						{ text: 'Overview', link: '/i18n/overview' },
+						{ text: 'Backend', link: '/i18n/backend' },
+						{ text: 'Frontend', link: '/i18n/frontend' },
+						{ text: 'Plugins', link: '/i18n/plugins' },
 					],
 				},
 			],

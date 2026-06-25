@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, AlertCircle } from 'lucide-react';
 import { cn } from '../../utils/classNames';
+import { translate } from '../../i18n/activeLocale';
 
 export interface ErrorAlertProps {
 	message: React.ReactNode;
@@ -26,7 +27,7 @@ export function ErrorAlert({ message, onDismiss, className }: ErrorAlertProps) {
 				<button
 					type="button"
 					onClick={onDismiss}
-					aria-label="Dismiss error"
+					aria-label={translate('core:common.dismiss')}
 					className="shrink-0 rounded-md p-1 text-danger transition-colors hover:bg-danger/10">
 					<X className="h-4 w-4" />
 				</button>

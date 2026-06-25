@@ -5,6 +5,7 @@ import { useFieldRegistry } from './contexts/FieldRegistryContext';
 import { evaluateCondition } from './runtime/conditions';
 import { useAfterStateUpdated } from './hooks/useAfterStateUpdated';
 import { getColumnClasses } from './components/utils/layoutHelpers';
+import { translate } from './i18n/activeLocale';
 
 /**
  * FieldRenderer component
@@ -49,7 +50,8 @@ export function FieldRenderer({
 		return (
 			<div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
 				<p className="text-sm text-yellow-800">
-					<strong>Warning:</strong> Unknown field type "{field.type}" for field "{field.name}"
+					<strong>{translate('core:common.warning')}:</strong>{' '}
+					{translate('core:state.unknown_field', { type: field.type, name: field.name })}
 				</p>
 			</div>
 		);

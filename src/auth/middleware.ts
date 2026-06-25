@@ -2,6 +2,7 @@ import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { AuthManager } from './AuthManager';
 // Import request types to ensure declaration merging is applied
 import '../panel/request';
+import { t } from '../i18n/serverT';
 
 /**
  * Extract token from request (header or cookie)
@@ -30,13 +31,13 @@ export function authMiddleware(authManager: AuthManager): RequestHandler {
 		try {
 			const token = extractToken(req);
 			if (!token) {
-				res.status(401).json({ error: 'Unauthorized - No token provided' });
+				res.status(401).json({ error: t('core:auth.unauthorized_no_token') });
 				return;
 			}
 
 			const user = await authManager.getCurrentUser(token);
 			if (!user) {
-				res.status(401).json({ error: 'Unauthorized - Invalid or expired token' });
+				res.status(401).json({ error: t('core:auth.unauthorized_invalid_token') });
 				return;
 			}
 

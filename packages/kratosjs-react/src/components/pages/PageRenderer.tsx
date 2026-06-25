@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { BlockRenderer } from '../blocks/BlockRenderer';
 import { cn } from '../../utils/classNames';
 import { authenticatedFetch } from '../../api/authenticatedFetch';
+import { translate } from '../../i18n/activeLocale';
 
 export interface PageRendererProps {
 	pageSlug: string;
@@ -51,7 +52,7 @@ export function PageRenderer({ pageSlug, apiBaseUrl }: PageRendererProps) {
 				setPageData(data.page);
 				setWidgetData(data.widgetData || {});
 			} catch (err: any) {
-				setError(err.message || 'Failed to load page');
+				setError(err.message || translate('core:error.load_page'));
 			} finally {
 				setLoading(false);
 			}
@@ -63,7 +64,7 @@ export function PageRenderer({ pageSlug, apiBaseUrl }: PageRendererProps) {
 	if (loading) {
 		return (
 			<div className="flex items-center justify-center min-h-[400px]">
-				<div className="text-gray-500 dark:text-gray-400">Loading page...</div>
+				<div className="text-gray-500 dark:text-gray-400">{translate('core:page.loading')}</div>
 			</div>
 		);
 	}
@@ -79,7 +80,7 @@ export function PageRenderer({ pageSlug, apiBaseUrl }: PageRendererProps) {
 	if (!pageData) {
 		return (
 			<div className="flex items-center justify-center min-h-[400px]">
-				<div className="text-gray-500 dark:text-gray-400">Page not found</div>
+				<div className="text-gray-500 dark:text-gray-400">{translate('core:state.page_not_found')}</div>
 			</div>
 		);
 	}
@@ -152,7 +153,7 @@ export function PageRenderer({ pageSlug, apiBaseUrl }: PageRendererProps) {
 					))}
 				</div>
 			) : (
-				<div className="text-gray-500 dark:text-gray-400">This page has no content.</div>
+				<div className="text-gray-500 dark:text-gray-400">{translate('core:page.no_content')}</div>
 			)}
 		</div>
 	);

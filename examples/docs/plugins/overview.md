@@ -29,6 +29,7 @@ Plugins can register:
 - **Hooks** - Event handlers for resource operations
 - **Custom component names** - fields/columns/widgets/blocks rendered by the React components shipped in the client entry
 - **Validation rules** - custom rules that validate on both the client and the server (see [Custom Validation Rules](./creating-plugins.md#custom-validation-rules))
+- **Translations** - server + client catalogs, namespaced by plugin name, that host apps can override (see [Plugin Translations](/i18n/plugins))
 
 ## Why Use Plugins?
 
@@ -249,6 +250,21 @@ panel.registerExporter('csv', csvExporter);
 ```
 
 See [Global Configuration](./global-configuration.md) for both.
+
+### Register Translations
+
+Plugins register translation catalogs (namespaced by the plugin name) on the server in `register()`,
+and ship client catalogs in their `definePluginClient` manifest. Host apps can override any string or
+add locales the plugin didn't ship:
+
+```typescript
+panel.registerTranslations('2fa', {
+	en: { 'settings.title': 'Two-factor authentication' },
+	sq: { 'settings.title': 'Autentifikimi me dy faktorë' },
+});
+```
+
+See [Plugin Translations](/i18n/plugins) for the full server + client + override flow.
 
 ## Wiring Plugins in Your App
 

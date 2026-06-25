@@ -8,6 +8,7 @@ import { useConfirm } from '../ui/ConfirmDialog';
 import { useToast } from '../ui/Toast';
 import { usePanelMetadata } from '../../contexts/PanelMetadataContext';
 import { useResourceModal } from '../../contexts/ResourceModalContext';
+import { translate } from '../../i18n/activeLocale';
 
 export type ResourceFormMode = 'create' | 'edit' | 'action';
 
@@ -85,11 +86,11 @@ export function useResourceForm(options: UseResourceFormOptions): ResourceFormAp
 
 	const modalTitle =
 		mode === 'create'
-			? `Create ${label}`
+			? translate('core:form.create_title', { label })
 			: mode === 'edit'
 				? recordTitle
-					? `Editing "${recordTitle}"`
-					: `Edit ${label}`
+					? translate('core:form.editing_title', { title: recordTitle })
+					: translate('core:form.edit_title', { label })
 				: actionLabel || actionName || label;
 
 	const modalKey =
@@ -145,8 +146,8 @@ export function useResourceForm(options: UseResourceFormOptions): ResourceFormAp
 					message:
 						modalDescription ||
 						(isBulk
-							? `Are you sure you want to ${actionName} ${recordIds.length} items?`
-							: `Are you sure you want to ${actionName} this item?`),
+							? translate('core:form.confirm_bulk', { action: actionName, count: recordIds.length })
+							: translate('core:confirm.action_single', { action: actionName })),
 				});
 				if (!confirmed) return;
 			}
@@ -158,7 +159,7 @@ export function useResourceForm(options: UseResourceFormOptions): ResourceFormAp
 					: await executeAction(apiUrl, actionName!, recordIds[0], payload);
 
 				if (!result.success) {
-					throw new Error(result.message || 'Action failed');
+					throw new Error(result.message || translate('core:form.action_failed'));
 				}
 
 				if (handleRedirect(result, navigate) || (result.data && handleRedirect(result.data, navigate))) {
@@ -172,7 +173,7 @@ export function useResourceForm(options: UseResourceFormOptions): ResourceFormAp
 				onSuccess?.(result.data);
 				onClose();
 			} catch (err: any) {
-				setError(err.message || 'Failed to execute action');
+				setError(err.message || translate('core:form.action_failed'));
 			}
 			return;
 		}
@@ -196,7 +197,8 @@ export function useResourceForm(options: UseResourceFormOptions): ResourceFormAp
 			onSuccess?.(result.data ?? result);
 			onClose();
 		} catch (err: any) {
-			const fallback = mode === 'create' ? 'Failed to create record' : 'Failed to update record';
+			const fallback =
+				mode === 'create' ? translate('core:form.create_failed') : translate('core:form.update_failed');
 			setError(err instanceof ApiError ? err.message : err.message || fallback);
 		}
 	};

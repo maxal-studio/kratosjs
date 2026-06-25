@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import { SerializedTable } from '@maxal_studio/kratosjs';
 import { Icon } from '../utils/Icon';
 import { cn } from '../../utils/classNames';
+import { translate } from '../../i18n/activeLocale';
 
 interface TablePaginationProps {
 	schema: SerializedTable;
@@ -78,10 +79,18 @@ export function TablePagination({
 			<div className="flex min-w-0 items-center gap-2">
 				<span className="whitespace-nowrap text-sm text-fg-secondary">
 					<span className="sm:hidden">
-						{rangeStart}–{rangeEnd} of {totalRecords}
+						{translate('core:pagination.range_compact', {
+							start: rangeStart,
+							end: rangeEnd,
+							total: totalRecords,
+						})}
 					</span>
 					<span className="hidden sm:inline">
-						Showing {rangeStart} to {rangeEnd} of {totalRecords} results
+						{translate('core:pagination.showing', {
+							start: rangeStart,
+							end: rangeEnd,
+							total: totalRecords,
+						})}
 					</span>
 				</span>
 			</div>
@@ -89,13 +98,15 @@ export function TablePagination({
 			<div className="flex flex-wrap items-center gap-3 sm:gap-4">
 				{schema.recordsPerPageOptions && schema.recordsPerPageOptions.length > 0 && (
 					<div className="flex items-center gap-2">
-						<span className="whitespace-nowrap text-sm text-fg-secondary">Per page</span>
+						<span className="whitespace-nowrap text-sm text-fg-secondary">
+							{translate('core:pagination.per_page_short')}
+						</span>
 						<div className="relative">
 							<select
 								value={perPage}
 								onChange={e => onPageSizeChange(Number(e.target.value))}
 								className="h-8 min-w-[4.5rem] appearance-none rounded-full border border-border bg-input/60 pl-3 pr-9 text-sm text-fg focus:outline-none focus:ring-2 focus:ring-ring"
-								aria-label="Results per page">
+								aria-label={translate('core:pagination.per_page')}>
 								{schema.recordsPerPageOptions.map(option => (
 									<option key={option} value={option}>
 										{option}
@@ -112,8 +123,8 @@ export function TablePagination({
 						onClick={() => onPageChange(currentPage - 1)}
 						disabled={currentPage === 1}
 						className={navButtonClass}
-						title="Previous page"
-						aria-label="Previous page">
+						title={translate('core:pagination.previous')}
+						aria-label={translate('core:pagination.previous')}>
 						<Icon name="ChevronLeft" size={16} />
 					</button>
 
@@ -147,8 +158,8 @@ export function TablePagination({
 						onClick={() => onPageChange(currentPage + 1)}
 						disabled={currentPage === lastPage}
 						className={navButtonClass}
-						title="Next page"
-						aria-label="Next page">
+						title={translate('core:pagination.next')}
+						aria-label={translate('core:pagination.next')}>
 						<Icon name="ChevronRight" size={16} />
 					</button>
 				</div>

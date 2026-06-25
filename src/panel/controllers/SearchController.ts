@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import type { Panel } from '../../Panel';
+import { t } from '../../i18n/serverT';
 
 /**
  * Global search endpoint: searches every resource that defines
@@ -99,7 +100,7 @@ export class SearchController {
 		} catch (error: any) {
 			console.error('Error in global search:', error);
 			res.status(500).json({
-				message: error.message || 'Failed to perform global search',
+				message: error.message || t('core:search.failed'),
 			});
 		}
 	}

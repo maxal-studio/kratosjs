@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '../../utils/classNames';
+import { translate } from '../../i18n/activeLocale';
 
 export interface SpinnerProps {
 	size?: 'sm' | 'md' | 'lg';
@@ -18,7 +19,7 @@ export function Spinner({ size = 'md', className, label }: SpinnerProps) {
 	const circle = (
 		<span
 			role="status"
-			aria-label={label || 'Loading'}
+			aria-label={label || translate('core:common.loading')}
 			className={cn(
 				'inline-block animate-spin rounded-full border-current border-t-transparent',
 				SIZE_CLASSES[size],

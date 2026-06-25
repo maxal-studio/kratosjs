@@ -8,6 +8,7 @@ import type { ColumnRegistry } from './contexts/ColumnRegistryContext';
 import type { AuthChallengeRegistry } from './contexts/AuthChallengeRegistryContext';
 import type { RuleDefinition } from '@maxal_studio/kratosjs';
 import { ValidationEngine } from '@maxal_studio/kratosjs/dist/validation';
+import type { ClientI18nConfig } from './i18n/buildClientI18n';
 
 export interface MountAdminPanelOptions {
 	/** Client manifests of the plugins used by this panel */
@@ -37,6 +38,17 @@ export interface MountAdminPanelOptions {
 	 * (window.__VALAJS_API_BASE_PATH__) on the current origin.
 	 */
 	apiBaseUrl?: string;
+	/**
+	 * Internationalization config for the UI chrome and app/plugin frontend strings.
+	 * Backend-authored labels arrive already translated; this covers strings authored
+	 * in React. App catalogs may target any namespace via a `ns:` key prefix
+	 * (e.g. `core:common.save` overrides a built-in button); unprefixed keys → `app`.
+	 *
+	 * @example
+	 * import enApp from '../lang/en';
+	 * mountAdminPanel({ i18n: { defaultLocale: 'en', translations: { en: enApp, sq: sqApp } } });
+	 */
+	i18n?: ClientI18nConfig;
 	/** Panel id when serving multiple panels */
 	panelId?: string;
 	/** DOM element id to mount into (default: 'root') */
@@ -135,6 +147,8 @@ export function mountAdminPanel(options: MountAdminPanelOptions = {}): void {
 				customWidgets={registries.widgets}
 				customBlocks={registries.blocks}
 				customAuthChallenges={registries.authChallenges}
+				i18nConfig={options.i18n}
+				plugins={options.plugins}
 			/>
 		</React.StrictMode>,
 	);

@@ -6,6 +6,7 @@ import { HintDisplay } from './utils/HintDisplay';
 import { ViewFieldWrapper } from './utils/ViewFieldWrapper';
 import { cn } from '../utils/classNames';
 import { X, GripVertical, List } from 'lucide-react';
+import { translate } from '../i18n/activeLocale';
 
 /** View mode: trigger + popup when showInPopup is true */
 function TagsViewPopup({ tags, renderHtml }: { tags: any[]; renderHtml: boolean }) {
@@ -33,7 +34,7 @@ function TagsViewPopup({ tags, renderHtml }: { tags: any[]; renderHtml: boolean 
 					<div
 						role="dialog"
 						aria-modal="true"
-						aria-label="Tags"
+						aria-label={translate('core:tags.label')}
 						className={cn(
 							'fixed left-1/2 top-1/2 z-50 w-[min(90vw,28rem)] max-h-[70vh] -translate-x-1/2 -translate-y-1/2',
 							'bg-surface rounded-xl shadow-xl border border-border',
@@ -45,7 +46,7 @@ function TagsViewPopup({ tags, renderHtml }: { tags: any[]; renderHtml: boolean 
 								type="button"
 								onClick={() => setOpen(false)}
 								className="p-1 rounded-lg text-fg-secondary hover:bg-hover transition-colors"
-								aria-label="Close">
+								aria-label={translate('core:modal.close')}>
 								<X className="w-5 h-5" />
 							</button>
 						</div>

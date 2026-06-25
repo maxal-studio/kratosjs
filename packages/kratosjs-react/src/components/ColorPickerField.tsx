@@ -6,6 +6,7 @@ import { useValidation } from '../hooks/useValidation';
 import { cn } from '../utils/classNames';
 import { HintDisplay } from './utils/HintDisplay';
 import { ViewFieldWrapper } from './utils/ViewFieldWrapper';
+import { translate } from '../i18n/activeLocale';
 
 /**
  * ColorPicker field component
@@ -78,7 +79,7 @@ export function ColorPickerField(props: FieldProps) {
 				<div
 					className="h-10 w-10 rounded-lg border-2 border-border shadow-sm"
 					style={{ backgroundColor: colorValue }}
-					title="Color preview"
+					title={translate('core:a11y.color_preview')}
 				/>
 			</div>
 

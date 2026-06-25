@@ -3,8 +3,24 @@ import { getChildComponents, collectFieldNames, isArrayScope } from '../utils/fo
 import { ValidationError } from '../resource/types';
 import { ValidationEngine } from '../validation/ValidationEngine';
 import { resolveValidationCondition } from '../validation/conditions';
+import { formatValidationMessage } from '../validation/messages';
 
 type FormOperation = 'create' | 'edit' | 'view';
+
+/**
+ * Build a structured type-mismatch ValidationError carrying the i18n `messageKey`
+ * + `params` (so the client can localize it) plus a rendered English `message`.
+ */
+function typeError(component: SerializedComponent, messageKey: string): ValidationError {
+	const label = ((component.label as string) || component.name) ?? '';
+	return new ValidationError({
+		message: formatValidationMessage(messageKey, { label }),
+		field: component.name,
+		rule: 'type',
+		messageKey,
+		params: { label },
+	});
+}
 
 /** A pure layout container (inherits parent value scope, holds no value of its own). */
 function isLayout(component: SerializedComponent): boolean {
@@ -117,11 +133,7 @@ export class SchemaValidator {
 			case 'colorpicker':
 			case 'datetimepicker':
 				if (typeof value !== 'string') {
-					throw new ValidationError(
-						`Field "${component.label || component.name}" must be a string`,
-						component.name,
-						'type',
-					);
+					throw typeError(component, 'validation.type.string');
 				}
 				break;
 
@@ -132,28 +144,16 @@ export class SchemaValidator {
 
 				if (component.multiple) {
 					if (!Array.isArray(normalized)) {
-						throw new ValidationError(
-							`Field "${component.label || component.name}" must be an array`,
-							component.name,
-							'type',
-						);
+						throw typeError(component, 'validation.type.array');
 					}
 					const hasInvalidItem = normalized.some(
 						item => item !== null && item !== '' && typeof item !== 'string' && typeof item !== 'number',
 					);
 					if (hasInvalidItem) {
-						throw new ValidationError(
-							`Field "${component.label || component.name}" must be an array of strings or numbers`,
-							component.name,
-							'type',
-						);
+						throw typeError(component, 'validation.type.array_items');
 					}
 				} else if (typeof normalized !== 'string' && typeof normalized !== 'number') {
-					throw new ValidationError(
-						`Field "${component.label || component.name}" must be a string`,
-						component.name,
-						'type',
-					);
+					throw typeError(component, 'validation.type.string');
 				}
 				break;
 			}
@@ -161,32 +161,20 @@ export class SchemaValidator {
 			case 'tags':
 				// Tags input should always be an array
 				if (!Array.isArray(value)) {
-					throw new ValidationError(
-						`Field "${component.label || component.name}" must be an array`,
-						component.name,
-						'type',
-					);
+					throw typeError(component, 'validation.type.array');
 				}
 				break;
 
 			case 'checkbox':
 			case 'toggle':
 				if (typeof value !== 'boolean') {
-					throw new ValidationError(
-						`Field "${component.label || component.name}" must be a boolean`,
-						component.name,
-						'type',
-					);
+					throw typeError(component, 'validation.type.boolean');
 				}
 				break;
 
 			case 'repeater':
 				if (!Array.isArray(value)) {
-					throw new ValidationError(
-						`Field "${component.label || component.name}" must be an array`,
-						component.name,
-						'type',
-					);
+					throw typeError(component, 'validation.type.array');
 				}
 				break;
 		}
@@ -279,7 +267,13 @@ export class SchemaValidator {
 
 		if (violations.length > 0) {
 			const v = violations[0];
-			throw new ValidationError(v.message, v.field, v.rule);
+			throw new ValidationError({
+				message: v.message,
+				field: v.field,
+				rule: v.rule,
+				messageKey: v.messageKey,
+				params: v.params,
+			});
 		}
 	}
 

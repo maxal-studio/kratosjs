@@ -17,6 +17,7 @@ import {
 import type { BaseResource } from './BaseResource';
 import type { RequestContext } from './RequestContext';
 import { getRequestContext } from './RequestContextStorage';
+import { t } from './i18n/serverT';
 
 /**
  * Unified Resource class for managing data operations
@@ -160,7 +161,7 @@ export class Resource {
 
 			return {
 				data: ctx.output.records[0],
-				message: 'Record created successfully',
+				message: t('core:record.created'),
 			};
 		});
 	}
@@ -216,7 +217,7 @@ export class Resource {
 
 			return {
 				data: ctx.output.records[0],
-				message: 'Record updated successfully',
+				message: t('core:record.updated'),
 			};
 		});
 	}
@@ -356,7 +357,7 @@ export class Resource {
 
 			return {
 				deleted: ctx.output.records,
-				message: `${ctx.output.records.length} record(s) deleted successfully`,
+				message: t('core:record.deleted_count', { count: ctx.output.records.length }),
 			};
 		});
 	}

@@ -2,6 +2,7 @@ import type { Panel } from '../Panel';
 import { RegisteredResource } from './types';
 import { AuthUser } from '../auth/types';
 import { ResourceCapabilities } from './PanelHooks';
+import { t } from '../i18n/serverT';
 
 /**
  * Get filtered capabilities for a resource.
@@ -79,7 +80,9 @@ export async function checkOperationAccess(
 		const operationName = operation === 'read' ? 'view' : operation;
 		return {
 			allowed: false,
-			message: `${operationName.charAt(0).toUpperCase() + operationName.slice(1)} operation is disabled for this resource`,
+			message: t('core:access.operation_disabled', {
+				operation: operationName.charAt(0).toUpperCase() + operationName.slice(1),
+			}),
 		};
 	}
 

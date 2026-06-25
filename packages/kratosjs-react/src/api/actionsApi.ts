@@ -1,5 +1,6 @@
 import { ApiError, apiPost } from './http';
 import { deriveApiBaseUrl } from './urls';
+import { translate } from '../i18n/activeLocale';
 
 export interface ActionResult {
 	success: boolean;
@@ -34,7 +35,7 @@ async function runAction(
 			redirect: result.redirect,
 		};
 	} catch (error: any) {
-		const fallback = isBulk ? 'Failed to execute bulk action' : 'Failed to execute action';
+		const fallback = isBulk ? translate('core:error.action_failed_bulk') : translate('core:error.action_failed');
 		return {
 			success: false,
 			message: error instanceof ApiError ? error.message : error?.message || fallback,

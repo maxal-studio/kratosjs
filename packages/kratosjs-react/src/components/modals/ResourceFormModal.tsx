@@ -6,6 +6,7 @@ import { ErrorAlert } from '../ui/ErrorAlert';
 import { Spinner } from '../ui/Spinner';
 import { useResourceForm, ResourceFormMode } from './useResourceForm';
 import { RecordEnvelope } from '../../api/resourceApi';
+import { translate } from '../../i18n/activeLocale';
 
 export interface ResourceFormModalProps {
 	isOpen: boolean;
@@ -106,7 +107,7 @@ export function ResourceFormModal({
 			urlCopied={urlCopied}>
 			{form.loading && (
 				<div className="flex items-center justify-center py-12">
-					<Spinner size="lg" label="Loading..." />
+					<Spinner size="lg" label={translate('core:common.loading_ellipsis')} />
 				</div>
 			)}
 

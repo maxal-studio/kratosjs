@@ -8,6 +8,7 @@ import { handleRedirect } from '../../utils/redirectHandler';
 import { useConfirm } from '../../components/ui/ConfirmDialog';
 import { useToast } from '../../components/ui/Toast';
 import { useResourceModal } from '../../contexts/ResourceModalContext';
+import { translate } from '../../i18n/activeLocale';
 
 export interface ActionFormModalState {
 	actionName: string;
@@ -133,7 +134,7 @@ export function useTableActions(options: UseTableActionsOptions): TableActionsAp
 				recordIds,
 			});
 		} catch (err: any) {
-			setError(err.message || 'Failed to export');
+			setError(err.message || translate('core:error.export_failed'));
 			console.error('Error exporting:', err);
 		} finally {
 			setIsLoading(false);
@@ -147,7 +148,7 @@ export function useTableActions(options: UseTableActionsOptions): TableActionsAp
 			await clientForMutations().deleteRecords(ids);
 			toast.success(ids.length === 1 ? 'Item deleted successfully' : `${ids.length} items deleted successfully`);
 		} catch (err: any) {
-			setError(err.message || 'Failed to delete');
+			setError(err.message || translate('core:error.delete_failed'));
 			console.error('Error deleting:', err);
 		} finally {
 			await reload();
@@ -181,9 +182,9 @@ export function useTableActions(options: UseTableActionsOptions): TableActionsAp
 		if (actionName === 'delete') {
 			if (!canDelete) return;
 			const confirmed = await confirm({
-				title: 'Delete item',
-				message: 'Are you sure you want to delete this item? This cannot be undone.',
-				confirmLabel: 'Delete',
+				title: translate('core:confirm.delete_item_title'),
+				message: translate('core:confirm.delete_item_message'),
+				confirmLabel: translate('core:common.delete'),
 				danger: true,
 			});
 			if (!confirmed) return;
@@ -208,7 +209,9 @@ export function useTableActions(options: UseTableActionsOptions): TableActionsAp
 			if (actionConfig.requiresConfirmation) {
 				const confirmed = await confirm({
 					title: actionConfig.label || actionName,
-					message: actionConfig.modalDescription || `Are you sure you want to ${actionName} this item?`,
+					message:
+						actionConfig.modalDescription ||
+						translate('core:confirm.action_single', { action: actionName }),
 				});
 				if (!confirmed) return;
 			}
@@ -227,10 +230,10 @@ export function useTableActions(options: UseTableActionsOptions): TableActionsAp
 						toast.success(result.message);
 					}
 				} else {
-					setError(result.message || 'Action failed');
+					setError(result.message || translate('core:form.action_failed'));
 				}
 			} catch (err: any) {
-				setError(err.message || 'Failed to execute action');
+				setError(err.message || translate('core:error.action_failed'));
 				console.error('Error executing action:', err);
 			} finally {
 				await reload();
@@ -250,9 +253,9 @@ export function useTableActions(options: UseTableActionsOptions): TableActionsAp
 		if (actionName === 'delete' || actionName === 'bulkDelete') {
 			if (!canDelete) return;
 			const confirmed = await confirm({
-				title: 'Delete items',
-				message: `Are you sure you want to delete ${selectedIds.length} items? This cannot be undone.`,
-				confirmLabel: 'Delete',
+				title: translate('core:confirm.delete_items_title'),
+				message: translate('core:confirm.delete_items_message', { count: selectedIds.length }),
+				confirmLabel: translate('core:common.delete'),
 				danger: true,
 			});
 			if (!confirmed) return;
@@ -286,7 +289,7 @@ export function useTableActions(options: UseTableActionsOptions): TableActionsAp
 					title: actionConfig.label || actionName,
 					message:
 						actionConfig.modalDescription ||
-						`Are you sure you want to ${actionName} ${selectedIds.length} items?`,
+						translate('core:form.confirm_bulk', { action: actionName, count: selectedIds.length }),
 				});
 				if (!confirmed) return;
 			}
@@ -304,10 +307,10 @@ export function useTableActions(options: UseTableActionsOptions): TableActionsAp
 						clearSelection();
 					}
 				} else {
-					setError(result.message || 'Bulk action failed');
+					setError(result.message || translate('core:error.bulk_action_failed'));
 				}
 			} catch (err: any) {
-				setError(err.message || 'Failed to execute bulk action');
+				setError(err.message || translate('core:error.action_failed_bulk'));
 				console.error('Error executing bulk action:', err);
 			} finally {
 				await reload();
@@ -350,7 +353,9 @@ export function useTableActions(options: UseTableActionsOptions): TableActionsAp
 			if (actionConfig.requiresConfirmation) {
 				const confirmed = await confirm({
 					title: actionConfig.label || actionName,
-					message: actionConfig.modalDescription || `Are you sure you want to ${actionName}?`,
+					message:
+						actionConfig.modalDescription ||
+						translate('core:confirm.action_generic', { action: actionName }),
 				});
 				if (!confirmed) return;
 			}
@@ -362,10 +367,10 @@ export function useTableActions(options: UseTableActionsOptions): TableActionsAp
 				if (result.success) {
 					if (result.message) toast.success(result.message);
 				} else {
-					setError(result.message || 'Action failed');
+					setError(result.message || translate('core:form.action_failed'));
 				}
 			} catch (err: any) {
-				setError(err.message || 'Failed to execute action');
+				setError(err.message || translate('core:error.action_failed'));
 				console.error('Error executing header action:', err);
 			} finally {
 				await reload();

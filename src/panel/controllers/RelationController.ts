@@ -4,6 +4,7 @@ import { SerializedRelation } from '../../resource/types';
 import { applyColumnFormatters, applyFieldFormatters } from '../../utils/dataFormatters';
 import { getFilteredCapabilitiesBySlug } from '../access';
 import { getPanelResource } from './utils';
+import { t } from '../../i18n/serverT';
 
 /**
  * Relation endpoints: relation metadata, related-record listing and creation.
@@ -72,14 +73,14 @@ export class RelationController {
 			const relation = relations.find(r => r.name === relationName);
 
 			if (!relation) {
-				res.status(404).json({ message: 'Relation not found' });
+				res.status(404).json({ message: t('core:relation.not_found') });
 				return;
 			}
 
 			// Get related resource
 			const relatedResource = this.panel.getResource(relation.resourceSlug);
 			if (!relatedResource) {
-				res.status(404).json({ message: 'Related resource not found' });
+				res.status(404).json({ message: t('core:relation.related_not_found') });
 				return;
 			}
 			const relatedResourceInstance = this.panel.createResourceInstance(relatedResource);
@@ -134,14 +135,14 @@ export class RelationController {
 			const relation = relations.find(r => r.name === relationName);
 
 			if (!relation) {
-				res.status(404).json({ message: 'Relation not found' });
+				res.status(404).json({ message: t('core:relation.not_found') });
 				return;
 			}
 
 			// Get related resource
 			const relatedResource = this.panel.getResource(relation.resourceSlug);
 			if (!relatedResource) {
-				res.status(404).json({ message: 'Related resource not found' });
+				res.status(404).json({ message: t('core:relation.related_not_found') });
 				return;
 			}
 
@@ -195,7 +196,7 @@ export class RelationController {
 	 */
 	async handleUpdateRelation(_req: Request, res: Response): Promise<void> {
 		res.status(400).json({
-			message: 'Update relation not supported. Update the related record directly using its resource endpoint.',
+			message: t('core:relation.update_unsupported'),
 		});
 	}
 }

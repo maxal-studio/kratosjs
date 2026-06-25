@@ -3,6 +3,7 @@ import { ChevronRight, Loader2 } from 'lucide-react';
 import { useResourceModal, ModalState } from '../contexts/ResourceModalContext';
 import { cn } from '../utils/classNames';
 import { pillTabClass } from './ui/PillButton';
+import { translate } from '../i18n/activeLocale';
 
 function getModalKey(modal: ModalState): string {
 	return `${modal.resource}-${modal.mode}-${modal.recordId || 'new'}`;
@@ -33,7 +34,7 @@ export function ModalBreadcrumb() {
 			<nav
 				className="flex items-center gap-1 overflow-x-auto overscroll-x-contain"
 				style={{ WebkitOverflowScrolling: 'touch' }}
-				aria-label="Modal stack">
+				aria-label={translate('core:modal.stack')}>
 				{modalStack.map((modal, index) => {
 					const modalKey = getModalKey(modal);
 					const title =
@@ -56,7 +57,7 @@ export function ModalBreadcrumb() {
 								{!title ? (
 									<>
 										<Loader2 className="h-3.5 w-3.5 animate-spin" />
-										<span>Loading…</span>
+										<span>{translate('core:common.loading_ellipsis')}</span>
 									</>
 								) : (
 									<span className="max-w-[180px] truncate">{title}</span>

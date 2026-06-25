@@ -44,18 +44,33 @@ export interface RuleDefinition {
 	runOnEmpty?: boolean;
 	/**
 	 * Validate the value. Return `true` when valid, `false` to use the default
-	 * message, or a `string` to use a custom message.
+	 * message, or a `string` to use a custom (already-rendered) message.
 	 */
 	validate(ctx: RuleContext): boolean | string;
-	/** Default message when `validate` returns `false`. */
-	message?(ctx: RuleContext): string;
+	/**
+	 * i18n message key for this rule. Defaults to `validation.<name>`. May vary by
+	 * context (e.g. `min` picks `validation.min.string` vs `validation.min.number`).
+	 */
+	messageKey?: string | ((ctx: RuleContext) => string);
+	/**
+	 * Params for interpolating the message. Defaults to `{ label, param }`
+	 * (`label` is the field's human label, `param` the rule argument).
+	 */
+	params?(ctx: RuleContext): Record<string, unknown>;
 }
 
-/** A single failed rule. */
+/**
+ * A single failed rule. Carries a rendered English `message` (always present, for
+ * logs / non-i18n consumers) plus the structured `messageKey` + `params` for
+ * locale-aware rendering. `messageKey` is absent when the message is an inline
+ * literal (a string returned by `validate`, or a per-field override).
+ */
 export interface RuleViolation {
 	field: string;
 	rule: string;
 	message: string;
+	messageKey?: string;
+	params?: Record<string, unknown>;
 }
 
 /** Options for a single field validation pass. */

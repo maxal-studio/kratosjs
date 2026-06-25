@@ -21,6 +21,7 @@ import {
 	verifyChallengeToken,
 } from './jwt';
 import crypto from 'crypto';
+import { t } from '../i18n/serverT';
 
 /**
  * AuthManager - Central manager for authentication
@@ -134,7 +135,7 @@ export class AuthManager {
 
 		const user = await provider.authenticate(credentials);
 		if (!user) {
-			throw new Error('Invalid credentials');
+			throw new Error(t('core:auth.invalid_credentials'));
 		}
 
 		return this.generateTokens(user);
@@ -157,7 +158,7 @@ export class AuthManager {
 
 		const authed = await provider.authenticate(credentials);
 		if (!authed) {
-			throw new Error('Invalid credentials');
+			throw new Error(t('core:auth.invalid_credentials'));
 		}
 
 		return this.shapeUser(authed);
@@ -227,19 +228,19 @@ export class AuthManager {
 	): Promise<LoginResult> {
 		const decoded = verifyChallengeToken(challengeToken, this.jwtConfig.secret);
 		if (!decoded || decoded.pending[0] !== type) {
-			throw new Error('Invalid challenge');
+			throw new Error(t('core:auth.invalid_challenge'));
 		}
 
 		const rawUser = await getUserById(decoded.userId);
 		const challenge = this.challenges.get(type);
 		if (!rawUser || !challenge) {
-			throw new Error('Invalid challenge');
+			throw new Error(t('core:auth.invalid_challenge'));
 		}
 
 		const user: AuthUser = { ...rawUser, role: normalizeRoleId(rawUser.role) };
 		const ok = await challenge.verify(user, payload, ctx);
 		if (!ok) {
-			throw new Error('Verification failed');
+			throw new Error(t('core:auth.verification_failed'));
 		}
 
 		const remaining = decoded.pending.slice(1);
@@ -378,7 +379,7 @@ export class AuthManager {
 			const ctx: AuthHookContext = { provider, req, credentials, getEm: _getEm };
 			try {
 				if (!provider) {
-					res.status(400).json({ error: 'Provider name is required' });
+					res.status(400).json({ error: t('core:auth.provider_required') });
 					return;
 				}
 
@@ -402,11 +403,11 @@ export class AuthManager {
 			};
 			try {
 				if (!challengeToken || !type) {
-					res.status(400).json({ error: 'challengeToken and type are required' });
+					res.status(400).json({ error: t('core:auth.challenge_fields_required') });
 					return;
 				}
 				if (!_getUserById) {
-					res.status(500).json({ error: 'User lookup function not configured' });
+					res.status(500).json({ error: t('core:auth.user_lookup_not_configured') });
 					return;
 				}
 
@@ -423,14 +424,14 @@ export class AuthManager {
 			try {
 				const token = this.extractToken(req);
 				if (!token) {
-					res.status(401).json({ error: 'No token provided' });
+					res.status(401).json({ error: t('core:auth.no_token') });
 					return;
 				}
 
 				// Decode token to get user ID
 				const tokenUser = await this.getCurrentUser(token);
 				if (!tokenUser) {
-					res.status(401).json({ error: 'Invalid or expired token' });
+					res.status(401).json({ error: t('core:auth.invalid_token') });
 					return;
 				}
 
@@ -455,19 +456,19 @@ export class AuthManager {
 		router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
 			try {
 				if (!getUserById) {
-					res.status(500).json({ error: 'User lookup function not configured' });
+					res.status(500).json({ error: t('core:auth.user_lookup_not_configured') });
 					return;
 				}
 
 				const refreshToken = req.body.refreshToken || req.cookies?.['kratosjs_refresh_token'];
 				if (!refreshToken) {
-					res.status(400).json({ error: 'Refresh token is required' });
+					res.status(400).json({ error: t('core:auth.refresh_token_required') });
 					return;
 				}
 
 				const tokens = await this.refresh(refreshToken, getUserById);
 				if (!tokens) {
-					res.status(401).json({ error: 'Invalid or expired refresh token' });
+					res.status(401).json({ error: t('core:auth.invalid_refresh_token') });
 					return;
 				}
 
@@ -485,7 +486,7 @@ export class AuthManager {
 			await this.runHook('beforeLogout', ctx);
 			this.clearAuthCookies(res);
 			await this.runHook('afterLogout', ctx);
-			res.json({ message: 'Logged out successfully' });
+			res.json({ message: t('core:auth.logged_out') });
 		});
 
 		// GET /auth/oauth/:provider - Initiate OAuth flow
@@ -495,12 +496,12 @@ export class AuthManager {
 				const authProvider = this.getProvider(provider);
 
 				if (!authProvider) {
-					res.status(404).json({ error: `Provider "${provider}" not found` });
+					res.status(404).json({ error: t('core:auth.provider_not_found', { provider }) });
 					return;
 				}
 
 				if (!authProvider.getAuthorizationUrl) {
-					res.status(400).json({ error: `Provider "${provider}" does not support OAuth` });
+					res.status(400).json({ error: t('core:auth.provider_no_oauth', { provider }) });
 					return;
 				}
 
@@ -547,25 +548,25 @@ export class AuthManager {
 				const { code, state } = req.query;
 
 				if (!code || !state) {
-					res.status(400).json({ error: 'Missing code or state parameter' });
+					res.status(400).json({ error: t('core:auth.missing_oauth_params') });
 					return;
 				}
 
 				const authProvider = this.getProvider(provider);
 				if (!authProvider) {
-					res.status(404).json({ error: `Provider "${provider}" not found` });
+					res.status(404).json({ error: t('core:auth.provider_not_found', { provider }) });
 					return;
 				}
 
 				if (!authProvider.handleCallback) {
-					res.status(400).json({ error: `Provider "${provider}" does not support OAuth callback` });
+					res.status(400).json({ error: t('core:auth.provider_no_oauth_callback', { provider }) });
 					return;
 				}
 
 				// Verify state from cookie
 				const storedState = req.cookies?.[`oauth_state_${provider}`];
 				if (!storedState || storedState !== state) {
-					res.status(400).json({ error: 'Invalid state parameter' });
+					res.status(400).json({ error: t('core:auth.invalid_state') });
 					return;
 				}
 
@@ -587,7 +588,7 @@ export class AuthManager {
 				// Handle OAuth callback
 				const user = await authProvider.handleCallback(code as string, state as string);
 				if (!user) {
-					res.status(401).json({ error: 'OAuth authentication failed' });
+					res.status(401).json({ error: t('core:auth.oauth_failed') });
 					return;
 				}
 

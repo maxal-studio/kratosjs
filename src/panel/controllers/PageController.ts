@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import type { Panel } from '../../Panel';
+import { t } from '../../i18n/serverT';
 
 /**
  * Page endpoint: returns the serialized page definition with executed widget data.
@@ -17,7 +18,7 @@ export class PageController {
 
 			if (!PageClass) {
 				res.status(404).json({
-					message: `Page "${pageSlug}" not found`,
+					message: t('core:page.not_found', { slug: pageSlug }),
 				});
 				return;
 			}
@@ -27,7 +28,7 @@ export class PageController {
 				const hasAccess = await this.panel.hooks.pageAccessCheck(pageSlug, req.authUser);
 				if (!hasAccess) {
 					res.status(403).json({
-						message: 'Access denied to this page',
+						message: t('core:page.access_denied'),
 					});
 					return;
 				}
@@ -50,11 +51,11 @@ export class PageController {
 			const collectWidgets = (blocks: any[]): void => {
 				for (const block of blocks) {
 					if (block.type === 'widget' && block.widget) {
-						// Find the widget in registered resources
+						// Find the widget in registered resources (built per request).
 						let widgetFound = false;
 						for (const [, registered] of this.panel.getResources()) {
-							if (registered.widgets) {
-								const widget = registered.widgets.get(block.widget.name);
+							{
+								const widget = this.panel.buildResourceWidgets(registered).get(block.widget.name);
 								if (widget) {
 									widgetFound = true;
 									// Add widget execution promise

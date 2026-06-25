@@ -13,6 +13,8 @@ import { ErrorBoundary } from './errors/ErrorBoundary';
 import { PillButton } from './ui/PillButton';
 import { AdminPanelProps } from '../types';
 import { authenticatedFetch } from '../api/authenticatedFetch';
+import { useTranslation } from '../i18n/useTranslation';
+import { useLocale } from '../i18n/useLocale';
 
 export interface PageMetadata {
 	slug: string;
@@ -40,6 +42,8 @@ interface PanelMetadata {
 }
 
 function AdminPanelContent({ apiBaseUrl, panelId }: { apiBaseUrl: string; panelId?: string }) {
+	const { t } = useTranslation();
+	const { locale } = useLocale();
 	const [darkMode, setDarkMode] = useState(() => {
 		const stored = localStorage.getItem('darkMode');
 		if (stored !== null) {
@@ -97,20 +101,22 @@ function AdminPanelContent({ apiBaseUrl, panelId }: { apiBaseUrl: string; panelI
 				]);
 				if (!metaRes.ok) {
 					if (metaRes.status === 401) throw new Error('Unauthorized - Please login again');
-					throw new Error('Failed to fetch panel metadata');
+					throw new Error(t('core:error.connect'));
 				}
 				const meta: PanelMetadata = await metaRes.json();
 				const badges = badgesRes.ok ? await badgesRes.json() : { resources: {}, pages: {} };
 				setPanelMetadata(mergeBadgesIntoMeta(meta, badges));
 			} catch (err) {
-				setError(err instanceof Error ? err.message : 'Failed to connect to API');
+				setError(err instanceof Error ? err.message : t('core:error.connect'));
 			} finally {
 				setLoading(false);
 			}
 		};
 
 		fetchMetadata();
-	}, [apiBaseUrl, panelId]);
+		// `locale` is a dependency so switching language re-fetches /meta (labels,
+		// nav groups) in the new locale; the locale header is sent automatically.
+	}, [apiBaseUrl, panelId, locale]);
 
 	// Subscribe to badge refresh events and refetch badges
 	useEffect(() => {
@@ -139,7 +145,7 @@ function AdminPanelContent({ apiBaseUrl, panelId }: { apiBaseUrl: string; panelI
 			<div className="min-h-screen bg-base flex items-center justify-center">
 				<div className="text-center">
 					<Loader2 className="w-12 h-12 text-accent animate-spin mx-auto" />
-					<p className="mt-4 text-fg-secondary">Loading KratosJs Panel...</p>
+					<p className="mt-4 text-fg-secondary">{t('core:panel.loading')}</p>
 				</div>
 			</div>
 		);
@@ -150,10 +156,10 @@ function AdminPanelContent({ apiBaseUrl, panelId }: { apiBaseUrl: string; panelI
 			<div className="min-h-screen bg-base flex items-center justify-center">
 				<div className="text-center p-8 bg-surface border border-border rounded-xl max-w-md">
 					<AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-					<h2 className="text-xl font-semibold text-fg mb-2">Connection Error</h2>
+					<h2 className="text-xl font-semibold text-fg mb-2">{t('core:panel.connection_error')}</h2>
 					<p className="text-fg-secondary mb-4">{error}</p>
 					<PillButton variant="primary" onClick={() => window.location.reload()}>
-						Retry
+						{t('core:common.retry')}
 					</PillButton>
 				</div>
 			</div>
@@ -164,7 +170,7 @@ function AdminPanelContent({ apiBaseUrl, panelId }: { apiBaseUrl: string; panelI
 		return (
 			<div className="min-h-screen bg-base flex items-center justify-center">
 				<div className="text-center p-8 bg-surface border border-border rounded-lg max-w-md">
-					<p className="text-fg-secondary">No resources or pages available in this panel</p>
+					<p className="text-fg-secondary">{t('core:panel.empty')}</p>
 				</div>
 			</div>
 		);
@@ -334,6 +340,8 @@ export function AdminPanel({
 	customWidgets,
 	customBlocks,
 	customAuthChallenges,
+	i18nConfig,
+	plugins,
 }: AdminPanelProps) {
 	return (
 		<BrowserRouter>
@@ -343,7 +351,9 @@ export function AdminPanel({
 				customColumns={customColumns}
 				customWidgets={customWidgets}
 				customBlocks={customBlocks}
-				customAuthChallenges={customAuthChallenges}>
+				customAuthChallenges={customAuthChallenges}
+				i18nConfig={i18nConfig}
+				plugins={plugins}>
 				<AdminPanelContent apiBaseUrl={apiBaseUrl} panelId={panelId} />
 			</PanelProviders>
 		</BrowserRouter>

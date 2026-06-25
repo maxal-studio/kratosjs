@@ -15,6 +15,7 @@ import {
 import { Line, Bar, Pie } from 'react-chartjs-2';
 import { cn } from '../../utils/classNames';
 import { WidgetShell } from './WidgetShell';
+import { translate } from '../../i18n/activeLocale';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
 
@@ -132,7 +133,7 @@ export function ChartWidget({ widget, data }: ChartWidgetProps) {
 				labels: data.map(item => item.label),
 				datasets: [
 					{
-						label: widget.label || 'Data',
+						label: widget.label || translate('core:widget.data_label'),
 						data: data.map(item => item.value),
 						backgroundColor: data.map((item, index) => colorForLabel(theme, item.label, index, true)),
 						borderColor: data.map((item, index) => colorForLabel(theme, item.label, index)),
@@ -147,7 +148,7 @@ export function ChartWidget({ widget, data }: ChartWidgetProps) {
 			labels: data.map(item => item.label),
 			datasets: [
 				{
-					label: widget.label || 'Data',
+					label: widget.label || translate('core:widget.data_label'),
 					data: data.map(item => item.value),
 					backgroundColor: theme.accentFaint,
 					borderColor: theme.accent,
@@ -230,7 +231,7 @@ export function ChartWidget({ widget, data }: ChartWidgetProps) {
 		return (
 			<WidgetShell label={widget.label} icon={widget.icon} className={widget.color}>
 				<div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-border/70 bg-base/40 px-3 py-6">
-					<p className="text-sm text-fg-muted">No data available</p>
+					<p className="text-sm text-fg-muted">{translate('core:state.no_data')}</p>
 				</div>
 			</WidgetShell>
 		);

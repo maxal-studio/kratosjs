@@ -4,6 +4,7 @@ import { formatValue } from '../../utils/tableFormatters';
 import { getColumnMediaDimensions } from '../../utils/columnMediaDimensions';
 import { Icon } from '../utils/Icon';
 import { MediaPreviewModal } from '../utils/MediaPreviewModal';
+import { translate } from '../../i18n/activeLocale';
 
 type MediaType = 'image' | 'video' | 'audio' | null;
 
@@ -191,7 +192,7 @@ export function MediaColumnComponent({ column, record }: ColumnProps) {
 			);
 		}
 
-		return <span className="text-fg-secondary">No image</span>;
+		return <span className="text-fg-secondary">{translate('core:file.no_image')}</span>;
 	}
 
 	// Render video
@@ -204,7 +205,11 @@ export function MediaColumnComponent({ column, record }: ColumnProps) {
 					onClick={handleClick}>
 					{thumbnailUrl ? (
 						<>
-							<img src={thumbnailUrl} alt="Video thumbnail" className="w-full h-full object-cover" />
+							<img
+								src={thumbnailUrl}
+								alt={translate('core:common.video_thumbnail')}
+								className="w-full h-full object-cover"
+							/>
 							{/* Play overlay */}
 							<div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
 								<div className="w-8 h-8 flex items-center justify-center bg-white/90 rounded-full">

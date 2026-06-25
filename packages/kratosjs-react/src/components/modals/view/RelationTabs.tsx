@@ -3,6 +3,7 @@ import { SerializedRelation } from '../../../types';
 import { Icon } from '../../utils/Icon';
 import { cn } from '../../../utils/classNames';
 import { pillTabClass } from '../../ui/PillButton';
+import { translate } from '../../../i18n/activeLocale';
 
 export interface RelationGroup {
 	key: string;
@@ -82,9 +83,9 @@ export function RelationTabs({ grouped, activeTopTab, onTopTabChange, hasActionB
 				className="flex gap-1 overflow-x-auto overscroll-x-contain"
 				style={{ WebkitOverflowScrolling: 'touch' }}
 				role="tablist"
-				aria-label="Record sections">
+				aria-label={translate('core:modal.sections')}>
 				<TabButton active={activeTopTab === 'details'} onClick={() => onTopTabChange('details')}>
-					Details
+					{translate('core:common.details')}
 				</TabButton>
 				{grouped.groups.map(group => (
 					<TabButton

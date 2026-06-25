@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { SerializedFilter } from '@maxal_studio/kratosjs';
 import { cn } from '../../utils/classNames';
 import { PillButton } from '../ui/PillButton';
+import { translate } from '../../i18n/activeLocale';
 
 interface CustomFilterProps {
 	filter: SerializedFilter;
@@ -104,7 +105,7 @@ export function CustomFilterComponent({ filter, value, onChange, embedded = fals
 							))}
 							{options.length === 0 && (
 								<div className="px-3 py-4 text-center text-sm text-fg-secondary">
-									No options available
+									{translate('core:filters.no_options')}
 								</div>
 							)}
 						</div>
@@ -115,10 +116,10 @@ export function CustomFilterComponent({ filter, value, onChange, embedded = fals
 								type="button"
 								className="text-xs font-medium text-fg-secondary hover:text-fg"
 								disabled={localSelectedValues.length === 0}>
-								Clear
+								{translate('core:common.clear')}
 							</button>
 							<PillButton type="button" variant="primary" onClick={applyChanges}>
-								Apply
+								{translate('core:common.apply')}
 							</PillButton>
 						</div>
 					</div>

@@ -11,6 +11,7 @@ import {
 	StatsWidget,
 	ChartWidget,
 	Widget,
+	t,
 	type FormContext,
 	type NavigationBadge,
 } from '@maxal_studio/kratosjs';
@@ -33,8 +34,13 @@ export class UserResource extends BaseResource {
 
 	static entity = User;
 
-	static label = 'User';
-	static pluralLabel = 'Users';
+	// STATIC labels → getters so they re-resolve against each request's locale.
+	static get label() {
+		return t('app:users.label');
+	}
+	static get pluralLabel() {
+		return t('app:users.plural');
+	}
 	static icon = 'Users';
 	static navigationGroup = 'App';
 	static navigationSort = 1;
@@ -51,32 +57,33 @@ export class UserResource extends BaseResource {
 	}
 
 	static form() {
+		// t() runs per request inside the request context → already-localized labels.
 		return FormBuilder.make().schema([
-			FileUpload.make('profileMediaImage').label('Profile Image').image(),
+			FileUpload.make('profileMediaImage').label(t('app:users.fields.profile_image')).image(),
 			TextInput.make('password')
-				.label('Password')
+				.label(t('app:users.fields.password'))
 				.password()
 				.required((context: FormContext) => context?.operation === 'create')
 				.min(8)
 				.max(50)
 				.hidden((context: FormContext) => context?.operation === 'view'),
-			TextInput.make('firstname').label('First name').required().min(2).max(50),
-			TextInput.make('lastname').label('Last name').max(50),
-			TextInput.make('email').label('Email').email().required(),
-			TextInput.make('phone').label('Phone Number').placeholder('Enter phone number...'),
-			Toggle.make('active').label('Active').default(true),
+			TextInput.make('firstname').label(t('app:users.fields.firstname')).required().min(2).max(50),
+			TextInput.make('lastname').label(t('app:users.fields.lastname')).max(50),
+			TextInput.make('email').label(t('app:users.fields.email')).email().required(),
+			TextInput.make('phone').label(t('app:users.fields.phone')).placeholder(t('app:users.fields.phone_ph')),
+			Toggle.make('active').label(t('app:users.fields.active')).default(true),
 		]);
 	}
 
 	static table() {
 		return TableBuilder.make()
 			.columns([
-				ImageColumn.make('profileMediaImage').label('Profile').circular(),
-				TextColumn.make('firstname').label('First name').sortable().searchable(),
-				TextColumn.make('lastname').label('Last name').sortable().searchable(),
-				TextColumn.make('email').label('Email').sortable().searchable(),
-				ToggleColumn.make('active').label('Active').sortable(),
-				TextColumn.make('createdAt').label('Created').sortable().dateTime(),
+				ImageColumn.make('profileMediaImage').label(t('app:users.fields.profile')).circular(),
+				TextColumn.make('firstname').label(t('app:users.fields.firstname')).sortable().searchable(),
+				TextColumn.make('lastname').label(t('app:users.fields.lastname')).sortable().searchable(),
+				TextColumn.make('email').label(t('app:users.fields.email')).sortable().searchable(),
+				ToggleColumn.make('active').label(t('app:users.fields.active')).sortable(),
+				TextColumn.make('createdAt').label(t('app:users.fields.created')).sortable().dateTime(),
 			])
 			.searchable()
 			.paginate(10)
@@ -90,7 +97,7 @@ export class UserResource extends BaseResource {
 	static widgets(): Widget[] {
 		return [
 			StatsWidget.make('totalUsers')
-				.label('Total Users')
+				.label(t('app:users.widgets.total'))
 				.icon('Users')
 				.render(async (em, entity) => em.count(entity, {})),
 			StatsWidget.make('activeUsers')

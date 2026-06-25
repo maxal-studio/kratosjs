@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 import { cn } from '../../utils/classNames';
+import { translate } from '../../i18n/activeLocale';
 
 export type ToastVariant = 'success' | 'error' | 'info';
 
@@ -78,7 +79,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 							<button
 								type="button"
 								onClick={() => dismiss(t.id)}
-								aria-label="Dismiss notification"
+								aria-label={translate('core:common.dismiss')}
 								className="absolute right-2 top-2 rounded-md p-1 text-fg-muted transition-colors hover:bg-hover hover:text-fg">
 								<X className="h-4 w-4" />
 							</button>

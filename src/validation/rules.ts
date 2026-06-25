@@ -4,7 +4,7 @@
 // (backend `SchemaValidator` switch + frontend `useValidation` chain) did, so
 // nothing is lost and both sides now behave identically.
 
-import { RuleDefinition, RuleContext, ValueKind } from './types';
+import { RuleDefinition, ValueKind } from './types';
 
 const EMAIL_RE = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
 const INTEGER_RE = /^-?\d+$/;
@@ -29,7 +29,6 @@ export function isEmpty(value: any): boolean {
 	return value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0);
 }
 
-const label = (ctx: RuleContext) => ctx.label || ctx.field;
 const toNumber = (v: any) => (typeof v === 'number' ? v : parseFloat(v));
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -47,9 +46,12 @@ const toNumber = (v: any) => (typeof v === 'number' ? v : parseFloat(v));
 // (Skipping this still works at runtime via the `string & {}` escape hatch, but
 //  you lose autocomplete and typo-checking.)
 //
-// When you EDIT a rule, remember `message` is the user-facing text shown
-// identically on client and server, and `appliesTo` controls which value kinds
-// the rule runs against (omit ⇒ any; e.g. 'string' skips it for booleans/numbers).
+// When you EDIT a rule, the user-facing text is NOT defined here: a rule emits a
+// `messageKey` (default `validation.<name>`) + `params` (default `{ label, param }`),
+// and the actual strings live in the i18n catalogs (`src/validation/messages.ts`
+// for English, plus each locale). Add a `messageKey` only when it differs from the
+// default (see `min`/`max`). `appliesTo` controls which value kinds the rule runs
+// against (omit ⇒ any; e.g. 'string' skips it for booleans/numbers).
 // Add a case to `test/validationEngine.test.ts` for any new/changed behaviour.
 // ─────────────────────────────────────────────────────────────────────────────
 export const builtInRules: RuleDefinition[] = [
@@ -57,13 +59,11 @@ export const builtInRules: RuleDefinition[] = [
 		name: 'required',
 		runOnEmpty: true,
 		validate: ctx => !isEmpty(ctx.value),
-		message: ctx => `Field "${label(ctx)}" is required`,
 	},
 	{
 		name: 'email',
 		appliesTo: ['string'],
 		validate: ctx => EMAIL_RE.test(String(ctx.value)),
-		message: ctx => `Field "${label(ctx)}" must be a valid email`,
 	},
 	{
 		name: 'url',
@@ -76,7 +76,6 @@ export const builtInRules: RuleDefinition[] = [
 				return false;
 			}
 		},
-		message: ctx => `Field "${label(ctx)}" must be a valid URL`,
 	},
 	{
 		name: 'integer',
@@ -84,7 +83,6 @@ export const builtInRules: RuleDefinition[] = [
 			if (typeof ctx.value === 'number') return Number.isInteger(ctx.value);
 			return INTEGER_RE.test(String(ctx.value));
 		},
-		message: ctx => `Field "${label(ctx)}" must be a whole number`,
 	},
 	{
 		name: 'numeric',
@@ -92,31 +90,26 @@ export const builtInRules: RuleDefinition[] = [
 			if (typeof ctx.value === 'number') return !isNaN(ctx.value);
 			return NUMERIC_RE.test(String(ctx.value)) && !isNaN(Number(ctx.value));
 		},
-		message: ctx => `Field "${label(ctx)}" must be numeric`,
 	},
 	{
 		name: 'alpha',
 		appliesTo: ['string'],
 		validate: ctx => ALPHA_RE.test(String(ctx.value)),
-		message: ctx => `Field "${label(ctx)}" may only contain letters`,
 	},
 	{
 		name: 'alpha_num',
 		appliesTo: ['string'],
 		validate: ctx => ALPHA_NUM_RE.test(String(ctx.value)),
-		message: ctx => `Field "${label(ctx)}" may only contain letters and numbers`,
 	},
 	{
 		name: 'alpha_dash',
 		appliesTo: ['string'],
 		validate: ctx => ALPHA_DASH_RE.test(String(ctx.value)),
-		message: ctx => `Field "${label(ctx)}" may only contain letters, numbers, dashes and underscores`,
 	},
 	{
 		name: 'uuid',
 		appliesTo: ['string'],
 		validate: ctx => UUID_RE.test(String(ctx.value)),
-		message: ctx => `Field "${label(ctx)}" must be a valid UUID`,
 	},
 	{
 		// `min` is value-kind aware: string ⇒ length, number ⇒ value, array ⇒ length.
@@ -129,12 +122,7 @@ export const builtInRules: RuleDefinition[] = [
 			if (Array.isArray(value)) return value.length >= n;
 			return String(value).length >= n;
 		},
-		message: ctx => {
-			const value = ctx.value;
-			return typeof value === 'number'
-				? `Field "${label(ctx)}" must be at least ${ctx.param}`
-				: `Field "${label(ctx)}" must be at least ${ctx.param} characters`;
-		},
+		messageKey: ctx => (typeof ctx.value === 'number' ? 'validation.min.number' : 'validation.min.string'),
 	},
 	{
 		name: 'max',
@@ -146,12 +134,7 @@ export const builtInRules: RuleDefinition[] = [
 			if (Array.isArray(value)) return value.length <= n;
 			return String(value).length <= n;
 		},
-		message: ctx => {
-			const value = ctx.value;
-			return typeof value === 'number'
-				? `Field "${label(ctx)}" must be at most ${ctx.param}`
-				: `Field "${label(ctx)}" must be at most ${ctx.param} characters`;
-		},
+		messageKey: ctx => (typeof ctx.value === 'number' ? 'validation.max.number' : 'validation.max.string'),
 	},
 	{
 		// Explicit numeric-value aliases (kept for back-compat with `.minValue()`).
@@ -161,7 +144,6 @@ export const builtInRules: RuleDefinition[] = [
 			if (isNaN(n)) return true;
 			return toNumber(ctx.value) >= n;
 		},
-		message: ctx => `Field "${label(ctx)}" must be at least ${ctx.param}`,
 	},
 	{
 		name: 'max_value',
@@ -170,7 +152,6 @@ export const builtInRules: RuleDefinition[] = [
 			if (isNaN(n)) return true;
 			return toNumber(ctx.value) <= n;
 		},
-		message: ctx => `Field "${label(ctx)}" must be at most ${ctx.param}`,
 	},
 	{
 		name: 'regex',
@@ -182,12 +163,10 @@ export const builtInRules: RuleDefinition[] = [
 				return true; // malformed pattern — don't block (matches frontend leniency)
 			}
 		},
-		message: ctx => `Field "${label(ctx)}" does not match the required pattern`,
 	},
 	{
 		name: 'same',
 		validate: ctx => (ctx.param ? ctx.value === ctx.allValues[ctx.param] : true),
-		message: ctx => `Field "${label(ctx)}" must match ${ctx.param}`,
 	},
 	{
 		// `confirmed` with no param defaults to `<field>_confirmation` (Laravel convention).
@@ -196,7 +175,6 @@ export const builtInRules: RuleDefinition[] = [
 			const target = ctx.param || `${ctx.field}_confirmation`;
 			return ctx.value === ctx.allValues[target];
 		},
-		message: ctx => `Field "${label(ctx)}" confirmation does not match`,
 	},
 	{
 		name: 'json',
@@ -209,6 +187,5 @@ export const builtInRules: RuleDefinition[] = [
 				return false;
 			}
 		},
-		message: ctx => `Field "${label(ctx)}" must be valid JSON`,
 	},
 ];

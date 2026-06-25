@@ -2,6 +2,7 @@ import React from 'react';
 import { Search } from 'lucide-react';
 import { Icon } from '../utils/Icon';
 import { cn } from '../../utils/classNames';
+import { useTranslation } from '../../i18n/useTranslation';
 
 interface TableSearchBarProps {
 	searchable: boolean;
@@ -20,6 +21,7 @@ export function TableSearchBar({
 	onCreateModalOpen,
 	showCreateButton = true,
 }: TableSearchBarProps) {
+	const { t } = useTranslation();
 	if (!searchable && !showCreateButton) {
 		return null;
 	}
@@ -31,7 +33,7 @@ export function TableSearchBar({
 					<Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-muted" />
 					<input
 						type="text"
-						placeholder="Search records…"
+						placeholder={t('core:common.search')}
 						value={searchQuery}
 						onChange={e => onSearchChange(e.target.value)}
 						className={cn(
@@ -39,7 +41,7 @@ export function TableSearchBar({
 							'placeholder:text-fg-muted',
 							'focus:border-accent focus:outline-none focus:ring-2 focus:ring-ring',
 						)}
-						aria-label="Search records"
+						aria-label={t('core:search.records')}
 					/>
 				</div>
 			)}
@@ -53,10 +55,10 @@ export function TableSearchBar({
 						!searchable && 'w-auto',
 						searchable && 'w-9 sm:w-auto',
 					)}
-					title="Create record"
-					aria-label="Create record">
+					title={t('core:table.create_record')}
+					aria-label={t('core:table.create_record')}>
 					<Icon name="Plus" className="h-4 w-4 shrink-0" />
-					<span className="hidden sm:inline">Create</span>
+					<span className="hidden sm:inline">{t('core:common.create')}</span>
 				</button>
 			)}
 		</div>

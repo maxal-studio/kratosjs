@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import { SerializedTable } from '@maxal_studio/kratosjs';
 import { cn } from '../../utils/classNames';
 import { Checkbox } from '../Checkbox';
+import { translate } from '../../i18n/activeLocale';
 
 interface TableHeaderProps {
 	schema: SerializedTable;
@@ -84,7 +85,7 @@ export function TableHeader({
 
 				<th className="sticky right-0 z-20 border-l border-border bg-base px-4 py-3 text-right text-[11px] font-medium uppercase tracking-wider text-fg-muted shadow-[-6px_0_10px_-6px] shadow-black/10">
 					{schema.actions && schema.actions.length > 0 ? (
-						<span className="hidden sm:inline">Actions</span>
+						<span className="hidden sm:inline">{translate('core:common.actions')}</span>
 					) : (
 						''
 					)}

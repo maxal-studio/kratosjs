@@ -10,6 +10,9 @@ import { ColumnRegistryProvider, ColumnRegistry } from './ColumnRegistryContext'
 import { AuthChallengeRegistryProvider, AuthChallengeRegistry } from './AuthChallengeRegistryContext';
 import { ToastProvider } from '../components/ui/Toast';
 import { ConfirmProvider } from '../components/ui/ConfirmDialog';
+import { I18nProvider } from '../i18n/I18nProvider';
+import type { ClientI18nConfig } from '../i18n/buildClientI18n';
+import type { KratosPluginClient } from '../plugin';
 import { FieldRegistry } from '../types';
 
 export interface PanelProvidersProps {
@@ -19,6 +22,8 @@ export interface PanelProvidersProps {
 	customWidgets?: WidgetRegistry;
 	customBlocks?: BlockRegistry;
 	customAuthChallenges?: AuthChallengeRegistry;
+	i18nConfig?: ClientI18nConfig;
+	plugins?: KratosPluginClient[];
 	children: React.ReactNode;
 }
 
@@ -36,31 +41,35 @@ export function PanelProviders({
 	customWidgets,
 	customBlocks,
 	customAuthChallenges,
+	i18nConfig,
+	plugins,
 	children,
 }: PanelProvidersProps) {
 	return (
-		<ToastProvider>
-			<ConfirmProvider>
-				<AuthProvider apiBaseUrl={apiBaseUrl}>
-					<AuthChallengeRegistryProvider customAuthChallenges={customAuthChallenges}>
-						<ProtectedRoute apiBaseUrl={apiBaseUrl}>
-							<ResourceModalProvider>
-								<TableRefreshProvider>
-									<BlockRegistryProvider customBlocks={customBlocks}>
-										<WidgetRegistryProvider customWidgets={customWidgets}>
-											<FieldRegistryProvider customFields={customFields}>
-												<ColumnRegistryProvider registry={customColumns}>
-													{children}
-												</ColumnRegistryProvider>
-											</FieldRegistryProvider>
-										</WidgetRegistryProvider>
-									</BlockRegistryProvider>
-								</TableRefreshProvider>
-							</ResourceModalProvider>
-						</ProtectedRoute>
-					</AuthChallengeRegistryProvider>
-				</AuthProvider>
-			</ConfirmProvider>
-		</ToastProvider>
+		<I18nProvider config={i18nConfig} plugins={plugins}>
+			<ToastProvider>
+				<ConfirmProvider>
+					<AuthProvider apiBaseUrl={apiBaseUrl}>
+						<AuthChallengeRegistryProvider customAuthChallenges={customAuthChallenges}>
+							<ProtectedRoute apiBaseUrl={apiBaseUrl}>
+								<ResourceModalProvider>
+									<TableRefreshProvider>
+										<BlockRegistryProvider customBlocks={customBlocks}>
+											<WidgetRegistryProvider customWidgets={customWidgets}>
+												<FieldRegistryProvider customFields={customFields}>
+													<ColumnRegistryProvider registry={customColumns}>
+														{children}
+													</ColumnRegistryProvider>
+												</FieldRegistryProvider>
+											</WidgetRegistryProvider>
+										</BlockRegistryProvider>
+									</TableRefreshProvider>
+								</ResourceModalProvider>
+							</ProtectedRoute>
+						</AuthChallengeRegistryProvider>
+					</AuthProvider>
+				</ConfirmProvider>
+			</ToastProvider>
+		</I18nProvider>
 	);
 }

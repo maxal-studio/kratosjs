@@ -9,6 +9,7 @@ import { QueryBuilderFilterComponent } from '../../components/filters/QueryBuild
 import { CustomFilterComponent } from '../../components/filters/CustomFilterComponent';
 import { DateFilterComponent } from '../../components/filters/DateFilterComponent';
 import { TableToolbarButton } from './TableToolbarButton';
+import { translate } from '../../i18n/activeLocale';
 
 interface FilterFieldProps {
 	filter: SerializedFilter;
@@ -45,9 +46,9 @@ function FilterField({ filter, value, onChange, embedded }: FilterFieldProps) {
 					value={value !== undefined ? String(value) : ''}
 					onChange={e => onChange(e.target.value === '' ? undefined : e.target.value === 'true')}
 					active={hasValue}>
-					<option value="">{filter.placeholder || 'All'}</option>
-					<option value="true">{filter.trueLabel || 'Yes'}</option>
-					<option value="false">{filter.falseLabel || 'No'}</option>
+					<option value="">{filter.placeholder || translate('core:common.all')}</option>
+					<option value="true">{filter.trueLabel || translate('core:common.yes')}</option>
+					<option value="false">{filter.falseLabel || translate('core:common.no')}</option>
 				</Select>
 			</div>
 		);
@@ -60,7 +61,7 @@ function FilterField({ filter, value, onChange, embedded }: FilterFieldProps) {
 	if (filter.type === 'queryBuilder') {
 		return (
 			<div className="space-y-1.5">
-				<Label>{filter.label || 'Advanced Search'}</Label>
+				<Label>{filter.label || translate('core:filters.advanced_search')}</Label>
 				<QueryBuilderFilterComponent
 					filter={filter}
 					value={value}
@@ -126,7 +127,7 @@ export function FiltersPanel({ filters, values, queryBuilderValues, onChange, on
 							type="button"
 							onClick={onClear}
 							className="text-sm font-medium text-accent transition-colors hover:text-accent-hover">
-							Clear all filters
+							{translate('core:filters.clear_all_filters')}
 						</button>
 					</div>
 				)}
@@ -142,7 +143,7 @@ export function FiltersPanel({ filters, values, queryBuilderValues, onChange, on
 				icon={<Filter className="h-4 w-4" />}
 				className={cn(activeCount > 0 && 'ring-2 ring-ring border-accent')}
 				aria-expanded={isOpen}>
-				<span>Filters</span>
+				<span>{translate('core:table.filters')}</span>
 				{activeCount > 0 && (
 					<span className="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-accent px-1.5 text-xs font-bold text-accent-fg">
 						{activeCount}
@@ -159,8 +160,10 @@ export function FiltersPanel({ filters, values, queryBuilderValues, onChange, on
 					{/* Dropdown panel — fixed on mobile, anchored on desktop */}
 					<div className="fixed inset-x-4 top-1/2 z-50 flex max-h-[80vh] w-auto -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-border bg-raised p-4 shadow-soft-lg sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:left-auto sm:mt-2 sm:w-[min(480px,calc(100vw-2rem))] sm:translate-y-0">
 						<div className="mb-4 flex shrink-0 items-center justify-between">
-							<h3 className="text-base font-semibold text-fg">Filters</h3>
-							<PillIconButton aria-label="Close filters" onClick={() => setIsOpen(false)}>
+							<h3 className="text-base font-semibold text-fg">{translate('core:table.filters')}</h3>
+							<PillIconButton
+								aria-label={translate('core:table.close_filters')}
+								onClick={() => setIsOpen(false)}>
 								<X className="h-4 w-4" />
 							</PillIconButton>
 						</div>
@@ -176,10 +179,10 @@ export function FiltersPanel({ filters, values, queryBuilderValues, onChange, on
 								}}
 								disabled={activeCount === 0}
 								className="text-sm font-medium text-fg-secondary transition-colors hover:text-fg disabled:opacity-50">
-								Clear all
+								{translate('core:common.clear_all')}
 							</button>
 							<PillButton variant="primary" onClick={() => setIsOpen(false)}>
-								Done
+								{translate('core:common.done')}
 							</PillButton>
 						</div>
 					</div>

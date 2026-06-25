@@ -2,6 +2,7 @@ import React from 'react';
 import { SerializedColumn } from '@maxal_studio/kratosjs';
 import { cn } from '../../utils/classNames';
 import { Checkbox } from '../Checkbox';
+import { translate } from '../../i18n/activeLocale';
 
 interface ColumnTogglePopupProps {
 	columns: SerializedColumn[];
@@ -27,7 +28,7 @@ export function ColumnTogglePopup({ columns, visibleColumnNames, onToggle, isOpe
 			{/* Dropdown panel - fixed position on mobile, absolute on desktop */}
 			<div className="fixed inset-x-4 top-1/2 z-50 flex max-h-[80vh] w-auto -translate-y-1/2 flex-col overflow-visible rounded-xl border border-border bg-raised p-4 shadow-soft-lg sm:absolute sm:inset-auto sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[400px] sm:translate-y-0">
 				<div className="mb-4 flex shrink-0 items-center justify-between">
-					<h3 className="text-sm font-medium text-fg">Column visibility</h3>
+					<h3 className="text-sm font-medium text-fg">{translate('core:table.column_visibility')}</h3>
 					<button
 						onClick={onClose}
 						className="rounded-full p-1.5 text-fg-secondary transition-colors hover:bg-hover/70 hover:text-fg">
@@ -44,7 +45,9 @@ export function ColumnTogglePopup({ columns, visibleColumnNames, onToggle, isOpe
 
 				<div className="space-y-2 flex-1 overflow-y-auto pr-2">
 					{toggleableColumns.length === 0 ? (
-						<p className="text-sm text-fg-secondary text-center py-4">No toggleable columns available</p>
+						<p className="text-sm text-fg-secondary text-center py-4">
+							{translate('core:table.no_toggleable_columns')}
+						</p>
 					) : (
 						toggleableColumns.map(column => {
 							const isVisible = visibleColumnNames.has(column.name);
@@ -73,7 +76,7 @@ export function ColumnTogglePopup({ columns, visibleColumnNames, onToggle, isOpe
 					<button
 						onClick={onClose}
 						className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-accent-fg transition-colors hover:bg-accent-hover">
-						Done
+						{translate('core:common.done')}
 					</button>
 				</div>
 			</div>

@@ -8,6 +8,9 @@ import { cn } from '../utils/classNames';
 import { Button, IconButton, Input, Label, ErrorAlert, Spinner } from '../components/ui';
 import { PanelBrandMark } from '../components/layout/PanelBrandMark';
 import { Moon, Sun, ArrowLeft } from 'lucide-react';
+import { useTranslation } from '../i18n/useTranslation';
+import { LocaleSwitcher } from '../i18n/LocaleSwitcher';
+import { translate } from '../i18n/activeLocale';
 
 interface PanelBranding {
 	title?: string;
@@ -37,17 +40,18 @@ function useDarkMode() {
 	return [darkMode, setDarkMode] as const;
 }
 
-function getSubtitle(providers: AuthProvider[], selectedProvider: AuthProvider | null): string {
+/** Returns the i18n key for the login subtitle (translated at the call site). */
+function getSubtitleKey(providers: AuthProvider[], selectedProvider: AuthProvider | null): string {
 	if (providers.length > 1 && !selectedProvider) {
-		return 'Choose how you would like to sign in';
+		return 'core:auth.choose_provider';
 	}
 
 	const provider = selectedProvider ?? providers[0];
 	if (provider?.type === 'oauth') {
-		return 'Continue to access your account';
+		return 'core:auth.continue';
 	}
 
-	return 'Enter your credentials to continue';
+	return 'core:auth.enter_credentials';
 }
 
 interface ProviderButtonProps {
@@ -89,6 +93,7 @@ function ProviderButton({ provider, onSelect }: ProviderButtonProps) {
  * `verifyChallenge` / `cancelChallenge` from the auth context.
  */
 function ChallengeStep({ challenge }: { challenge: PendingChallenge }) {
+	const { t } = useTranslation();
 	const { verifyChallenge, cancelChallenge } = useAuth();
 	const registry = useAuthChallengeRegistry();
 	const ChallengeComponent = registry[challenge.type];
@@ -106,7 +111,7 @@ function ChallengeStep({ challenge }: { challenge: PendingChallenge }) {
 					className="-ml-2 h-8 px-2 text-fg-secondary"
 					icon={<ArrowLeft className="h-4 w-4" />}
 					onClick={cancelChallenge}>
-					Back to sign in
+					{t('core:auth.back_to_signin')}
 				</Button>
 			</div>
 		);
@@ -118,7 +123,7 @@ function ChallengeStep({ challenge }: { challenge: PendingChallenge }) {
 		try {
 			await verifyChallenge(payload);
 		} catch (err: any) {
-			setError(err.message || 'Verification failed');
+			setError(err.message || t('core:auth.verification_failed'));
 		} finally {
 			setSubmitting(false);
 		}
@@ -139,6 +144,7 @@ function ChallengeStep({ challenge }: { challenge: PendingChallenge }) {
  * LoginPage - Displays authentication providers and handles login
  */
 export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
+	const { t } = useTranslation();
 	const { login, pendingChallenge } = useAuth();
 	const [providers, setProviders] = useState<AuthProvider[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -157,7 +163,7 @@ export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
 	const showOAuthPrompt = activeProvider?.type === 'oauth' && !showProviderPicker;
 	const showBackLink = providers.length > 1 && selectedProvider?.type === 'credentials';
 
-	const subtitle = useMemo(() => getSubtitle(providers, selectedProvider), [providers, selectedProvider]);
+	const subtitle = useMemo(() => t(getSubtitleKey(providers, selectedProvider)), [providers, selectedProvider, t]);
 
 	// Load panel branding for the login screen (meta endpoint allows unauthenticated access)
 	useEffect(() => {
@@ -189,7 +195,7 @@ export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
 					setSelectedProvider(providerList[0]);
 				}
 			} catch (err: any) {
-				setError(err.message || 'Failed to load authentication providers');
+				setError(err.message || t('core:auth.providers_load_failed'));
 			} finally {
 				setLoading(false);
 			}
@@ -221,7 +227,7 @@ export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
 			await login(activeProvider.name, credentials);
 			onSuccess?.();
 		} catch (err: any) {
-			setError(err.message || 'Login failed');
+			setError(err.message || t('core:auth.login_failed'));
 		} finally {
 			setSubmitting(false);
 		}
@@ -232,7 +238,7 @@ export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
 			<div className="flex min-h-screen items-center justify-center bg-base px-6">
 				<div className="text-center">
 					<Spinner size="lg" className="mx-auto text-accent" />
-					<p className="mt-4 text-sm text-fg-secondary">Preparing sign in…</p>
+					<p className="mt-4 text-sm text-fg-secondary">{translate('core:auth.preparing')}</p>
 				</div>
 			</div>
 		);
@@ -248,8 +254,8 @@ export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
 			<IconButton
 				variant="secondary"
 				size="sm"
-				aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-				title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+				aria-label={darkMode ? t('core:panel.toggle_light') : t('core:panel.toggle_dark')}
+				title={darkMode ? t('core:panel.toggle_light') : t('core:panel.toggle_dark')}
 				onClick={() => setDarkMode(!darkMode)}
 				className="absolute right-4 top-4 z-10 sm:right-6 sm:top-6">
 				{darkMode ? <Sun className="h-4 w-4 text-warning" /> : <Moon className="h-4 w-4" />}
@@ -262,10 +268,10 @@ export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
 					</div>
 					<h1 className="text-2xl font-semibold tracking-tight text-fg">
 						{pendingChallenge
-							? 'Verify your identity'
+							? t('core:auth.verify_identity')
 							: panelBranding.title
-								? `Sign in to ${panelBranding.title}`
-								: 'Welcome back'}
+								? t('core:auth.sign_in_to', { title: panelBranding.title })
+								: t('core:auth.welcome_back')}
 					</h1>
 					<p className="mt-2 text-sm text-fg-secondary">
 						{pendingChallenge ? 'Complete the additional step to finish signing in' : subtitle}
@@ -314,13 +320,13 @@ export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
 										setError(null);
 										setCredentials({ email: '', password: '' });
 									}}>
-									Back to sign-in options
+									{t('core:auth.back_to_options')}
 								</Button>
 							)}
 
 							<div className="space-y-2">
 								<Label htmlFor="email" required>
-									Email
+									{t('core:auth.email')}
 								</Label>
 								<Input
 									id="email"
@@ -328,7 +334,7 @@ export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
 									required
 									value={credentials.email}
 									onChange={e => setCredentials({ ...credentials, email: e.target.value })}
-									placeholder="you@company.com"
+									placeholder={t('core:auth.email_placeholder')}
 									autoComplete="email"
 									autoFocus
 								/>
@@ -336,7 +342,7 @@ export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
 
 							<div className="space-y-2">
 								<Label htmlFor="password" required>
-									Password
+									{t('core:auth.password')}
 								</Label>
 								<Input
 									id="password"
@@ -344,22 +350,24 @@ export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
 									required
 									value={credentials.password}
 									onChange={e => setCredentials({ ...credentials, password: e.target.value })}
-									placeholder="Enter your password"
+									placeholder={t('core:auth.password_placeholder')}
 									autoComplete="current-password"
 								/>
 							</div>
 
 							<Button type="submit" loading={submitting} className="w-full h-11">
-								Sign in
+								{t('core:auth.sign_in')}
 							</Button>
 						</form>
 					)}
 
 					{!pendingChallenge && !showProviderPicker && !showOAuthPrompt && !showCredentialsForm && (
-						<p className="text-center text-sm text-fg-secondary">
-							No authentication providers are configured.
-						</p>
+						<p className="text-center text-sm text-fg-secondary">{t('core:auth.no_providers')}</p>
 					)}
+				</div>
+
+				<div className="mt-6 flex justify-center">
+					<LocaleSwitcher />
 				</div>
 			</div>
 		</div>

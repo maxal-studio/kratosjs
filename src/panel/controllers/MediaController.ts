@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import type { Panel } from '../../Panel';
 import { getFilteredCapabilities } from '../access';
 import { MediaHookContext } from '../PanelHooks';
+import { t } from '../../i18n/serverT';
 
 /**
  * Generic media upload/delete endpoints (global and per-resource).
@@ -44,7 +45,7 @@ export class MediaController {
 		const caps = await getFilteredCapabilities(this.panel, registered, req.authUser);
 		if (!caps.canCreate && !caps.canEdit) {
 			res.status(403).json({
-				message: 'You do not have permission to manage media for this resource',
+				message: t('core:media.no_permission_manage'),
 			});
 			return false;
 		}
@@ -64,7 +65,7 @@ export class MediaController {
 
 			if (!file) {
 				res.status(400).json({
-					message: 'File data is required',
+					message: t('core:media.file_required'),
 				});
 				return;
 			}
@@ -94,7 +95,7 @@ export class MediaController {
 				const allowed = await this.panel.hooks.mediaUploadAccessCheck(context);
 				if (!allowed) {
 					res.status(403).json({
-						message: 'You do not have permission to upload this file',
+						message: t('core:media.no_permission_upload'),
 					});
 					return;
 				}
@@ -110,7 +111,7 @@ export class MediaController {
 
 			if (!mediaAdapter) {
 				res.status(400).json({
-					message: 'Media adapter not found',
+					message: t('core:media.adapter_not_found'),
 				});
 				return;
 			}
@@ -155,7 +156,7 @@ export class MediaController {
 
 			if (!key) {
 				res.status(400).json({
-					message: 'File key is required',
+					message: t('core:media.key_required'),
 				});
 				return;
 			}
@@ -184,7 +185,7 @@ export class MediaController {
 				const allowed = await this.panel.hooks.mediaDeleteAccessCheck(context);
 				if (!allowed) {
 					res.status(403).json({
-						message: 'You do not have permission to delete this file',
+						message: t('core:media.no_permission_delete'),
 					});
 					return;
 				}
@@ -199,7 +200,7 @@ export class MediaController {
 
 			if (!mediaAdapter) {
 				res.status(400).json({
-					message: 'Media adapter not found',
+					message: t('core:media.adapter_not_found'),
 				});
 				return;
 			}
@@ -212,7 +213,7 @@ export class MediaController {
 
 			res.status(200).json({
 				success: true,
-				message: 'File deleted successfully',
+				message: t('core:media.deleted'),
 			});
 		} catch (error: any) {
 			await this.runErrorHooks(context, error);

@@ -6,6 +6,22 @@ import { GlobalSearch } from '../GlobalSearch';
 import { useAuth } from '../../auth/AuthContext';
 import { usePanelMetadata } from '../../contexts/PanelMetadataContext';
 import { IconButton } from '../ui';
+import { useTranslation } from '../../i18n/useTranslation';
+import { LocaleSwitcher } from '../../i18n/LocaleSwitcher';
+import { useLocale } from '../../i18n/useLocale';
+
+/** Language row in the account menu — hidden when the panel has a single locale. */
+function LocaleSwitcherRow() {
+	const { t } = useTranslation();
+	const { locales } = useLocale();
+	if (locales.length <= 1) return null;
+	return (
+		<div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
+			<span className="text-xs font-medium text-fg-muted">{t('core:panel.language')}</span>
+			<LocaleSwitcher />
+		</div>
+	);
+}
 
 export interface HeaderProps {
 	panelId?: string;
@@ -42,6 +58,7 @@ export function Header({
 	globalSearchAvailable = false,
 }: HeaderProps) {
 	const { user, logout } = useAuth();
+	const { t } = useTranslation();
 	const pageTitle = useCurrentPageTitle();
 	const [userMenuOpen, setUserMenuOpen] = useState(false);
 	const userMenuRef = useRef<HTMLDivElement>(null);
@@ -84,7 +101,7 @@ export function Header({
 					<IconButton
 						variant="ghost"
 						size="sm"
-						aria-label="Open navigation menu"
+						aria-label={t('core:panel.open_menu')}
 						onClick={onMobileMenuToggle}
 						className="lg:hidden">
 						<Menu className="h-5 w-5" />
@@ -101,8 +118,8 @@ export function Header({
 				<IconButton
 					variant="ghost"
 					size="sm"
-					aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-					title={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+					aria-label={darkMode ? t('core:panel.toggle_light') : t('core:panel.toggle_dark')}
+					title={darkMode ? t('core:panel.toggle_light') : t('core:panel.toggle_dark')}
 					onClick={onDarkModeToggle}
 					className="h-9 w-9 shrink-0">
 					<span className="inline-flex h-4 w-4 items-center justify-center">
@@ -171,6 +188,7 @@ export function Header({
 										</div>
 									)}
 								</div>
+								<LocaleSwitcherRow />
 								<div className="p-1">
 									<button
 										type="button"
@@ -178,7 +196,7 @@ export function Header({
 										onClick={handleLogout}
 										className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-fg transition-colors hover:bg-hover">
 										<LogOut className="h-4 w-4 text-fg-secondary" />
-										Sign out
+										{t('core:panel.sign_out')}
 									</button>
 								</div>
 							</div>
