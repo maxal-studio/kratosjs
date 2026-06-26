@@ -159,9 +159,6 @@ export function Header({
 								<div className="max-w-[140px] truncate text-sm font-medium text-fg">
 									{user.name || user.email}
 								</div>
-								{user.role && (
-									<div className="max-w-[140px] truncate text-xs text-fg-muted">{user.role}</div>
-								)}
 							</div>
 							<ChevronDown
 								className={cn(
@@ -181,11 +178,6 @@ export function Header({
 									</div>
 									{user.email && user.name && (
 										<div className="mt-0.5 truncate text-xs text-fg-muted">{user.email}</div>
-									)}
-									{user.role && (
-										<div className="mt-1 inline-flex rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-fg-secondary">
-											{user.role}
-										</div>
 									)}
 								</div>
 								<LocaleSwitcherRow />
