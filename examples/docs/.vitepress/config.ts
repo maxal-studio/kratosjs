@@ -42,6 +42,7 @@ export default defineConfig({
 			{ text: 'Auth', link: '/authentication/overview' },
 			{ text: 'Media', link: '/media/overview' },
 			{ text: 'i18n', link: '/i18n/overview' },
+			{ text: 'Slots', link: '/customization/slots' },
 			{ text: 'Plugins', link: '/plugins/overview' },
 		],
 		sidebar: {
@@ -164,6 +165,12 @@ export default defineConfig({
 						{ text: 'Frontend', link: '/i18n/frontend' },
 						{ text: 'Plugins', link: '/i18n/plugins' },
 					],
+				},
+			],
+			'/customization/': [
+				{
+					text: 'Customization',
+					items: [{ text: 'Slots', link: '/customization/slots' }],
 				},
 			],
 			'/plugins/': [

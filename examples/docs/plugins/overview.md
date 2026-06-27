@@ -28,6 +28,7 @@ Plugins can register:
 - **Routes** - Custom API endpoints
 - **Hooks** - Event handlers for resource operations
 - **Custom component names** - fields/columns/widgets/blocks rendered by the React components shipped in the client entry
+- **Slots** - extra React elements injected into fixed UI locations (header, sidebar, table toolbar, form footer, detail modal, …) that stack with the app's and other plugins' contributions (see [Slots](/customization/slots))
 - **Validation rules** - custom rules that validate on both the client and the server (see [Custom Validation Rules](./creating-plugins.md#custom-validation-rules))
 - **Translations** - server + client catalogs, namespaced by plugin name, that host apps can override (see [Plugin Translations](/i18n/plugins))
 
@@ -228,6 +229,25 @@ register(panel: Panel): void {
 ```
 
 See [Custom Components](./custom-components.md) for the client side.
+
+### Contribute UI Slots
+
+Plugins can inject extra React elements into fixed locations in the panel chrome — a header button, a banner above a table, an action in the detail modal — through the `slots` field of their client manifest. Slots are purely client-side (no `register()` call) and **stack**: every plugin's and the app's contributions to the same slot render together.
+
+```typescript
+// my-plugin/src/client/index.ts
+export default definePluginClient({
+  name: 'audit',
+  slots: {
+    'detail.afterDetails': {
+      id: 'audit-trail',
+      render: ({ resourceSlug, record }) => <AuditTrail resourceSlug={resourceSlug} record={record} />,
+    },
+  },
+});
+```
+
+See [Slots](/customization/slots) for the full list of built-in slot names, their context, and mobile/overflow behavior.
 
 ### Globally Configure Tables, Forms, Actions & Fields
 

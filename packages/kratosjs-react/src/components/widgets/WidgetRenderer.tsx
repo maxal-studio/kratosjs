@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useWidgetRegistry } from '../../contexts/WidgetRegistryContext';
 import { ErrorBoundary } from '../errors/ErrorBoundary';
+import { Slot } from '../../slots/Slot';
 import { cn } from '../../utils/classNames';
 import { widgetVisibilityStorage, getDefaultWidgetsExpanded } from '../../utils/widgetVisibilityStorage';
 import { PillButton } from '../ui/PillButton';
@@ -98,6 +99,7 @@ export function WidgetRenderer({
 								</div>
 							);
 						})}
+						<Slot name="widgets.append" />
 					</div>
 				</div>
 			</div>

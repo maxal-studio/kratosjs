@@ -21,6 +21,7 @@ import { useTableActions } from './hooks/useTableActions';
 import { buildRowActions } from './defaultRowActions';
 import { TableProvider, TableContextValue } from './TableContext';
 import { TableToolbar } from './components/TableToolbar';
+import { Slot } from '../slots/Slot';
 import { TableView } from './components/TableView';
 import { FiltersPanel } from './components/FiltersPanel';
 
@@ -262,6 +263,29 @@ export function TableRenderer({
 					canDelete={canDelete}
 				/>
 
+				{actions.selectedRows.size > 0 && (
+					<Slot
+						name="table.bulkActions"
+						context={{
+							schema,
+							resourceSlug: resourceSlugFromUrl(apiUrl),
+							data: {
+								selectedCount: actions.selectedRows.size,
+								selectedIds: Array.from(actions.selectedRows),
+							},
+						}}
+						as="div"
+						className="mb-4 flex flex-wrap items-center gap-2 empty:hidden"
+					/>
+				)}
+
+				<Slot
+					name="table.aboveTable"
+					context={{ schema, resourceSlug: resourceSlugFromUrl(apiUrl) }}
+					as="div"
+					className="mb-3 space-y-3 empty:hidden"
+				/>
+
 				{/* Table or Grid view with integrated pagination footer */}
 				<div className="overflow-hidden rounded-xl border border-border bg-surface">
 					{layoutState.layout === 'table' ? (
@@ -297,6 +321,13 @@ export function TableRenderer({
 						className="border-t border-border/60"
 					/>
 				</div>
+
+				<Slot
+					name="table.belowTable"
+					context={{ schema, resourceSlug: resourceSlugFromUrl(apiUrl) }}
+					as="div"
+					className="mt-3 space-y-3 empty:hidden"
+				/>
 
 				{/* Create Modal */}
 				{createModalOpen && createFormSchema && (

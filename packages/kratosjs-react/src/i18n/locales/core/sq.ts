@@ -43,6 +43,7 @@ const sq = {
 	'common.reset': 'Rivendos',
 	'common.retry': 'Provo përsëri',
 	'common.actions': 'Veprime',
+	'common.more': 'Më shumë',
 	'common.yes': 'Po',
 	'common.no': 'Jo',
 	'common.loading': 'Duke ngarkuar',

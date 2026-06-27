@@ -4,6 +4,7 @@ import { Icon } from '../../utils/Icon';
 import { cn } from '../../../utils/classNames';
 import { pillTabClass } from '../../ui/PillButton';
 import { translate } from '../../../i18n/activeLocale';
+import { Slot } from '../../../slots/Slot';
 
 export interface RelationGroup {
 	key: string;
@@ -105,6 +106,10 @@ export function RelationTabs({ grouped, activeTopTab, onTopTabChange, hasActionB
 						{rel.pluralLabel}
 					</TabButton>
 				))}
+				<Slot
+					name="detail.tabs"
+					context={{ data: { activeTab: activeTopTab, setActiveTab: onTopTabChange } }}
+				/>
 			</div>
 		</div>
 	);

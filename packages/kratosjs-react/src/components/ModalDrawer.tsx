@@ -4,6 +4,7 @@ import { cn } from '../utils/classNames';
 import { ModalBreadcrumb } from './ModalBreadcrumb';
 import { PillIconButton } from './ui/PillButton';
 import { translate } from '../i18n/activeLocale';
+import { Slot } from '../slots/Slot';
 
 export interface ModalDrawerProps {
 	isOpen: boolean;
@@ -96,6 +97,7 @@ export function ModalDrawer({
 					</div>
 
 					<div className="flex shrink-0 items-center gap-1">
+						<Slot name="modal.headerActions" as="div" className="flex items-center gap-1 empty:hidden" />
 						{onCopyUrl && (
 							<PillIconButton
 								variant="ghost"
@@ -123,11 +125,12 @@ export function ModalDrawer({
 
 				<div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-surface p-4 sm:p-6">{children}</div>
 
-				{footer && (
-					<div className="shrink-0 border-t border-border/60 bg-base/50 px-4 py-3 sm:px-6 sm:py-4">
-						{footer}
-					</div>
-				)}
+				{/* Pinned footer: the `footer` prop and/or the `modal.footer` slot.
+				    `empty:hidden` collapses the bar when neither contributes. */}
+				<div className="shrink-0 border-t border-border/60 bg-base/50 px-4 py-3 empty:hidden sm:px-6 sm:py-4">
+					{footer}
+					<Slot name="modal.footer" as="div" className="mt-2 first:mt-0 empty:hidden" />
+				</div>
 			</div>
 		</div>
 	);

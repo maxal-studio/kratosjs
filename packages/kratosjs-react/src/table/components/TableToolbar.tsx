@@ -10,6 +10,7 @@ import { TableQueryApi } from '../hooks/useTableQuery';
 import { cn } from '../../utils/classNames';
 import { TableToolbarButton, TableToolbarIconButton } from './TableToolbarButton';
 import { translate } from '../../i18n/activeLocale';
+import { SlotCluster } from '../../slots/SlotCluster';
 
 export interface TableToolbarProps {
 	schema: SerializedTable;
@@ -70,6 +71,8 @@ export function TableToolbar({
 			</div>
 
 			<div className="flex flex-wrap items-center justify-end gap-1 sm:gap-1.5">
+				<SlotCluster name="table.toolbar" context={{ schema }} />
+
 				{headerActions.map(action => (
 					<TableToolbarButton
 						key={action.name}

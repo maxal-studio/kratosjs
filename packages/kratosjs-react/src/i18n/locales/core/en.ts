@@ -24,6 +24,7 @@ const en = {
 	'common.reset': 'Reset',
 	'common.retry': 'Retry',
 	'common.actions': 'Actions',
+	'common.more': 'More',
 	'common.yes': 'Yes',
 	'common.no': 'No',
 	'common.loading': 'Loading',

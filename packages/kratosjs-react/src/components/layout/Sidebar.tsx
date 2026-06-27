@@ -6,6 +6,7 @@ import { cn } from '../../utils/classNames';
 import { IconButton } from '../ui';
 import { PanelBrandMark } from './PanelBrandMark';
 import { translate } from '../../i18n/activeLocale';
+import { Slot } from '../../slots/Slot';
 
 export interface ResourceMetadata {
 	slug: string;
@@ -216,6 +217,7 @@ export function Sidebar({
 				)}>
 				<div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-border px-4">
 					<PanelBrandMark icon={panelIcon} favicon={panelFavicon} size="sm" className="ring-0" />
+					<Slot name="sidebar.brand" as="div" className="flex items-center gap-2 empty:hidden" />
 					{panelTitle && (
 						<span className="hidden min-w-0 flex-1 truncate text-sm font-semibold uppercase tracking-wide text-fg sm:block">
 							{panelTitle}
@@ -232,6 +234,7 @@ export function Sidebar({
 				</div>
 
 				<nav className="flex-1 overflow-y-auto px-3 py-3" aria-label={translate('core:a11y.main_navigation')}>
+					<Slot name="sidebar.top" context={{ location: currentPath }} as="div" className="mb-2 space-y-1" />
 					<div className="space-y-0.5">
 						{navElements.map(element => {
 							if (element.type === 'ungrouped') {
@@ -267,6 +270,13 @@ export function Sidebar({
 						})}
 					</div>
 				</nav>
+
+				<Slot
+					name="sidebar.bottom"
+					context={{ location: currentPath }}
+					as="div"
+					className="shrink-0 space-y-1 border-t border-border p-3"
+				/>
 			</aside>
 		</>
 	);

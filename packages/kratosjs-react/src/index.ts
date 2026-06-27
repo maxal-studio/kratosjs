@@ -219,6 +219,22 @@ export type { StatsWidgetProps } from './components/widgets/StatsWidget';
 export type { ChartWidgetProps } from './components/widgets/ChartWidget';
 export type { WidgetRendererProps } from './components/widgets/WidgetRenderer';
 
+// Slots (additive UI injection points)
+export { Slot, SlotCluster, renderSlot, SLOT_NAMES } from './slots';
+export type {
+	SlotProps,
+	SlotClusterProps,
+	SlotName,
+	BuiltInSlotName,
+	SlotContext,
+	SlotRender,
+	SlotContribution,
+	SlotMap,
+	ResolvedSlots,
+} from './slots';
+export { SlotRegistryProvider, SlotRegistryContext, useSlot, useSlotRegistry } from './contexts/SlotRegistryContext';
+export type { SlotRegistryProviderProps } from './contexts/SlotRegistryContext';
+
 // Block registry (custom blocks)
 export { BlockRegistryProvider, useBlockRegistry } from './contexts/BlockRegistryContext';
 export type {

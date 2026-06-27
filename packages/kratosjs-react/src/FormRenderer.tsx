@@ -8,6 +8,7 @@ import { Button } from './components/ui/Button';
 import { SerializedComponent } from '@maxal_studio/kratosjs';
 import { getChildComponents, isArrayScope, isLayout } from './runtime/formTraversal';
 import { useTranslation } from './i18n/useTranslation';
+import { Slot } from './slots/Slot';
 
 /**
  * Extract default values from a schema using the declarative children contract.
@@ -100,6 +101,12 @@ export function FormRenderer({
 		<FormProvider {...methods}>
 			{children}
 			<form onSubmit={methods.handleSubmit(handleSubmit)} className={cn(className)} noValidate>
+				<Slot
+					name="form.header"
+					context={{ resourceSlug: resource, record: defaultValues, schema }}
+					as="div"
+					className="mb-4 space-y-3 empty:hidden"
+				/>
 				<div className={formGridClasses}>
 					{schema.components.map((field, index) => (
 						<FieldRenderer
@@ -113,7 +120,13 @@ export function FormRenderer({
 					))}
 				</div>
 
-				<div className="flex justify-end gap-3 pt-6">
+				<div className="flex flex-wrap items-center justify-end gap-3 pt-6">
+					<Slot
+						name="form.footer"
+						context={{ resourceSlug: resource, record: defaultValues, schema }}
+						as="div"
+						className="mr-auto flex flex-wrap items-center gap-2 empty:hidden"
+					/>
 					<Button variant="secondary" onClick={() => methods.reset()}>
 						{t('core:common.reset')}
 					</Button>

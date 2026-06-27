@@ -9,6 +9,8 @@ import { IconButton } from '../ui';
 import { useTranslation } from '../../i18n/useTranslation';
 import { LocaleSwitcher } from '../../i18n/LocaleSwitcher';
 import { useLocale } from '../../i18n/useLocale';
+import { Slot } from '../../slots/Slot';
+import { SlotCluster } from '../../slots/SlotCluster';
 
 /** Language row in the account menu — hidden when the panel has a single locale. */
 function LocaleSwitcherRow() {
@@ -110,9 +112,11 @@ export function Header({
 				{pageTitle && (
 					<h1 className="truncate text-lg font-semibold tracking-tight text-fg sm:text-xl">{pageTitle}</h1>
 				)}
+				<Slot name="header.left" context={{ user }} as="div" className="flex min-w-0 items-center gap-2" />
 			</div>
 
 			<div className="flex shrink-0 items-center gap-1 sm:gap-2">
+				<SlotCluster name="header.right" context={{ user }} />
 				{apiBaseUrl && globalSearchAvailable && <GlobalSearch apiBaseUrl={apiBaseUrl} />}
 
 				<IconButton
@@ -181,6 +185,7 @@ export function Header({
 									)}
 								</div>
 								<LocaleSwitcherRow />
+								<Slot name="header.userMenu" context={{ user }} as="div" className="p-1" />
 								<div className="p-1">
 									<button
 										type="button"
