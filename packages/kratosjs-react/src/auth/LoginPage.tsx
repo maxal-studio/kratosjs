@@ -10,6 +10,7 @@ import { PanelBrandMark } from '../components/layout/PanelBrandMark';
 import { Moon, Sun, ArrowLeft } from 'lucide-react';
 import { useTranslation } from '../i18n/useTranslation';
 import { LocaleSwitcher } from '../i18n/LocaleSwitcher';
+import { Slot } from '../slots/Slot';
 import { translate } from '../i18n/activeLocale';
 
 interface PanelBranding {
@@ -278,6 +279,8 @@ export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
 					</p>
 				</header>
 
+				<Slot name="login.top" as="div" className="mb-6 space-y-4 empty:hidden" />
+
 				<div className="rounded-xl border border-border bg-surface p-6 shadow-soft sm:p-8">
 					{pendingChallenge && <ChallengeStep challenge={pendingChallenge} />}
 
@@ -365,6 +368,8 @@ export function LoginPage({ apiBaseUrl, onSuccess }: LoginPageProps) {
 						<p className="text-center text-sm text-fg-secondary">{t('core:auth.no_providers')}</p>
 					)}
 				</div>
+
+				<Slot name="login.belowForm" as="div" className="mt-6 space-y-4 empty:hidden" />
 
 				<div className="mt-6 flex justify-center">
 					<LocaleSwitcher />

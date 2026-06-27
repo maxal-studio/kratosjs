@@ -6,6 +6,7 @@ import { TableActionsDropdown } from './TableActionsDropdown';
 import { Checkbox } from '../Checkbox';
 import { PillButton } from '../ui/PillButton';
 import { translate } from '../../i18n/activeLocale';
+import { Slot } from '../../slots/Slot';
 
 interface TableRowProps {
 	schema: SerializedTable;
@@ -113,6 +114,12 @@ export function TableRow({
 					zIndex: openActionsRowId === rowId ? 50 : 10,
 				}}>
 				<div className="flex items-center justify-end gap-2">
+					<Slot
+						name="table.rowActions"
+						context={{ schema, record: row, data: { rowId, rowIndex } }}
+						as="div"
+						className="flex items-center gap-2 empty:hidden"
+					/>
 					{hasChanges && (
 						<>
 							<PillButton

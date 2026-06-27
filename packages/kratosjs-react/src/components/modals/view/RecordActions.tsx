@@ -4,6 +4,7 @@ import { PillButton } from '../../ui/PillButton';
 import { Icon } from '../../utils/Icon';
 import { cn } from '../../../utils/classNames';
 import { translate } from '../../../i18n/activeLocale';
+import { Slot } from '../../../slots/Slot';
 
 export interface RecordActionsProps {
 	actions: any[];
@@ -12,18 +13,36 @@ export interface RecordActionsProps {
 	onAction: (action: any) => void;
 	onEdit: () => void;
 	onDelete: () => void;
+	/** Resource slug, forwarded to the `detail.actions` slot context. */
+	resourceSlug?: string;
+	/** The loaded record, forwarded to the `detail.actions` slot context. */
+	record?: Record<string, any>;
 }
 
 /**
  * Sticky action bar at the top of the view modal.
  */
-export function RecordActions({ actions, canEdit, canDelete, onAction, onEdit, onDelete }: RecordActionsProps) {
-	if (!canEdit && !canDelete && actions.length === 0) {
-		return null;
-	}
-
+export function RecordActions({
+	actions,
+	canEdit,
+	canDelete,
+	onAction,
+	onEdit,
+	onDelete,
+	resourceSlug,
+	record,
+}: RecordActionsProps) {
+	// The action bar renders whenever there are built-in actions OR a slot
+	// contribution; the `empty:hidden` utility collapses it when nothing renders
+	// (the slot wrapper returns no DOM when no contributions are registered).
 	return (
-		<div className="sticky top-0 z-40 flex flex-wrap justify-end gap-1.5 border-b border-border/60 bg-surface px-4 py-3">
+		<div className="sticky top-0 z-40 flex flex-wrap items-center justify-end gap-1.5 border-b border-border/60 bg-surface px-4 py-3 empty:hidden">
+			<Slot
+				name="detail.actions"
+				context={{ resourceSlug, record }}
+				as="div"
+				className="mr-auto flex flex-wrap items-center gap-1.5 empty:hidden"
+			/>
 			{actions.map(action => (
 				<PillButton
 					key={action.name}

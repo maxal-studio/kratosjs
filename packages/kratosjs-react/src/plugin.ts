@@ -2,6 +2,8 @@ import type { FieldRegistry, WidgetRegistry, BlockRegistry } from './types';
 import type { ColumnRegistry } from './contexts/ColumnRegistryContext';
 import type { AuthChallengeRegistry } from './contexts/AuthChallengeRegistryContext';
 import type { RuleDefinition } from '@maxal_studio/kratosjs';
+import type { SlotMap, ResolvedSlots } from './slots/types';
+import { appendSlots, sortSlots } from './slots/mergeSlots';
 
 /**
  * Client-side manifest of a KratosJs plugin.
@@ -52,6 +54,18 @@ export interface KratosPluginClient {
 	 * plugin `name`, so the plugin's components use `t('<name>:rate.hint')`.
 	 */
 	translations?: Record<string, Record<string, string>>;
+	/**
+	 * UI slot contributions keyed by slot name (e.g. `'header.right'`). Unlike the
+	 * component registries above (which are 1:1 and override-based), slots are
+	 * 1:many — every plugin and the app can stack elements into the same slot.
+	 * A value is a single `SlotContribution` or an array of them.
+	 *
+	 * @example
+	 * slots: {
+	 *   'header.right': { id: 'docs-link', render: () => <a href="/docs">Docs</a> },
+	 * }
+	 */
+	slots?: SlotMap;
 }
 
 /**
@@ -68,6 +82,7 @@ export interface MergedPluginRegistries {
 	blocks: BlockRegistry;
 	authChallenges: AuthChallengeRegistry;
 	rules: Record<string, RuleDefinition>;
+	slots: ResolvedSlots;
 }
 
 /**
@@ -82,6 +97,7 @@ export function mergePluginClients(plugins: KratosPluginClient[] = []): MergedPl
 		blocks: {},
 		authChallenges: {},
 		rules: {},
+		slots: {},
 	};
 
 	for (const plugin of plugins) {
@@ -91,7 +107,10 @@ export function mergePluginClients(plugins: KratosPluginClient[] = []): MergedPl
 		Object.assign(merged.blocks, plugin.blocks ?? {});
 		Object.assign(merged.authChallenges, plugin.authChallenges ?? {});
 		Object.assign(merged.rules, plugin.rules ?? {});
+		// Slots stack (1:many) rather than override; later plugins append after earlier ones.
+		appendSlots(merged.slots, plugin.slots);
 	}
 
+	sortSlots(merged.slots);
 	return merged;
 }

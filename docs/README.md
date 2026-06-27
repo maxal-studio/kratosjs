@@ -80,3 +80,7 @@ This directory contains the documentation for `@maxal_studio/kratosjs`.
 - [Media Management Overview](./media/overview.md)
 - [Local Storage](./media/local-storage.md)
 - [S3 Storage](./media/s3-storage.md)
+
+### Customization
+
+- [Slots](./customization/slots.md)

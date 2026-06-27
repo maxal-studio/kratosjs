@@ -9,6 +9,7 @@ import type { AuthChallengeRegistry } from './contexts/AuthChallengeRegistryCont
 import type { RuleDefinition } from '@maxal_studio/kratosjs';
 import { ValidationEngine } from '@maxal_studio/kratosjs/dist/validation';
 import type { ClientI18nConfig } from './i18n/buildClientI18n';
+import type { SlotMap } from './slots/types';
 
 export interface MountAdminPanelOptions {
 	/** Client manifests of the plugins used by this panel */
@@ -33,6 +34,17 @@ export interface MountAdminPanelOptions {
 	 * both sides. App entries override plugins.
 	 */
 	rules?: Record<string, RuleDefinition>;
+	/**
+	 * UI slot contributions keyed by slot name (e.g. `'header.right'`). Slots are
+	 * 1:many — app contributions stack alongside any from plugins. A value is a
+	 * single `SlotContribution` or an array.
+	 *
+	 * @example
+	 * mountAdminPanel({
+	 *   slots: { 'header.right': { id: 'help', render: () => <HelpButton /> } },
+	 * });
+	 */
+	slots?: SlotMap;
 	/**
 	 * API base URL. Defaults to the base path injected by the KratosJs server
 	 * (window.__VALAJS_API_BASE_PATH__) on the current origin.
@@ -76,6 +88,7 @@ export function resolveRegistries(options: MountAdminPanelOptions = {}): MergedP
 		blocks: options.blocks,
 		authChallenges: options.authChallenges,
 		rules: options.rules,
+		slots: options.slots,
 	};
 	return mergePluginClients([...(options.plugins ?? []), appManifest]);
 }
@@ -147,6 +160,7 @@ export function mountAdminPanel(options: MountAdminPanelOptions = {}): void {
 				customWidgets={registries.widgets}
 				customBlocks={registries.blocks}
 				customAuthChallenges={registries.authChallenges}
+				customSlots={registries.slots}
 				i18nConfig={options.i18n}
 				plugins={options.plugins}
 			/>

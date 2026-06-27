@@ -10,6 +10,7 @@ import { ResourceListPage } from '../pages/ResourceListPage';
 import { PageRenderer } from './pages/PageRenderer';
 import { ResourceModalRenderer } from './ResourceModalRenderer';
 import { ErrorBoundary } from './errors/ErrorBoundary';
+import { Slot } from '../slots/Slot';
 import { PillButton } from './ui/PillButton';
 import { AdminPanelProps } from '../types';
 import { authenticatedFetch } from '../api/authenticatedFetch';
@@ -238,6 +239,12 @@ function AdminPanelContent({ apiBaseUrl, panelId }: { apiBaseUrl: string; panelI
 							</ErrorBoundary>
 						</div>
 					</main>
+
+					<Slot
+						name="panel.footer"
+						as="footer"
+						className="shrink-0 border-t border-border px-4 py-3 sm:px-6"
+					/>
 				</div>
 
 				<ModalStackRenderer apiBaseUrl={apiBaseUrl} />
@@ -340,6 +347,7 @@ export function AdminPanel({
 	customWidgets,
 	customBlocks,
 	customAuthChallenges,
+	customSlots,
 	i18nConfig,
 	plugins,
 }: AdminPanelProps) {
@@ -352,6 +360,7 @@ export function AdminPanel({
 				customWidgets={customWidgets}
 				customBlocks={customBlocks}
 				customAuthChallenges={customAuthChallenges}
+				customSlots={customSlots}
 				i18nConfig={i18nConfig}
 				plugins={plugins}>
 				<AdminPanelContent apiBaseUrl={apiBaseUrl} panelId={panelId} />

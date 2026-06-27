@@ -7,6 +7,7 @@ import { RelationCreateModal } from './modals/RelationCreateModal';
 import { useRecordView } from './modals/view/useRecordView';
 import { RecordDetails } from './modals/view/RecordDetails';
 import { RecordActions } from './modals/view/RecordActions';
+import { Slot } from '../slots/Slot';
 import { RelationPanel } from './modals/view/RelationPanel';
 import { RelationTabs, GroupInnerTabs, groupRelations } from './modals/view/RelationTabs';
 import { Spinner } from './ui/Spinner';
@@ -234,6 +235,8 @@ export function ViewModal({
 								onAction={handleActionClick}
 								onEdit={() => openModal(resourceSlug, 'edit', recordId)}
 								onDelete={handleDelete}
+								resourceSlug={resourceSlug}
+								record={view.recordData}
 							/>
 
 							{view.relations.length > 0 && (
@@ -247,12 +250,20 @@ export function ViewModal({
 
 							<div className="flex-1 overflow-y-auto">
 								{activeTopTab === 'details' && (
-									<RecordDetails
-										formSchema={formSchema}
-										recordData={view.recordData}
-										apiBaseUrl={apiBaseUrl}
-										resourceSlug={resourceSlug}
-									/>
+									<>
+										<RecordDetails
+											formSchema={formSchema}
+											recordData={view.recordData}
+											apiBaseUrl={apiBaseUrl}
+											resourceSlug={resourceSlug}
+										/>
+										<Slot
+											name="detail.afterDetails"
+											context={{ resourceSlug, record: view.recordData }}
+											as="div"
+											className="px-6 pb-6 empty:hidden"
+										/>
+									</>
 								)}
 
 								{grouped.ungrouped.map(

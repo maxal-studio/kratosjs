@@ -4,6 +4,7 @@ import { BlockRenderer } from '../blocks/BlockRenderer';
 import { cn } from '../../utils/classNames';
 import { authenticatedFetch } from '../../api/authenticatedFetch';
 import { translate } from '../../i18n/activeLocale';
+import { Slot } from '../../slots/Slot';
 
 export interface PageRendererProps {
 	pageSlug: string;
@@ -136,6 +137,12 @@ export function PageRenderer({ pageSlug, apiBaseUrl }: PageRendererProps) {
 
 	return (
 		<div className="w-full max-w-7xl mx-auto">
+			<Slot
+				name="page.top"
+				context={{ schema: pageData, location: `/page/${pageSlug}` }}
+				as="div"
+				className="mb-6 space-y-6 empty:hidden"
+			/>
 			{blockRows.length > 0 ? (
 				<div className="space-y-6">
 					{blockRows.map((row, rowIndex) => (
@@ -155,6 +162,12 @@ export function PageRenderer({ pageSlug, apiBaseUrl }: PageRendererProps) {
 			) : (
 				<div className="text-gray-500 dark:text-gray-400">{translate('core:page.no_content')}</div>
 			)}
+			<Slot
+				name="page.bottom"
+				context={{ schema: pageData, location: `/page/${pageSlug}` }}
+				as="div"
+				className="mt-6 space-y-6 empty:hidden"
+			/>
 		</div>
 	);
 }

@@ -1,4 +1,4 @@
-import { mountAdminPanel } from '@maxal_studio/kratosjs-react';
+import { mountAdminPanel, CircleHelp } from '@maxal_studio/kratosjs-react';
 import '@maxal_studio/kratosjs-react/styles.css';
 
 // App-level custom components — no plugin required. The keys match the
@@ -17,6 +17,26 @@ mountAdminPanel({
 	fields: { 'star-rating': StarRatingField },
 	columns: { 'star-rating': StarRatingColumn },
 	blocks: { callout: CalloutBlock },
+	// Slots inject extra elements into fixed UI locations. See docs: /customization/slots
+	slots: {
+		'header.right': {
+			id: 'help-link',
+			render: () => (
+				<a
+					href="https://github.com/maxal-studio/kratosjs"
+					target="_blank"
+					rel="noreferrer"
+					title="Help"
+					className="inline-flex h-9 w-9 items-center justify-center rounded-full text-fg-secondary hover:bg-hover hover:text-fg">
+					<CircleHelp className="h-4 w-4" />
+				</a>
+			),
+		},
+		'panel.footer': {
+			id: 'made-with',
+			render: () => <span className="text-xs text-fg-muted">Built with KratosJS</span>,
+		},
+	},
 	i18n: {
 		defaultLocale: 'en',
 		locales: ['en', 'sq'],
