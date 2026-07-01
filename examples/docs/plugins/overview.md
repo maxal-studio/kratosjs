@@ -273,9 +273,10 @@ See [Global Configuration](./global-configuration.md) for both.
 
 ### Register Translations
 
-Plugins register translation catalogs (namespaced by the plugin name) on the server in `register()`,
-and ship client catalogs in their `definePluginClient` manifest. Host apps can override any string or
-add locales the plugin didn't ship:
+Plugins register their full translation catalog (server labels **and** component strings, namespaced
+by the plugin name) on the server in `register()`. The server injects them into the admin page, so
+the plugin's React components pick them up automatically — the `definePluginClient` manifest carries
+no translations. Host apps can override any string or add locales the plugin didn't ship:
 
 ```typescript
 panel.registerTranslations('2fa', {

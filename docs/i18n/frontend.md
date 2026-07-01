@@ -15,30 +15,57 @@ Strings are merged from three layers (later wins) and held by the `I18nProvider`
 
 1. **Package chrome** — buttons, table controls, the login screen, etc. ship inside
    `@maxal_studio/kratosjs-react` (the `core` namespace), so the panel is translated out of the box.
-2. **App strings** — passed to `mountAdminPanel({ i18n: { translations } })`.
-3. **Plugin strings** — a client plugin's `translations` (see [Plugin translations](/i18n/plugins)).
+2. **Server-injected catalogs** — your app and plugin catalogs, registered on the backend and
+   injected into the page (`window.__VALAJS_I18N__`). The client reads these automatically.
+3. **Mount-time overrides** — the optional `mountAdminPanel({ i18n: { translations } })`, for
+   overriding a `core:` chrome string or adding a React-only one.
 
-## Configuring `mountAdminPanel`
+## No frontend config needed
+
+Locales and every app/plugin catalog come from the backend, so the typical admin client needs **no**
+i18n setup at all:
 
 ```typescript
 import { mountAdminPanel } from '@maxal_studio/kratosjs-react';
 import '@maxal_studio/kratosjs-react/styles.css';
 
-// Reuse the SAME catalog modules you registered on the backend — authored once, used on both sides.
-import enApp from '../lang/en';
-import sqApp from '../lang/sq';
-
-mountAdminPanel({
-	i18n: {
-		defaultLocale: 'en',
-		locales: ['en', 'sq'],
-		translations: { en: enApp, sq: sqApp },
-	},
-});
+mountAdminPanel(); // locales + catalogs arrive from window.__VALAJS_I18N__
 ```
 
-App keys land in the `app` namespace. To **override a built-in chrome string**, prefix the key with
-its namespace — `'core:common.save'`:
+Register your catalogs once on the backend instead — see [Backend translations](/i18n/backend):
+
+```typescript
+panel
+	.i18n({ locales: ['en', 'sq'], defaultLocale: 'en', fallbackLocale: 'en' })
+	.registerTranslations('app', { en: enApp, sq: sqApp });
+```
+
+### Localizing the built-in chrome for a custom language
+
+The React package bundles chrome (buttons, table controls, the login screen, validation messages)
+for the locales it ships. When you add a language the package doesn't cover — or want to reword a
+built-in string — register those strings under the **`core` namespace on the backend**. They are
+injected and merged over the bundled chrome, so the whole panel speaks the new language:
+
+```typescript
+// Backend — add French and translate the built-in chrome for it.
+panel
+	.i18n({ locales: ['en', 'fr'], defaultLocale: 'en', directions: { ar: 'rtl' } })
+	.registerTranslations('app', { fr: frApp })
+	.registerTranslations('core', {
+		fr: { 'common.save': 'Enregistrer', 'common.cancel': 'Annuler' /* …the chrome keys you use… */ },
+	});
+```
+
+The `core` keys are the ones the React package uses (`common.*`, `table.*`, `auth.*`, `validation.*`,
+…). Provide the ones you want translated; anything you leave out falls back to the bundled locale.
+RTL languages also honor the `directions` map above.
+
+### Overriding chrome strings from the client (optional)
+
+The `mountAdminPanel({ i18n })` option still exists as an escape hatch for client-only tweaks — use
+it to override a `core:` chrome string or add a React-only string without a server round-trip. It
+layers over the injected config:
 
 ```typescript
 mountAdminPanel({

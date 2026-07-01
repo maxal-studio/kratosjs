@@ -31,6 +31,16 @@ const adminPanel = Panel.make('admin')
 	.resources([UserResource])
 	.plugins([]);
 
+// Multilingual support (optional). This is the single source of truth for
+// languages — the admin client auto-configures itself from what you register here.
+//
+// adminPanel
+// 	.i18n({ locales: ['en', 'sq'], defaultLocale: 'en', fallbackLocale: 'en' })
+// 	.registerTranslations('app', {
+// 		en: { 'users.label': 'Users' },
+// 		sq: { 'users.label': 'Përdoruesit' },
+// 	});
+
 // Email/password login. With `userEntity` set, `validateCredentials` and `getUserById`
 // are provided by default (look up the user, verify the password, resolve the avatar).
 // To customize, pass your own `validateCredentials` to EmailAuthProvider, add more

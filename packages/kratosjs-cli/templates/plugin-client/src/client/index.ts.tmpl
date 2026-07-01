@@ -6,6 +6,10 @@ import {{PluginName}}Field from './{{PluginName}}Field';
  *
  * import {{pluginCamel}} from 'kratosjs-plugin-{{pluginName}}/client';
  * mountAdminPanel({ plugins: [{{pluginCamel}}] });
+ *
+ * Translations are NOT declared here — register them on the backend in the
+ * plugin's `register()` via `panel.registerTranslations('{{pluginName}}', {...})`.
+ * The server injects them into the page and the client picks them up automatically.
  */
 export default definePluginClient({
 	name: '{{pluginName}}',

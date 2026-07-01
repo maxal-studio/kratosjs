@@ -49,12 +49,6 @@ export interface KratosPluginClient {
 	 */
 	rules?: Record<string, RuleDefinition>;
 	/**
-	 * Frontend translation catalogs keyed by locale, e.g.
-	 * `{ en: { 'rate.hint': 'Tap to rate' }, sq: {...} }`. Auto-namespaced by the
-	 * plugin `name`, so the plugin's components use `t('<name>:rate.hint')`.
-	 */
-	translations?: Record<string, Record<string, string>>;
-	/**
 	 * UI slot contributions keyed by slot name (e.g. `'header.right'`). Unlike the
 	 * component registries above (which are 1:1 and override-based), slots are
 	 * 1:many — every plugin and the app can stack elements into the same slot.

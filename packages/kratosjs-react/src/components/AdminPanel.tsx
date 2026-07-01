@@ -349,7 +349,6 @@ export function AdminPanel({
 	customAuthChallenges,
 	customSlots,
 	i18nConfig,
-	plugins,
 }: AdminPanelProps) {
 	return (
 		<BrowserRouter>
@@ -361,8 +360,7 @@ export function AdminPanel({
 				customBlocks={customBlocks}
 				customAuthChallenges={customAuthChallenges}
 				customSlots={customSlots}
-				i18nConfig={i18nConfig}
-				plugins={plugins}>
+				i18nConfig={i18nConfig}>
 				<AdminPanelContent apiBaseUrl={apiBaseUrl} panelId={panelId} />
 			</PanelProviders>
 		</BrowserRouter>

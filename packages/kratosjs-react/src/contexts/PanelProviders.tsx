@@ -14,7 +14,6 @@ import { ToastProvider } from '../components/ui/Toast';
 import { ConfirmProvider } from '../components/ui/ConfirmDialog';
 import { I18nProvider } from '../i18n/I18nProvider';
 import type { ClientI18nConfig } from '../i18n/buildClientI18n';
-import type { KratosPluginClient } from '../plugin';
 import { FieldRegistry } from '../types';
 
 export interface PanelProvidersProps {
@@ -26,7 +25,6 @@ export interface PanelProvidersProps {
 	customAuthChallenges?: AuthChallengeRegistry;
 	customSlots?: ResolvedSlots;
 	i18nConfig?: ClientI18nConfig;
-	plugins?: KratosPluginClient[];
 	children: React.ReactNode;
 }
 
@@ -46,11 +44,10 @@ export function PanelProviders({
 	customAuthChallenges,
 	customSlots,
 	i18nConfig,
-	plugins,
 	children,
 }: PanelProvidersProps) {
 	return (
-		<I18nProvider config={i18nConfig} plugins={plugins}>
+		<I18nProvider config={i18nConfig}>
 			<ToastProvider>
 				<ConfirmProvider>
 					<AuthProvider apiBaseUrl={apiBaseUrl}>

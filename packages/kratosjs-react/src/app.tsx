@@ -51,14 +51,14 @@ export interface MountAdminPanelOptions {
 	 */
 	apiBaseUrl?: string;
 	/**
-	 * Internationalization config for the UI chrome and app/plugin frontend strings.
-	 * Backend-authored labels arrive already translated; this covers strings authored
-	 * in React. App catalogs may target any namespace via a `ns:` key prefix
-	 * (e.g. `core:common.save` overrides a built-in button); unprefixed keys → `app`.
+	 * Optional i18n override. Locales and every app/plugin catalog are authored once
+	 * on the server and injected into the page (`window.__VALAJS_I18N__`) — you rarely
+	 * need this. Use it only to override built-in `core:` chrome or add React-only
+	 * strings; `translations` keys may target any namespace via a `ns:` prefix
+	 * (e.g. `core:common.save`), unprefixed keys → `app`. It layers over the injected config.
 	 *
 	 * @example
-	 * import enApp from '../lang/en';
-	 * mountAdminPanel({ i18n: { defaultLocale: 'en', translations: { en: enApp, sq: sqApp } } });
+	 * mountAdminPanel({ i18n: { translations: { en: { 'core:common.save': 'Store' } } } });
 	 */
 	i18n?: ClientI18nConfig;
 	/** Panel id when serving multiple panels */
@@ -106,6 +106,15 @@ function resolveApiBaseUrl(): string {
 }
 
 /**
+ * The i18n config the KratosJs server injects into the admin HTML
+ * (`window.__VALAJS_I18N__`). This is the source of truth for locales and every
+ * app/plugin catalog — authored once on the server.
+ */
+function resolveInjectedI18n(): ClientI18nConfig {
+	return ((window as any).__VALAJS_I18N__ as ClientI18nConfig | undefined) ?? {};
+}
+
+/**
  * Mount the KratosJs admin panel into the DOM.
  *
  * This is the entry point apps use in their admin client bundle:
@@ -146,6 +155,10 @@ export function mountAdminPanel(options: MountAdminPanelOptions = {}): void {
 
 	const apiBaseUrl = options.apiBaseUrl ?? resolveApiBaseUrl();
 
+	// The server-injected config (locales + app/plugin catalogs) is the base; any
+	// explicit `options.i18n` from the mount call layers on top as an override.
+	const i18nConfig: ClientI18nConfig = { ...resolveInjectedI18n(), ...options.i18n };
+
 	if (options.accentColor) {
 		applyAccentColor(options.accentColor);
 	}
@@ -161,8 +174,7 @@ export function mountAdminPanel(options: MountAdminPanelOptions = {}): void {
 				customBlocks={registries.blocks}
 				customAuthChallenges={registries.authChallenges}
 				customSlots={registries.slots}
-				i18nConfig={options.i18n}
-				plugins={options.plugins}
+				i18nConfig={i18nConfig}
 			/>
 		</React.StrictMode>,
 	);

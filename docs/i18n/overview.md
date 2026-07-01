@@ -4,25 +4,29 @@ title: Overview
 
 # Internationalization (i18n)
 
-KratosJs has first-class multilingual support across the **backend and the frontend**, for both
-the panel and plugins. You register translation catalogs, call a `t()` function wherever you write
-user-facing text, and KratosJs renders it in the active locale.
+KratosJs has first-class multilingual support for both the panel and plugins. You register
+translation catalogs **once, on the backend**, call a `t()` function wherever you write user-facing
+text, and KratosJs renders it in the active locale — on the server and in the admin client.
 
 ## The model
 
+- **The backend is the single source of truth.** You declare your locales and register every
+  app/plugin catalog on the panel. The server injects that config into the admin HTML
+  (`window.__VALAJS_I18N__`), so the React client auto-configures itself — there is no second place
+  to keep translations in sync.
 - **`t()` returns a real string.** Call `t('users.fields.email')` anywhere — a field label, an action
   message, a custom route, a cron job — and it returns the translated string for the active locale.
   There are no special wrapper types and no build step; labels stay plain strings.
-- **The backend is the translation authority.** Because KratosJs owns the backend, the server can
-  translate content that never touches a browser (emails, exports, scheduled jobs) and it localizes
-  the resource/field/action labels it serializes to the client. The server `t()` resolves against the
-  request's active locale.
-- **The frontend localizes its own chrome.** The React package ships translated UI strings (buttons,
-  table controls, the login screen…) and exposes `useTranslation()` / `useFormatter()` for any text
-  you author in custom components.
+- **The server also translates non-browser content.** Because KratosJs owns the backend, the server
+  can translate content that never touches a browser (emails, exports, scheduled jobs) and it
+  localizes the resource/field/action labels it serializes to the client. The server `t()` resolves
+  against the request's active locale.
+- **The frontend still ships its own chrome.** The React package bundles translated UI strings
+  (buttons, table controls, the login screen…) under `core:` and exposes `useTranslation()` /
+  `useFormatter()` for any text you author in custom components. You override those `core:` strings —
+  or add React-only ones — with the optional `mountAdminPanel({ i18n })` override.
 - **Catalogs are plain objects.** A catalog is `{ 'some.key': 'Some text' }`. Register them on the
-  backend (`panel.registerTranslations`) and/or the frontend (`mountAdminPanel({ i18n })`). Because
-  they're just modules, you can author one `lang/en.ts` file and import it on **both** sides.
+  backend with `panel.registerTranslations` and the client picks them up automatically.
 
 ```typescript
 import { t } from '@maxal_studio/kratosjs';
@@ -67,20 +71,25 @@ including server-rendered labels — comes back in the new locale.
 
 ## Configuration
 
-Configure locales once on the panel:
+Configure locales and register your catalogs once on the panel — that's the whole setup:
 
 ```typescript
-panel.i18n({
-	locales: ['en', 'sq'], // supported locales
-	defaultLocale: 'en', // used when the request doesn't ask for one
-	fallbackLocale: 'en', // used for keys missing in the active locale
-});
+panel
+	.i18n({
+		locales: ['en', 'sq'], // supported locales
+		defaultLocale: 'en', // used when the request doesn't ask for one
+		fallbackLocale: 'en', // used for keys missing in the active locale
+	})
+	.registerTranslations('app', { en: enCatalog, sq: sqCatalog });
 ```
+
+The admin client reads this from the injected `window.__VALAJS_I18N__` at load — no i18n config is
+needed in `mountAdminPanel`.
 
 ## Where to go next
 
 - [Backend translations](/i18n/backend) — `registerTranslations`, the server `t()`, static labels,
   per-recipient locales, cron jobs.
-- [Frontend translations](/i18n/frontend) — `mountAdminPanel({ i18n })`, `useTranslation`,
-  `useFormatter`, the locale switcher.
-- [Plugin translations](/i18n/plugins) — shipping catalogs from a plugin and overriding them.
+- [Frontend translations](/i18n/frontend) — the auto-injected config, `useTranslation`,
+  `useFormatter`, the locale switcher, and the optional `mountAdminPanel({ i18n })` override.
+- [Plugin translations](/i18n/plugins) — registering a plugin's catalog on the backend and overriding it.

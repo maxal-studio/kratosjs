@@ -7,12 +7,9 @@ import StarRatingField from './components/StarRatingField';
 import StarRatingColumn from './components/StarRatingColumn';
 import CalloutBlock from './components/CalloutBlock';
 
-// Same catalog modules registered on the backend (src/index.ts) — authored once,
-// used on both sides. Backend-authored labels arrive already translated; these
-// cover any strings authored in React (and let the LocaleSwitcher offer sq).
-import enApp from '../lang/en';
-import sqApp from '../lang/sq';
-
+// i18n is configured once on the backend (src/index.ts) and injected into the
+// page, so no locale/translation config is needed here — the LocaleSwitcher and
+// every app string come from the server automatically.
 mountAdminPanel({
 	fields: { 'star-rating': StarRatingField },
 	columns: { 'star-rating': StarRatingColumn },
@@ -36,10 +33,5 @@ mountAdminPanel({
 			id: 'made-with',
 			render: () => <span className="text-xs text-fg-muted">Built with KratosJS</span>,
 		},
-	},
-	i18n: {
-		defaultLocale: 'en',
-		locales: ['en', 'sq'],
-		translations: { en: enApp, sq: sqApp },
 	},
 });

@@ -119,3 +119,48 @@ describe('Panel i18n registration + merge precedence', () => {
 		expect(panel.resolveLocale({ query: { locale: 'fr' } })).toBe('en');
 	});
 });
+
+describe('Panel.getClientI18nConfig (injected into the admin HTML)', () => {
+	it('exposes plugin + app catalogs (app wins), excludes framework core, and carries locale config', () => {
+		const panel = Panel.make('admin').i18n({ locales: ['en', 'sq'], defaultLocale: 'en', fallbackLocale: 'en' });
+		panel.registerTranslations('app', { en: { 'home.title': 'Home' }, sq: { 'home.title': 'Ballina' } });
+
+		// Plugin registration routes into the plugin bucket (loses to app on collision).
+		(panel as unknown as { _registeringPlugins: boolean })._registeringPlugins = true;
+		panel.registerTranslations('twofa', { en: { title: 'Settings', hint: 'Plugin hint' } });
+		panel.registerTranslations('app', { en: { 'home.title': 'PluginHome' } }); // should be overridden below
+		(panel as unknown as { _registeringPlugins: boolean })._registeringPlugins = false;
+
+		(panel as unknown as { buildServerI18n(): void }).buildServerI18n();
+		const cfg = panel.getClientI18nConfig();
+
+		expect(cfg.locales).toEqual(['en', 'sq']);
+		expect(cfg.defaultLocale).toBe('en');
+		expect(cfg.fallbackLocale).toBe('en');
+		// App + plugin namespaces are present...
+		expect(cfg.resources.app.en['home.title']).toBe('Home'); // app wins over plugin
+		expect(cfg.resources.twofa.en['title']).toBe('Settings');
+		expect(cfg.resources.twofa.en['hint']).toBe('Plugin hint');
+		// ...but the framework's backend `core` namespace is NOT injected (client bundles its own).
+		expect(cfg.resources.core).toBeUndefined();
+	});
+
+	it('injects app-registered `core` overrides so chrome can be localized for a custom language', () => {
+		// A host adds French — a locale the React package does not bundle chrome for —
+		// and translates the built-in chrome by registering under the `core` namespace.
+		const panel = Panel.make('admin')
+			.i18n({ defaultLocale: 'en', directions: { ar: 'rtl' } })
+			.registerTranslations('app', { fr: { 'users.label': 'Utilisateurs' } })
+			.registerTranslations('core', { fr: { 'common.save': 'Enregistrer' }, en: { 'common.save': 'Store' } });
+		(panel as unknown as { buildServerI18n(): void }).buildServerI18n();
+
+		const cfg = panel.getClientI18nConfig();
+		// The custom locale is discovered from the registered catalogs.
+		expect(cfg.locales).toContain('fr');
+		// App-registered `core` chrome IS injected (unlike the framework's server core).
+		expect(cfg.resources.core.fr['common.save']).toBe('Enregistrer');
+		expect(cfg.resources.core.en['common.save']).toBe('Store'); // overrides the bundled default
+		// Direction overrides ride along for RTL custom locales.
+		expect(cfg.directions).toEqual({ ar: 'rtl' });
+	});
+});
