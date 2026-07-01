@@ -29,8 +29,7 @@
 		"vite"
 	],
 	"workspaces": [
-		"packages/kratosjs-react",
-		"packages/kratosjs-cli",
+		"packages/*",
 		"examples/*"
 	],
 	"scripts": {
