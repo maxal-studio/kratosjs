@@ -13,5 +13,13 @@ export class {{PluginName}}Plugin extends Plugin {
 
 	register(panel: Panel): void {
 		{{registerBody}}
+
+		// Register the plugin's translations (labels + any frontend UI strings) once,
+		// here on the backend, under the plugin namespace. They are injected into the
+		// admin page, so the client uses `t('{{pluginName}}:...')` with no extra setup.
+		// panel.registerTranslations('{{pluginName}}', {
+		// 	en: { 'hint': 'Tap to rate' },
+		// 	sq: { 'hint': 'Prekni për të vlerësuar' },
+		// });
 	}
 }

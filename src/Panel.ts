@@ -34,7 +34,17 @@ import { KratosI18n, createI18n } from './i18n/KratosI18n';
 import { registerServerI18n } from './i18n/serverT';
 import { resolveRequestLocale, LocaleSources } from './i18n/resolveRequestLocale';
 import { coreResources } from './i18n/locales/core';
-import type { I18nConfig, I18nResources, NamespaceResources } from './i18n/types';
+import type { I18nConfig, I18nResources, NamespaceResources, Direction } from './i18n/types';
+
+/** The i18n config injected into the admin HTML and consumed by the client. */
+export interface ClientI18nConfig {
+	locales: string[];
+	defaultLocale: string;
+	fallbackLocale: string | string[];
+	directions?: Record<string, Direction>;
+	/** Client-facing catalogs (plugin + app namespaces, all locales). Framework `core` is excluded. */
+	resources: I18nResources;
+}
 import { HttpAdapter } from './adapters/http/HttpAdapter';
 import { ExpressAdapter } from './adapters/http/ExpressAdapter';
 import { Plugin } from './plugins/Plugin';
@@ -339,6 +349,29 @@ export class Panel {
 	/** Resolve the active locale for a request from its query/headers. */
 	resolveLocale(sources: LocaleSources): string {
 		return resolveRequestLocale(sources, this.getLocales(), this.getDefaultLocale());
+	}
+
+	/**
+	 * Build the client-facing i18n config injected into the admin HTML.
+	 *
+	 * The admin client auto-configures its locales, default/fallback locale, and
+	 * every app/plugin catalog from this — so translations are authored once on the
+	 * server. Only the plugin + app namespaces are exposed (app-wins precedence);
+	 * the framework's backend `core` namespace is omitted so it can't clobber the
+	 * React package's own bundled `core` chrome.
+	 */
+	getClientI18nConfig(): ClientI18nConfig {
+		const resources: I18nResources = {};
+		mergeResources(resources, this._pluginTranslations);
+		mergeResources(resources, this._appTranslations);
+		const defaultLocale = this.getDefaultLocale();
+		return {
+			locales: this.getLocales(),
+			defaultLocale,
+			fallbackLocale: this._i18nConfig?.fallbackLocale ?? defaultLocale,
+			...(this._i18nConfig?.directions ? { directions: this._i18nConfig.directions } : {}),
+			resources,
+		};
 	}
 
 	/**

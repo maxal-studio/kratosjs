@@ -4,7 +4,10 @@ title: Backend
 
 # Backend translations
 
-The backend is the translation authority. A single `t()` function resolves keys to strings against
+The backend is the **single source of truth** for i18n. You register your locales and catalogs here
+once; the server localizes its own output with `t()` **and** injects the locale config + catalogs
+into the admin HTML so the React client configures itself with no duplicate setup (see
+[Frontend translations](/i18n/frontend)). A single `t()` function resolves keys to strings against
 the active request locale, and you can use it anywhere on the server.
 
 ## Registering catalogs
@@ -35,6 +38,10 @@ const panel = Panel.make('admin')
 
 `registerTranslations(namespace, catalogs)` can be called multiple times and by plugins; the
 namespace defaults to `app` when omitted: `panel.registerTranslations({ en, sq })`.
+
+Register **every** app string here — including ones only used in React components — since the client
+gets its catalogs from what you register on the backend. Author each `lang/*.ts` module once and
+import it only in your server entry.
 
 ## Using `t()` in builders
 

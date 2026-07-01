@@ -154,10 +154,14 @@ export class ExpressAdapter extends HttpAdapter {
 
 		// Inject panel settings
 		const basePath = panel.getBasePath();
+		// Serialize the i18n config as JSON; escape `<` so a translation value can't
+		// break out of the <script> tag (e.g. a stray "</script>" in a catalog).
+		const i18nJson = JSON.stringify(panel.getClientI18nConfig()).replace(/</g, '\\u003c');
 		const settingsScript = `
 			<script>
 				// Panel settings injected by server
 				window.__VALAJS_API_BASE_PATH__ = '${basePath}';
+				window.__VALAJS_I18N__ = ${i18nJson};
 			</script>`;
 		html = html.replace('<!-- VALAJS_PANEL_SETTINGS -->', settingsScript);
 

@@ -4,7 +4,6 @@ import { WidgetComponent } from '../contexts/WidgetRegistryContext';
 import type { CustomBlockComponent } from '../contexts/BlockRegistryContext';
 import type { AuthChallengeRegistry } from '../contexts/AuthChallengeRegistryContext';
 import type { ClientI18nConfig } from '../i18n/buildClientI18n';
-import type { KratosPluginClient } from '../plugin';
 import type { ResolvedSlots } from '../slots/types';
 
 /**
@@ -224,8 +223,6 @@ export interface AdminPanelProps {
 	customAuthChallenges?: AuthChallengeRegistry;
 	/** Merged, resolved slot contributions keyed by slot name. */
 	customSlots?: ResolvedSlots;
-	/** i18n config for UI chrome + app frontend strings. */
+	/** i18n config for UI chrome + app frontend strings (server-injected). */
 	i18nConfig?: ClientI18nConfig;
-	/** Plugin client manifests — their `translations` feed the i18n engine. */
-	plugins?: KratosPluginClient[];
 }

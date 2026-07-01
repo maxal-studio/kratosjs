@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useMemo, useState, useCall
 import type { KratosI18n } from '@maxal_studio/kratosjs/dist/i18n';
 import { buildClientI18n, type ClientI18nConfig } from './buildClientI18n';
 import { setActiveI18n } from './activeLocale';
-import type { KratosPluginClient } from '../plugin';
 
 const STORAGE_KEY = 'kratosjs-locale';
 
@@ -47,12 +46,11 @@ function resolveInitialLocale(engine: KratosI18n, configDefault?: string): strin
 
 export interface I18nProviderProps {
 	config?: ClientI18nConfig;
-	plugins?: KratosPluginClient[];
 	children: React.ReactNode;
 }
 
-export function I18nProvider({ config, plugins, children }: I18nProviderProps) {
-	const engine = useMemo(() => buildClientI18n(config, plugins), [config, plugins]);
+export function I18nProvider({ config, children }: I18nProviderProps) {
+	const engine = useMemo(() => buildClientI18n(config), [config]);
 	const [locale, setLocaleState] = useState(() => resolveInitialLocale(engine, config?.defaultLocale));
 
 	// Set the module mirror SYNCHRONOUSLY during render (not only in the effect) so

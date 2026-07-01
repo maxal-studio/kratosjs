@@ -4,6 +4,8 @@ import '@maxal_studio/kratosjs-react/styles.css';
 // Import plugin client manifests here, e.g.:
 // import starRating from '@maxal_studio/kratosjs-plugin-star-rating/client';
 
+// Languages are configured once on the backend (src/index.ts) and injected into
+// the page, so no i18n config is needed here.
 mountAdminPanel({
 	plugins: [],
 });

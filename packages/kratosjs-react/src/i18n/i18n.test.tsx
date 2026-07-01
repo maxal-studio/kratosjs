@@ -7,7 +7,7 @@ import { useTranslation } from './useTranslation';
 import { useLocale } from './useLocale';
 import { useFormatter } from './useFormatter';
 import { LocaleSwitcher } from './LocaleSwitcher';
-import { buildClientResources } from './buildClientI18n';
+import { buildClientResources, buildClientI18n } from './buildClientI18n';
 
 const config = {
 	defaultLocale: 'en',
@@ -33,9 +33,50 @@ describe('buildClientResources', () => {
 		expect(res.core.en['common.cancel']).toBe('Cancel');
 	});
 
-	it('namespaces plugin translations by plugin name', () => {
-		const res = buildClientResources({}, [{ name: 'twofa', translations: { en: { title: 'Verify' } } }]);
+	it('merges server-injected resources (plugin + app namespaces)', () => {
+		const res = buildClientResources({
+			resources: {
+				twofa: { en: { title: 'Verify' } },
+				app: { en: { 'users.label': 'Users' } },
+			},
+		});
 		expect(res.twofa.en['title']).toBe('Verify');
+		expect(res.app.en['users.label']).toBe('Users');
+		// Built-in chrome is still present alongside injected catalogs.
+		expect(res.core.en['common.cancel']).toBe('Cancel');
+	});
+
+	it('lets mount-time translations override server-injected resources', () => {
+		const res = buildClientResources({
+			resources: { app: { en: { 'users.label': 'Users' } } },
+			translations: { en: { 'users.label': 'People' } },
+		});
+		expect(res.app.en['users.label']).toBe('People');
+	});
+
+	it('localizes built-in chrome for a custom locale via injected `core` resources', () => {
+		// Backend registered `core` chrome for French (a locale the package does not bundle)
+		// plus an English override — both arrive via the injected resources.
+		const res = buildClientResources({
+			locales: ['en', 'fr'],
+			resources: { core: { fr: { 'common.save': 'Enregistrer' }, en: { 'common.save': 'Store' } } },
+		});
+		// New locale gets chrome from the injected catalog.
+		expect(res.core.fr['common.save']).toBe('Enregistrer');
+		// Injected `core` overrides the bundled default for existing locales...
+		expect(res.core.en['common.save']).toBe('Store');
+		// ...while non-overridden bundled chrome keys stay intact.
+		expect(res.core.en['common.cancel']).toBe('Cancel');
+	});
+
+	it('resolves chrome in a custom locale end-to-end through the engine', () => {
+		const engine = buildClientI18n({
+			locales: ['en', 'fr'],
+			defaultLocale: 'en',
+			resources: { core: { fr: { 'common.save': 'Enregistrer' } } },
+		});
+		expect(engine.t('core:common.save', { locale: 'fr' })).toBe('Enregistrer');
+		expect(engine.getLocales()).toContain('fr');
 	});
 });
 
