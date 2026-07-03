@@ -2,7 +2,7 @@
 title: Backend Setup
 ---
 
-## Panel branding
+# Panel branding
 
 Configure how your admin panel appears in the browser tab, header, and login screen:
 
