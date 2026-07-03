@@ -2,64 +2,6 @@
 title: Backend Setup
 ---
 
-# Backend Setup
-
-This guide covers how to set up and configure the KratosJs backend panel with MikroORM.
-
-## Basic Setup
-
-### Installation
-
-```bash
-npm install @maxal_studio/kratosjs @mikro-orm/core
-```
-
-For MongoDB:
-
-```bash
-npm install @mikro-orm/mongodb
-```
-
-For MySQL:
-
-```bash
-npm install @mikro-orm/mysql @mikro-orm/migrations
-```
-
-### Panel Initialization
-
-The Panel class automatically manages the Express application instance, so you don't need to create it manually:
-
-```typescript
-import { Panel, LocalMediaAdapter } from '@maxal_studio/kratosjs';
-import { MongoDriver } from '@mikro-orm/mongodb';
-import path from 'path';
-
-const PORT = 3001;
-
-const adminPanel = Panel.make('admin')
-	.orm(
-		{
-			driver: MongoDriver,
-			clientUrl: 'mongodb://localhost:27017',
-			dbName: 'kratosjs',
-		},
-		{ updateSchema: true },
-	)
-	.mediaAdapters([
-		new LocalMediaAdapter({
-			name: 'local-uploads',
-			uploadPath: path.join(process.cwd(), 'uploads'),
-			publicUrl: `http://localhost:${PORT}/uploads`,
-			createDirectories: true,
-			isDefault: true,
-		}),
-	])
-	.resources([UserResource, PostResource]);
-
-await adminPanel.start(PORT);
-```
-
 ## Panel branding
 
 Configure how your admin panel appears in the browser tab, header, and login screen:
@@ -184,17 +126,7 @@ Configures the panel, registers plugins and resources, sets up auth, and calls `
 
 Mounts the React admin panel and statically imports plugin client manifests so custom components are bundled at build time. **Always required** — every KratosJs app uses the same three files (`index.html`, `vite.config.mts`, `src/admin/main.tsx`) regardless of plugin usage.
 
-Scaffold them with:
-
-```bash
-npx @maxal_studio/kratosjs-cli init
-```
-
-Or let KratosJs auto-create missing files on the first development `panel.start()`.
-
-> **Tip:** To scaffold a whole app (entity, resource, seeded admin user, and the admin client) for a database of your choice, run `npx @maxal_studio/kratosjs-cli new`.
-
-Production (`NODE_ENV=production`) **requires** a built admin bundle at `dist/admin/` — run `vite build` before `npm run start`. The server throws a clear error if the build is missing.
+Production (`NODE_ENV=production`) **requires** a built admin bundle at `dist/admin/` — run `npm run build` before `npm run start`. The server throws a clear error if the build is missing.
 
 ```typescript
 // src/admin/main.tsx
@@ -208,62 +140,15 @@ mountAdminPanel({
 });
 ```
 
-Every plugin with custom UI that you register server-side must also appear here — server registration (`panel.registerCustomField(...)`) exposes the component name in metadata; the client manifest provides the actual React component.
-
-```html
-<!-- index.html -->
-<!doctype html>
-<html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<!-- VALAJS_PANEL_FAVICON -->
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<!-- VALAJS_PANEL_TITLE -->
-		<!-- VALAJS_PANEL_SETTINGS -->
-	</head>
-	<body>
-		<div id="root"></div>
-		<script type="module" src="/src/admin/main.tsx"></script>
-	</body>
-</html>
-```
-
-```typescript
-// vite.config.mts
-import { defineConfig } from 'vite';
-import { kratosAdminVite } from '@maxal_studio/kratosjs/vite';
-
-export default defineConfig(kratosAdminVite());
-```
-
 ### Scripts and builds
 
 | Script         | What it does                                                                          |
 | -------------- | ------------------------------------------------------------------------------------- |
 | `dev`          | Runs `src/index.ts`; vite-express serves `index.html` + `src/admin/main.tsx` with HMR |
+| `build`        | Builds backend and front end                                                          |
 | `build:server` | `tsc` — compiles `src/index.ts` and server code to `dist/`                            |
 | `build:admin`  | `vite build` — bundles the admin client to `dist/admin/`                              |
 | `start`        | `NODE_ENV=production node dist/index.js` — serves the static admin bundle             |
-
-```json
-{
-	"scripts": {
-		"dev": "tsx watch src/index.ts",
-		"build": "npm run build:server && npm run build:admin",
-		"build:server": "tsc",
-		"build:admin": "vite build",
-		"start": "NODE_ENV=production node dist/index.js"
-	}
-}
-```
-
-`tsconfig.json` should exclude TSX so Vite handles the admin client separately:
-
-```json
-{
-	"exclude": ["node_modules", "dist", "**/*.tsx"]
-}
-```
 
 See [Getting Started](/getting-started) for the full walkthrough and [Custom Components](/plugins/custom-components) for plugin client manifests.
 

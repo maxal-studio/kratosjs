@@ -177,16 +177,6 @@ The monorepo includes two reference implementations:
 | Mongo example | `examples/app`     | MongoDB  | Users, Posts, Comments, auth, featured images         |
 | SQL example   | `examples/sql-app` | MySQL    | CMS plugin with entities, migrations, and seeded data |
 
-Run from the repo root:
-
-```bash
-npm install
-cd examples/app && npx tsx src/index.ts   # http://localhost:3001
-cd examples/sql-app && npx tsx src/index.ts  # http://localhost:3002
-```
-
-Default login for both: `admin@example.com` / `password`
-
 ## Next Steps
 
 - [Plugin Entities & Migrations](/plugins/migrations) — ship database tables from plugins
