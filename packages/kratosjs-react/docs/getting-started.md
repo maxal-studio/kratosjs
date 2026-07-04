@@ -169,7 +169,7 @@ adminPanel.auth({
 				const em = adminPanel.getEm();
 				const user = await em.findOne('User', { email: email.toLowerCase() });
 				if (!user || user.password !== password) return null;
-				return { _id: user.id, email: user.email, name: user.name };
+				return user; // raw entity; serializeUser shapes it for the client
 			},
 		}),
 	],

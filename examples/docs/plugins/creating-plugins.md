@@ -68,7 +68,7 @@ my-plugin/
 		"./client": { "types": "./dist/client/index.d.ts", "default": "./dist/client/index.js" }
 	},
 	"peerDependencies": {
-		"@maxal_studio/kratosjs": "^1.0.0"
+		"@maxal_studio/kratosjs": "^x.x.x"
 	}
 }
 ```
@@ -104,7 +104,7 @@ Use caret ranges matching the host: `@mikro-orm/core: "^7.0.0"`, `react: "^19.0.
 ```json
 {
 	"peerDependencies": {
-		"@maxal_studio/kratosjs": "^1.0.0",
+		"@maxal_studio/kratosjs": "^x.x.x",
 		"@mikro-orm/core": "^7.0.0",
 		"@mikro-orm/migrations": "^7.0.0"
 	},
@@ -123,8 +123,8 @@ missing peer.
 ```json
 {
 	"peerDependencies": {
-		"@maxal_studio/kratosjs": "^1.0.0",
-		"@maxal_studio/kratosjs-react": "^1.0.0",
+		"@maxal_studio/kratosjs": "^x.x.x",
+		"@maxal_studio/kratosjs-react": "^x.x.x",
 		"react": "^19.0.0",
 		"react-hook-form": "^7.0.0"
 	}

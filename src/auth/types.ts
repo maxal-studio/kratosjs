@@ -60,11 +60,41 @@ export interface AuthDefaultsContext {
 	getEm: () => any;
 	/** Active driver kind, for primary-key shaping. */
 	getDriverKind: () => 'mongo' | 'sql';
-	/** Resolve a stored media value to a URL. */
-	resolveMediaUrl: (value: any) => Promise<string | undefined>;
 	/** Verify a plaintext password against a stored hash. */
 	verifyPassword: (plain: string, hash: string | undefined | null) => Promise<boolean>;
 }
+
+/**
+ * Context handed to a `serializeUser` mapper: everything it needs to turn a raw
+ * user entity into the public {@link AuthUser}. The same context is used for the
+ * login flow, OAuth callbacks, and the `/me` / `/refresh` lookups.
+ */
+export interface SerializeUserContext {
+	/** Resolved field-name map (email/password/firstname/lastname/image/role). */
+	fields: ResolvedUserFieldMap;
+	/** Resolve a stored media value (e.g. the avatar field) to a URL. */
+	resolveMediaUrl: (value: any) => Promise<string | undefined>;
+	/** Request-scoped EntityManager accessor. */
+	getEm: () => any;
+}
+
+/**
+ * Turns a raw user entity (the DB row a provider authenticated, or a row loaded by
+ * id) into the public {@link AuthUser} returned to the client. Configure it once on
+ * `panel.auth({ serializeUser })` to shape the user for every provider and every
+ * endpoint — adding a column is a one-line change here, not per provider.
+ */
+export type SerializeUser = (user: any, ctx: SerializeUserContext) => AuthUser | Promise<AuthUser>;
+
+/**
+ * Additive counterpart to {@link SerializeUser}: return extra fields to **merge over** the
+ * base serialized user, instead of rewriting the whole mapping. Configure it once on
+ * `panel.auth({ extendUser })` to expose a couple of extra columns without copying the
+ * default shape. Runs after the base serializer (default or a custom `serializeUser`) and
+ * can override its keys. The returned fields are part of the client user AND the access
+ * token, so keep them identity-sized and non-secret.
+ */
+export type ExtendUser = (user: any, ctx: SerializeUserContext) => Record<string, any> | Promise<Record<string, any>>;
 
 /**
  * Authentication tokens

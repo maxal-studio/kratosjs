@@ -1,17 +1,5 @@
 import { AuthProvider } from '../AuthProvider';
-import { AuthProviderConfig, AuthUser, AuthButtonConfig, AuthDefaultsContext } from '../types';
-import { formatUserDisplayName } from '../formatUserDisplayName';
-
-/** Shape the provider expects back from `validateCredentials`. */
-export interface ValidatedUser {
-	_id: string | number;
-	email: string;
-	firstname?: string;
-	lastname?: string;
-	role?: unknown;
-	profileMediaImage?: { url: string };
-	[key: string]: any;
-}
+import { AuthProviderConfig, AuthButtonConfig, AuthDefaultsContext } from '../types';
 
 /**
  * Configuration for EmailAuthProvider
@@ -19,14 +7,15 @@ export interface ValidatedUser {
  */
 export interface EmailAuthProviderConfig extends Omit<AuthProviderConfig, 'name'> {
 	/**
-	 * Validate user credentials. Returns the user (the shape below) when valid,
-	 * null otherwise.
+	 * Validate user credentials. Returns the raw user entity (the DB row) when valid,
+	 * `null` otherwise. The panel's `serializeUser` shapes that entity into the
+	 * client-facing user — do NOT map fields here.
 	 *
 	 * Optional: when omitted, the panel installs a default that looks the user up by
-	 * email on `panel.auth({ userEntity })`, verifies the password, and resolves the
-	 * avatar. Provide your own to override that behavior.
+	 * email on `panel.auth({ userEntity })` and verifies the password. Provide your own
+	 * to override the lookup/verification (e.g. an external identity store).
 	 */
-	validateCredentials?: (email: string, password: string) => Promise<ValidatedUser | null>;
+	validateCredentials?: (email: string, password: string) => Promise<any | null>;
 }
 
 /**
@@ -47,9 +36,10 @@ export class EmailAuthProvider extends AuthProvider {
 	}
 
 	/**
-	 * Install a default `validateCredentials` (entity lookup → password verify →
-	 * avatar resolve) when the app didn't supply one. Called by the panel during
-	 * `auth()` with its user entity, field map, and helpers.
+	 * Install a default `validateCredentials` (entity lookup by email → password verify)
+	 * when the app didn't supply one. Called by the panel during `auth()` with its user
+	 * entity, field map, and helpers. The raw entity is returned as-is; `serializeUser`
+	 * shapes it for the client.
 	 */
 	bindPanelDefaults(ctx: AuthDefaultsContext): void {
 		if (this.validateCredentials || !ctx.userEntity) {
@@ -57,7 +47,7 @@ export class EmailAuthProvider extends AuthProvider {
 		}
 
 		const f = ctx.fields;
-		this.validateCredentials = async (email: string, password: string): Promise<ValidatedUser | null> => {
+		this.validateCredentials = async (email: string, password: string): Promise<any | null> => {
 			const em = ctx.getEm();
 			const user: any = await em.findOne(ctx.userEntity, { [f.email]: email.toLowerCase() });
 			if (!user || !user[f.password]) {
@@ -67,43 +57,22 @@ export class EmailAuthProvider extends AuthProvider {
 			if (!valid) {
 				return null;
 			}
-			const avatarUrl = await ctx.resolveMediaUrl(user[f.image]);
-			return {
-				_id: user.id ?? user._id,
-				email: user[f.email],
-				firstname: user[f.firstname],
-				lastname: user[f.lastname],
-				role: user[f.role],
-				profileMediaImage: avatarUrl ? { url: avatarUrl } : undefined,
-			};
+			return user;
 		};
 	}
 
 	/**
-	 * Authenticate user with email and password
+	 * Authenticate user with email and password. Returns the raw user entity (or null);
+	 * the panel's `serializeUser` produces the public `AuthUser`.
 	 */
-	async authenticate({ email, password }: { email: string; password: string }): Promise<AuthUser | null> {
+	async authenticate({ email, password }: { email: string; password: string }): Promise<any | null> {
 		if (!this.validateCredentials) {
 			throw new Error(
 				'EmailAuthProvider has no validateCredentials. Pass one, or call panel.auth({ userEntity }) so the default can be installed.',
 			);
 		}
 
-		const user = await this.validateCredentials(email, password);
-		if (!user) {
-			return null;
-		}
-
-		// Ensure _id is a string
-		const userId = typeof user._id === 'string' ? user._id : (user._id as any)?.toString() || String(user._id);
-
-		return {
-			id: userId,
-			email: user.email,
-			name: formatUserDisplayName(user),
-			role: user.role as string | undefined,
-			avatarUrl: user.profileMediaImage?.url,
-		};
+		return this.validateCredentials(email, password);
 	}
 
 	/**

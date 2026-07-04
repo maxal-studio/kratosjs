@@ -3,17 +3,20 @@ import { AuthUser, JWTConfig } from './types';
 import { normalizeRoleId } from './normalizeRole';
 
 /**
- * Generate JWT access token
+ * Generate JWT access token.
+ *
+ * The **whole serialized user** is encoded (whatever `serializeUser` / `extendUser`
+ * produced), so `req.user` on protected routes matches exactly what the login response and
+ * `/auth/me` return — no silently-truncated whitelist. Because the payload is signed (not
+ * encrypted) and rides on every request, `serializeUser` output must stay identity-sized and
+ * non-secret. `role` is normalized to its id (it may arrive as a relation reference).
  */
 export function generateAccessToken(user: AuthUser, config: JWTConfig): string {
-	const payload = {
-		id: user.id,
-		email: user.email,
-		name: user.name,
-		// `role` may be a relation reference/entity (e.g. permissions plugin); store its id.
-		role: normalizeRoleId(user.role),
-		type: 'access-token',
-	};
+	const role = normalizeRoleId(user.role);
+	const payload: Record<string, any> = { ...user, type: 'access-token' };
+	// Only carry `role` when there is one (base apps are role-free).
+	if (role === undefined) delete payload.role;
+	else payload.role = role;
 
 	const expiresIn = config.accessTokenExpiry || '15m';
 
@@ -49,12 +52,9 @@ export function verifyAccessToken(token: string, secret: string): AuthUser | nul
 			return null;
 		}
 
-		return {
-			id: decoded.id,
-			email: decoded.email,
-			name: decoded.name,
-			role: decoded.role,
-		};
+		// Return the whole encoded user, dropping only the token bookkeeping claims.
+		const { type, iat, exp, nbf, ...user } = decoded;
+		return user as AuthUser;
 	} catch (error) {
 		return null;
 	}

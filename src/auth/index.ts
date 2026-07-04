@@ -8,6 +8,9 @@ export type {
 	UserFieldMap,
 	ResolvedUserFieldMap,
 	AuthDefaultsContext,
+	SerializeUser,
+	SerializeUserContext,
+	ExtendUser,
 	AuthHooks,
 	AuthHookContext,
 	AuthChallengeProvider,
@@ -16,6 +19,9 @@ export type {
 
 // Base provider
 export { AuthProvider } from './AuthProvider';
+
+// Default user serializer (raw entity -> AuthUser)
+export { defaultSerializeUser } from './serializeUser';
 
 // Providers
 export { EmailAuthProvider } from './providers/EmailAuthProvider';

@@ -9,8 +9,10 @@ import {
 	AuthHookContext,
 	AuthChallengeProvider,
 	LoginResult,
+	SerializeUser,
+	SerializeUserContext,
 } from './types';
-import { normalizeRoleId } from './normalizeRole';
+import { withNormalizedRole } from './normalizeRole';
 import {
 	generateAccessToken,
 	generateRefreshToken,
@@ -34,9 +36,37 @@ export class AuthManager {
 	private hooks: AuthHooks[] = [];
 	/** Registered challenge providers, keyed by challenge type. */
 	private challenges: Map<string, AuthChallengeProvider> = new Map();
+	/** Maps a raw user entity to the public AuthUser. Identity until the panel configures one. */
+	private _serializeUser: SerializeUser = user => user as AuthUser;
+	/** Context passed to `_serializeUser`. Injected by the panel via `setUserShaping`. */
+	private _serializeCtx: SerializeUserContext = {} as SerializeUserContext;
+	/** Request-scoped user lookup by id (for /me, /refresh, /challenge). */
+	private _getUserById?: (id: string) => Promise<AuthUser | null>;
 
 	constructor(jwtConfig: JWTConfig) {
 		this.jwtConfig = jwtConfig;
+	}
+
+	/**
+	 * Configure how raw user entities become the public `AuthUser`, and how a user is
+	 * loaded by id. Called by the panel during `auth()`. `serializeUser` is the single
+	 * source of truth for the shape returned to the client across every provider and
+	 * endpoint.
+	 */
+	setUserShaping(config: {
+		serializeUser?: SerializeUser;
+		serializeCtx?: SerializeUserContext;
+		getUserById?: (id: string) => Promise<AuthUser | null>;
+	}): void {
+		if (config.serializeUser) this._serializeUser = config.serializeUser;
+		if (config.serializeCtx) this._serializeCtx = config.serializeCtx;
+		if (config.getUserById) this._getUserById = config.getUserById;
+	}
+
+	/** Shape a raw user entity into the public AuthUser, normalizing a role to its id if present. */
+	private async serialize(entity: any): Promise<AuthUser> {
+		const user = await this._serializeUser(entity, this._serializeCtx);
+		return withNormalizedRole(user);
 	}
 
 	// ============================================================================
@@ -133,12 +163,12 @@ export class AuthManager {
 			throw new Error(`Provider '${providerName}' not found`);
 		}
 
-		const user = await provider.authenticate(credentials);
-		if (!user) {
+		const entity = await provider.authenticate(credentials);
+		if (!entity) {
 			throw new Error(t('core:auth.invalid_credentials'));
 		}
 
-		return this.generateTokens(user);
+		return this.generateTokens(await this.serialize(entity));
 	}
 
 	// ============================================================================
@@ -146,9 +176,8 @@ export class AuthManager {
 	// ============================================================================
 
 	/**
-	 * Authenticate credentials and shape the result into a canonical AuthUser.
-	 * Uses the registered `getUserById` (if any) to load full user data, and normalizes
-	 * the `role` relation to its id.
+	 * Authenticate credentials and shape the raw entity the provider returned into a
+	 * canonical AuthUser via `serializeUser` (which also normalizes the role to its id).
 	 */
 	private async resolveUser(providerName: string, credentials: any): Promise<AuthUser> {
 		const provider = this.providers.get(providerName);
@@ -156,24 +185,12 @@ export class AuthManager {
 			throw new Error(`Provider '${providerName}' not found`);
 		}
 
-		const authed = await provider.authenticate(credentials);
-		if (!authed) {
+		const entity = await provider.authenticate(credentials);
+		if (!entity) {
 			throw new Error(t('core:auth.invalid_credentials'));
 		}
 
-		return this.shapeUser(authed);
-	}
-
-	/** Load full user data (if a lookup is configured) and normalize the role to an id. */
-	private async shapeUser(user: AuthUser): Promise<AuthUser> {
-		const getUserById = (this as any)._getUserById as ((id: string) => Promise<AuthUser | null>) | undefined;
-		if (getUserById) {
-			const full = await getUserById(user.id);
-			if (full) {
-				return { ...full, role: normalizeRoleId(full.role) };
-			}
-		}
-		return { ...user, role: normalizeRoleId(user.role) };
+		return this.serialize(entity);
 	}
 
 	/**
@@ -237,7 +254,7 @@ export class AuthManager {
 			throw new Error(t('core:auth.invalid_challenge'));
 		}
 
-		const user: AuthUser = { ...rawUser, role: normalizeRoleId(rawUser.role) };
+		const user: AuthUser = withNormalizedRole(rawUser);
 		const ok = await challenge.verify(user, payload, ctx);
 		if (!ok) {
 			throw new Error(t('core:auth.verification_failed'));
@@ -360,7 +377,7 @@ export class AuthManager {
 		const router = Router();
 
 		// Store getUserById for use in route handlers
-		const _getUserById = getUserById || (this as any)._getUserById;
+		const _getUserById = getUserById || this._getUserById;
 		const _getEm = getEm || (() => undefined);
 
 		// GET /auth/providers - List available providers
@@ -441,8 +458,8 @@ export class AuthManager {
 				if (_getUserById) {
 					const fullUser = await _getUserById(tokenUser.id);
 					if (fullUser) {
-						// `role` may be a relation reference/entity; expose its id consistently.
-						user = { ...fullUser, role: normalizeRoleId(fullUser.role) };
+						// `role` (if any) may be a relation reference/entity; expose its id consistently.
+						user = withNormalizedRole(fullUser);
 					}
 				}
 
@@ -585,12 +602,14 @@ export class AuthManager {
 					});
 				}
 
-				// Handle OAuth callback
-				const user = await authProvider.handleCallback(code as string, state as string);
-				if (!user) {
+				// Handle OAuth callback — provider returns the raw entity; shape it the
+				// same way the credentials flow does, via serializeUser.
+				const entity = await authProvider.handleCallback(code as string, state as string);
+				if (!entity) {
 					res.status(401).json({ error: t('core:auth.oauth_failed') });
 					return;
 				}
+				const user = await this.serialize(entity);
 
 				// Generate tokens
 				const tokens = {

@@ -42,9 +42,9 @@ const adminPanel = Panel.make('admin')
 // 	});
 
 // Email/password login. With `userEntity` set, `validateCredentials` and `getUserById`
-// are provided by default (look up the user, verify the password, resolve the avatar).
-// To customize, pass your own `validateCredentials` to EmailAuthProvider, add more
-// providers, or pass a `getUserById` here. Map non-standard field names with `userFields`.
+// are provided by default (look up the user, verify the password). Providers return the
+// raw user entity; a single `serializeUser` shapes it for the client across every provider
+// and endpoint — set it to expose extra columns. Map non-standard field names with `userFields`.
 adminPanel.auth({
 	jwt: {
 		secret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
@@ -53,6 +53,9 @@ adminPanel.auth({
 	},
 	userEntity: User,
 	providers: [new EmailAuthProvider()],
+	// Expose extra columns to the client (and req.user) once via `extendUser`; it merges
+	// over the default user and applies to every provider and endpoint:
+	// extendUser: (user) => ({ department: user.department }),
 });
 
 // Serve static assets (including panel icon)

@@ -22,3 +22,18 @@ export function normalizeRoleId(role: unknown): string | undefined {
 	}
 	return String(role);
 }
+
+/**
+ * Return the user with its `role` normalized to an id — but only when a role is present.
+ *
+ * `role` is not a core concept (base apps are role-free; the permissions plugin adds it via
+ * `extendUser`). So this leaves a role-less user untouched instead of stamping on a
+ * `role: undefined` key, while still reducing a relation reference to its id when a role
+ * exists.
+ */
+export function withNormalizedRole<T extends { role?: unknown }>(user: T): T {
+	if (user.role === null || user.role === undefined) {
+		return user;
+	}
+	return { ...user, role: normalizeRoleId(user.role) };
+}

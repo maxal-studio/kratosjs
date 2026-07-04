@@ -83,6 +83,9 @@ adminPanel.auth({
 	// `userEntity` enables default validateCredentials + getUserById.
 	userEntity: User,
 	providers: [new EmailAuthProvider()],
+	// To expose extra columns to the client (and req.user), add them once via `extendUser`.
+	// It merges over the default user and applies to every provider and endpoint:
+	// extendUser: (user) => ({ department: user.department }),
 });
 
 adminPanel.useStatic('/assets', assetsPath);

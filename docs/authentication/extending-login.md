@@ -40,7 +40,8 @@ normal request.
 ```
 POST /auth/login
   → runHooks('beforeAuthenticate')
-  → provider.authenticate(credentials) → user
+  → provider.authenticate(credentials) → raw entity
+  → serializeUser(entity) → user
   → runHooks('afterAuthenticate')
   → for each registered challenge: isRequired(user)?
        • none required → issue tokens, set cookies → { status: 'authenticated' }

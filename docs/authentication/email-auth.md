@@ -28,8 +28,10 @@ const panel = Panel.make('admin')
 ```
 
 The default flow looks the user up by `email` (lowercased), verifies the password hash,
-resolves the avatar from `profileMediaImage`, and returns the authenticated user. `getUserById`
-(used by `/auth/me` and token refresh) does the equivalent lookup by primary key.
+and returns the **raw user entity**. A single `serializeUser` then shapes that entity into
+the user returned to the client (id, email, name, avatar — plus `role` when the entity has
+one). `getUserById` (used by `/auth/me` and token refresh) does the equivalent lookup by
+primary key and is shaped by the same `serializeUser`, so every path returns the same fields.
 
 > `providers` is optional too — omit it and a default `EmailAuthProvider` is added
 > automatically when `userEntity` is set. It's shown explicitly above so it's easy to
@@ -48,11 +50,18 @@ The defaults assume these properties on the user entity: `email`, `password`, `f
 });
 ```
 
+## Customizing the returned user
+
+To expose extra columns or reshape the user returned to the client, use `extendUser` /
+`serializeUser`. They apply to **all** providers, so they're documented once in
+[Customizing the returned user](/authentication/overview#customizing-the-returned-user).
+
 ## Overriding the defaults
 
 Each piece is overridable; pass your own and it takes precedence over the default.
 
-**Custom credential check** — pass `validateCredentials` to the provider:
+**Custom credential check** — pass `validateCredentials` to the provider. It returns the raw
+user entity (or `null`); `serializeUser` handles the shaping, so no field mapping here:
 
 ```typescript
 providers: [
@@ -61,13 +70,13 @@ providers: [
 		validateCredentials: async (email, password) => {
 			const user = await panel.getEm().findOne(User, { email: email.toLowerCase() });
 			if (!user || !(await verifyPassword(password, user.password))) return null;
-			return { _id: String(user.id), email: user.email, firstname: user.firstname, role: user.role };
+			return user; // raw entity; serializeUser shapes it
 		},
 	}),
 ],
 ```
 
-**Custom user lookup** — pass `getUserById`:
+**Custom user lookup** — pass `getUserById` (returns the already-shaped user):
 
 ```typescript
 .auth({

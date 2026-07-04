@@ -1,6 +1,5 @@
 import { AuthProvider } from '../AuthProvider';
-import { AuthProviderConfig, AuthUser, AuthButtonConfig } from '../types';
-import { formatUserDisplayName } from '../formatUserDisplayName';
+import { AuthProviderConfig, AuthButtonConfig } from '../types';
 
 /**
  * Configuration for GitHub OAuth provider
@@ -14,22 +13,18 @@ export interface GitHubAuthProviderConfig extends Omit<AuthProviderConfig, 'name
 	redirectUri: string;
 	/** Base URL of your application (for generating redirect URI) */
 	baseUrl: string;
-	/** Function to find user from GitHub profile */
+	/**
+	 * Resolve a stored user from a GitHub profile. Return the raw user entity (the DB
+	 * row) or `null`. The panel's `serializeUser` shapes it for the client — do NOT map
+	 * fields here.
+	 */
 	findUser: (githubProfile: {
 		id: string;
 		email: string;
 		name?: string;
 		avatar_url?: string;
 		login: string;
-	}) => Promise<{
-		_id: string;
-		email: string;
-		firstname?: string;
-		lastname?: string;
-		role?: string;
-		profileMediaImage?: { url: string };
-		[key: string]: any;
-	} | null>;
+	}) => Promise<any | null>;
 }
 
 /**
@@ -59,7 +54,7 @@ export class GitHubAuthProvider extends AuthProvider {
 	 * Authenticate is not used for OAuth providers
 	 * OAuth uses handleCallback instead
 	 */
-	async authenticate(_credentials: any): Promise<AuthUser | null> {
+	async authenticate(_credentials: any): Promise<any | null> {
 		throw new Error('GitHub OAuth provider does not support direct authentication. Use OAuth flow instead.');
 	}
 
@@ -80,7 +75,7 @@ export class GitHubAuthProvider extends AuthProvider {
 	/**
 	 * Handle OAuth callback - exchange code for access token and get user info
 	 */
-	async handleCallback(code: string, state: string): Promise<AuthUser | null> {
+	async handleCallback(code: string, state: string): Promise<any | null> {
 		try {
 			// Exchange authorization code for access token
 			const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
@@ -163,7 +158,7 @@ export class GitHubAuthProvider extends AuthProvider {
 				return null;
 			}
 
-			// Find user in database
+			// Find user in database — returns the raw entity, shaped later by serializeUser.
 			const user = await this.findUser({
 				id: githubUser.id.toString(),
 				email,
@@ -172,24 +167,7 @@ export class GitHubAuthProvider extends AuthProvider {
 				login: githubUser.login,
 			});
 
-			if (!user) {
-				return null;
-			}
-
-			// Ensure _id is a string
-			const userId = typeof user._id === 'string' ? user._id : (user._id as any)?.toString() || String(user._id);
-
-			return {
-				id: userId,
-				email: user.email,
-				name: formatUserDisplayName(user),
-				role: user.role,
-				avatarUrl: user.profileMediaImage?.url,
-				_auth: {
-					provider: 'github',
-					providerId: user._id.toString(),
-				},
-			};
+			return user ?? null;
 		} catch (error) {
 			console.error('GitHub OAuth callback error:', error);
 			return null;

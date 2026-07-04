@@ -17,10 +17,13 @@ import {
 	UserFieldMap,
 	ResolvedUserFieldMap,
 	AuthDefaultsContext,
+	SerializeUser,
+	SerializeUserContext,
+	ExtendUser,
 	AuthHooks,
 	AuthChallengeProvider,
 } from './auth/types';
-import { formatUserDisplayName } from './auth/formatUserDisplayName';
+import { defaultSerializeUser } from './auth/serializeUser';
 import { verifyPassword as defaultVerifyPassword } from './auth/password';
 import { authMiddleware, optionalAuthMiddleware } from './auth/middleware';
 import { MediaAdapter } from './adapters/media/MediaAdapter';
@@ -915,6 +918,20 @@ export class Panel {
 		userEntity?: unknown;
 		/** Map the conventional user fields to your entity's property names. */
 		userFields?: UserFieldMap;
+		/**
+		 * Fully replace how the raw user entity becomes the client-facing user, for every
+		 * provider and every endpoint (login, OAuth, `/me`, `/refresh`). Rarely needed —
+		 * prefer `extendUser` to just add fields. Optional: defaults to
+		 * {@link defaultSerializeUser} (id/email/name/avatarUrl, plus role when present).
+		 */
+		serializeUser?: SerializeUser;
+		/**
+		 * Additively expose extra fields on the user without rewriting the whole mapping.
+		 * The returned object is merged **over** the base serialized user (and can override
+		 * its keys). Applies to every provider and endpoint, and is carried in the access
+		 * token — keep it identity-sized and non-secret.
+		 */
+		extendUser?: ExtendUser;
 		/** Verify a plaintext password against a stored hash. Defaults to bcrypt. */
 		verifyPassword?: (plain: string, hash: string | undefined | null) => Promise<boolean>;
 	}): this {
@@ -922,6 +939,14 @@ export class Panel {
 
 		const fields = this._resolveUserFields(config.userFields);
 		const verifyPassword = config.verifyPassword ?? defaultVerifyPassword;
+		const serializeCtx: SerializeUserContext = {
+			fields,
+			resolveMediaUrl: (value: any) => this.resolveMediaUrl(value),
+			getEm: () => this.getEm(),
+		};
+		// Compose the effective serializer once: base (custom or default), then merge any
+		// `extendUser` additions over it. Used by every path (login, OAuth, /me, refresh).
+		const serializeUser = this._composeSerializeUser(config.serializeUser, config.extendUser);
 
 		// Default to an email/password provider when none supplied and we have an entity.
 		const providers = config.providers ?? (config.userEntity ? [new EmailAuthProvider()] : []);
@@ -931,7 +956,6 @@ export class Panel {
 			fields,
 			getEm: () => this.getEm(),
 			getDriverKind: () => this.getDriverKind(),
-			resolveMediaUrl: (value: any) => this.resolveMediaUrl(value),
 			verifyPassword,
 		};
 
@@ -941,12 +965,12 @@ export class Panel {
 			this._authManager.registerProvider(provider);
 		}
 
-		// Store getUserById (explicit, or a default backed by the user entity) for refresh / me.
+		// getUserById (explicit, or a default backed by the user entity) for refresh / me.
 		const getUserById =
-			config.getUserById ?? (config.userEntity ? this._defaultGetUserById(config.userEntity, fields) : undefined);
-		if (getUserById) {
-			(this._authManager as any)._getUserById = getUserById;
-		}
+			config.getUserById ??
+			(config.userEntity ? this._defaultGetUserById(config.userEntity, serializeUser, serializeCtx) : undefined);
+
+		this._authManager.setUserShaping({ serializeUser, serializeCtx, getUserById });
 
 		return this;
 	}
@@ -964,13 +988,27 @@ export class Panel {
 	}
 
 	/**
+	 * Compose the effective user serializer: a base (a custom `serializeUser` or the
+	 * default), with any `extendUser` additions merged over it. The result is the single
+	 * mapping used across every provider and endpoint.
+	 */
+	private _composeSerializeUser(serializeUser?: SerializeUser, extendUser?: ExtendUser): SerializeUser {
+		const base = serializeUser ?? defaultSerializeUser;
+		if (!extendUser) {
+			return base;
+		}
+		return async (user, ctx) => ({ ...(await base(user, ctx)), ...(await extendUser(user, ctx)) });
+	}
+
+	/**
 	 * Build the default `getUserById`: look the user up by primary key (driver-aware),
-	 * resolve the avatar, and return the AuthUser shape. `role` is passed through as-is;
-	 * core reduces a relation to its id when issuing the token.
+	 * then shape it with the same `serializeUser` used by the login flow — so `/me` and
+	 * `/refresh` expose exactly the fields an app configured, with no separate mapping.
 	 */
 	private _defaultGetUserById(
 		userEntity: unknown,
-		fields: ResolvedUserFieldMap,
+		serializeUser: SerializeUser,
+		serializeCtx: SerializeUserContext,
 	): (id: string) => Promise<AuthUser | null> {
 		return async (id: string): Promise<AuthUser | null> => {
 			const em = this.getEm();
@@ -979,14 +1017,7 @@ export class Panel {
 			if (!user) {
 				return null;
 			}
-			const avatarUrl = await this.resolveMediaUrl(user[fields.image]);
-			return {
-				id: String(user.id ?? user._id),
-				email: user[fields.email],
-				name: formatUserDisplayName({ firstname: user[fields.firstname], lastname: user[fields.lastname] }),
-				role: user[fields.role],
-				avatarUrl,
-			};
+			return serializeUser(user, serializeCtx);
 		};
 	}
 
