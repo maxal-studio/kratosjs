@@ -27,9 +27,61 @@ panel.auth({
 });
 ```
 
-`EmailAuthProvider` is the default provider; override its `validateCredentials`, pass your
+`EmailAuthProvider` is the default provider. You can override `validateCredentials`, pass your
 own `getUserById`, map field names with `userFields`, or add more providers. See
-[Email & Password](/authentication/email-auth) for all the overrides.
+[Email & Password](/authentication/email-auth) for the email-specific overrides and
+[OAuth](/authentication/oauth) for OAuth providers.
+
+## Customizing the returned user
+
+What the client (and `req.user` on protected routes) receives about the logged-in user is
+produced in **one place**, for **every** provider (email, OAuth, custom) and **every** endpoint
+(login, `/auth/me`, refresh). Providers only verify identity and return the raw user entity —
+you never touch a provider to add a field.
+
+### `extendUser` — add a few fields (recommended)
+
+The common case is exposing an extra column or two. `extendUser` returns fields that are
+**merged over** the default user, so you don't re-declare `id`/`email`/`name`/`avatarUrl`:
+
+```typescript
+panel.auth({
+	jwt: {
+		/* ... */
+	},
+	userEntity: User,
+	extendUser: user => ({
+		department: user.department, // <-- extra column, added in ONE place
+		theme: user.theme,
+	}),
+});
+```
+
+### `serializeUser` — replace the whole shape
+
+When you need full control (rename fields, compute `name` differently, drop defaults), replace
+the serializer outright:
+
+```typescript
+panel.auth({
+	jwt: {
+		/* ... */
+	},
+	userEntity: User,
+	serializeUser: async (user, { resolveMediaUrl }) => ({
+		id: String(user.id),
+		email: user.email,
+		name: `${user.firstname} ${user.lastname}`,
+		avatarUrl: await resolveMediaUrl(user.profileMediaImage),
+	}),
+});
+```
+
+> **Where the fields land.** The serialized user is returned in the login response, by
+> `/auth/me`, and is **encoded in the access token** — so `req.user` on protected routes carries
+> exactly the same fields. Because the token is signed (not encrypted) and rides on every
+> request, keep `serializeUser` / `extendUser` output identity-sized and non-secret; it refreshes
+> on each token renewal.
 
 ## JWT Configuration
 

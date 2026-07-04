@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AuthManager } from '../src';
+import { AuthManager, verifyAccessToken } from '../src';
 import type { AuthUser, AuthHookContext, AuthChallengeProvider } from '../src';
 
 // These tests pin the login pipeline: the hook lifecycle and the challenge protocol.
@@ -11,8 +11,12 @@ function makeManager(): AuthManager {
 	return new AuthManager(jwtConfig);
 }
 
-/** Minimal AuthProvider stub: only getName/authenticate are exercised by the pipeline. */
-function fakeProvider(name: string, user: AuthUser | null) {
+/**
+ * Minimal AuthProvider stub: only getName/authenticate are exercised by the pipeline.
+ * Providers now return the raw user entity; the manager shapes it via serializeUser
+ * (identity by default in these tests, so the entity flows through unchanged).
+ */
+function fakeProvider(name: string, user: any | null) {
 	return {
 		getName: () => name,
 		authenticate: async () => user,
@@ -38,6 +42,57 @@ describe('AuthManager login pipeline', () => {
 			expect(result.tokens.accessToken).toBeTruthy();
 			expect(result.tokens.refreshToken).toBeTruthy();
 		}
+	});
+
+	it('shapes the raw entity via a configured serializeUser (custom fields + role id)', async () => {
+		const mgr = makeManager();
+		// serializeUser is the single place that maps a raw row to the client user.
+		mgr.setUserShaping({
+			serializeUser: (entity: any) => ({
+				id: String(entity.id),
+				email: entity.email,
+				name: entity.name,
+				role: entity.role,
+				department: entity.department, // extra column, added in ONE place
+			}),
+		});
+		// Provider returns the raw entity, including a relation-shaped role.
+		mgr.registerProvider(
+			fakeProvider('email', {
+				id: 1,
+				email: 'bob@example.com',
+				name: 'Bob',
+				role: { id: 7 },
+				department: 'engineering',
+			}),
+		);
+
+		const result = await mgr.attemptLogin('email', {}, ctxFor('email'));
+
+		expect(result.status).toBe('authenticated');
+		if (result.status === 'authenticated') {
+			expect(result.user.department).toBe('engineering');
+			// role relation object is normalized to its id
+			expect(result.user.role).toBe('7');
+			expect(result.user.id).toBe('1');
+
+			// The full serialized user (incl. custom fields) is encoded in the access token,
+			// so req.user matches what /me returns — not a truncated whitelist.
+			const decoded = verifyAccessToken(result.tokens.accessToken, jwtConfig.secret);
+			expect(decoded).toMatchObject({ id: '1', email: 'bob@example.com', role: '7', department: 'engineering' });
+		}
+	});
+
+	it('omits role from the token when the user has none (base app)', async () => {
+		const mgr = makeManager();
+		mgr.registerProvider(fakeProvider('email', { id: '9', email: 'noRole@example.com', name: 'NoRole' }));
+
+		const result = await mgr.attemptLogin('email', {}, ctxFor('email'));
+		if (result.status !== 'authenticated') throw new Error('expected authenticated');
+
+		const decoded = verifyAccessToken(result.tokens.accessToken, jwtConfig.secret)!;
+		expect(decoded.id).toBe('9');
+		expect('role' in decoded).toBe(false);
 	});
 
 	it('pauses with a challenge (no tokens) when a challenge isRequired', async () => {

@@ -1,4 +1,4 @@
-import { AuthProviderConfig, AuthButtonConfig, AuthUser, AuthDefaultsContext } from './types';
+import { AuthProviderConfig, AuthButtonConfig, AuthDefaultsContext } from './types';
 
 /**
  * Abstract base class for authentication providers
@@ -12,10 +12,12 @@ export abstract class AuthProvider {
 	}
 
 	/**
-	 * Authenticate user with credentials
-	 * Must be implemented by all providers
+	 * Authenticate user with credentials. Return the raw user entity (the DB row) when
+	 * valid, or `null` otherwise. Providers do NOT shape the public user — the panel's
+	 * `serializeUser` maps the returned entity to the client-facing `AuthUser`.
+	 * Must be implemented by all providers.
 	 */
-	abstract authenticate(credentials: any): Promise<AuthUser | null>;
+	abstract authenticate(credentials: any): Promise<any | null>;
 
 	/**
 	 * Get OAuth authorization URL (for OAuth providers)
@@ -24,10 +26,10 @@ export abstract class AuthProvider {
 	getAuthorizationUrl?(state: string): string;
 
 	/**
-	 * Handle OAuth callback (for OAuth providers)
-	 * Optional - only needed for OAuth providers
+	 * Handle OAuth callback (for OAuth providers). Returns the raw user entity (shaped
+	 * later by `serializeUser`) or `null`. Optional - only needed for OAuth providers.
 	 */
-	handleCallback?(code: string, state: string): Promise<AuthUser | null>;
+	handleCallback?(code: string, state: string): Promise<any | null>;
 
 	/**
 	 * Receive panel-provided defaults (user entity, field map, EM accessor, media
