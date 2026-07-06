@@ -42,6 +42,14 @@ export class AuthManager {
 	private _serializeCtx: SerializeUserContext = {} as SerializeUserContext;
 	/** Request-scoped user lookup by id (for /me, /refresh, /challenge). */
 	private _getUserById?: (id: string) => Promise<AuthUser | null>;
+	/**
+	 * Full URL prefix where the auth router is actually mounted (e.g. `/kratosjs/api/auth`).
+	 * The panel injects it via {@link getRoutes} so the refresh-token cookie can be scoped to
+	 * the real refresh endpoint. A browser only returns a cookie whose `path` prefixes the
+	 * request URL, so this MUST match the mount — otherwise the cookie is never sent and every
+	 * refresh silently fails. Defaults to `/auth` (unprefixed mount).
+	 */
+	private authMountPath = '/auth';
 
 	constructor(jwtConfig: JWTConfig) {
 		this.jwtConfig = jwtConfig;
@@ -116,14 +124,23 @@ export class AuthManager {
 		res.cookie('kratosjs_refresh_token', tokens.refreshToken, {
 			...base,
 			maxAge: refreshMaxAge,
-			path: '/auth/refresh',
+			path: this.refreshCookiePath,
 		});
 	}
 
 	private clearAuthCookies(res: Response): void {
 		const domain = this.jwtConfig.cookie?.domain;
 		res.clearCookie('kratosjs_access_token', { path: '/', domain });
-		res.clearCookie('kratosjs_refresh_token', { path: '/auth/refresh', domain });
+		res.clearCookie('kratosjs_refresh_token', { path: this.refreshCookiePath, domain });
+	}
+
+	/**
+	 * Path the refresh-token cookie is scoped to — the actual mounted refresh endpoint
+	 * (`{authMountPath}/refresh`, e.g. `/kratosjs/api/auth/refresh`). Must equal the URL the
+	 * client POSTs to, or the browser withholds the cookie and refresh always fails.
+	 */
+	private get refreshCookiePath(): string {
+		return `${this.authMountPath}/refresh`;
 	}
 
 	/**
@@ -372,9 +389,15 @@ export class AuthManager {
 	 * Get Express router with all auth routes
 	 * @param getUserById - request-scoped user lookup (for /me, /refresh, /challenge)
 	 * @param getEm - request-scoped EntityManager accessor (passed to auth hooks/challenges)
+	 * @param basePath - URL prefix this router is mounted under (the panel's base path, e.g.
+	 *   `/kratosjs/api`). Used to scope the refresh-token cookie to the real refresh endpoint.
 	 */
-	getRoutes(getUserById?: (id: string) => Promise<AuthUser | null>, getEm?: () => any): Router {
+	getRoutes(getUserById?: (id: string) => Promise<AuthUser | null>, getEm?: () => any, basePath = ''): Router {
 		const router = Router();
+
+		// The router is mounted at `${basePath}/auth`; record the full prefix so the
+		// refresh-token cookie's path matches the endpoint the client actually calls.
+		this.authMountPath = `${basePath}/auth`;
 
 		// Store getUserById for use in route handlers
 		const _getUserById = getUserById || this._getUserById;
@@ -612,11 +635,7 @@ export class AuthManager {
 				const user = await this.serialize(entity);
 
 				// Generate tokens
-				const tokens = {
-					accessToken: generateAccessToken(user, this.jwtConfig),
-					refreshToken: generateRefreshToken(user, this.jwtConfig),
-					expiresIn: getTokenExpiration(this.jwtConfig.accessTokenExpiry || '15m'),
-				};
+				const tokens = this.generateTokens(user);
 
 				this.setAuthCookies(res, tokens);
 

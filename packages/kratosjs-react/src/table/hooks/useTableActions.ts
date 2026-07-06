@@ -12,6 +12,7 @@ import { translate } from '../../i18n/activeLocale';
 
 export interface ActionFormModalState {
 	actionName: string;
+	actionLabel?: string;
 	recordIds: string[];
 	formSchema: SerializedForm;
 	isBulk?: boolean;
@@ -196,6 +197,7 @@ export function useTableActions(options: UseTableActionsOptions): TableActionsAp
 			if (actionConfig.form) {
 				setActionFormModal({
 					actionName,
+					actionLabel: actionConfig.label,
 					recordIds: [rowId],
 					formSchema: actionConfig.form,
 					isBulk: false,
@@ -274,6 +276,7 @@ export function useTableActions(options: UseTableActionsOptions): TableActionsAp
 			if (actionConfig.form) {
 				setActionFormModal({
 					actionName,
+					actionLabel: actionConfig.label,
 					recordIds: selectedIds,
 					formSchema: actionConfig.form,
 					isBulk: true,
@@ -340,6 +343,7 @@ export function useTableActions(options: UseTableActionsOptions): TableActionsAp
 			if (actionConfig.form) {
 				setActionFormModal({
 					actionName,
+					actionLabel: actionConfig.label,
 					recordIds: [],
 					formSchema: actionConfig.form,
 					isBulk: true,

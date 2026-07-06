@@ -260,6 +260,7 @@ const en = {
 	'common.video_thumbnail': 'Video thumbnail',
 	'common.error': 'Error',
 	'widget.data_label': 'Data',
+	'widget.legend': 'Legend',
 	'filters.advanced_search': 'Advanced Search',
 	'error.fetch_form_data': 'Failed to fetch form data',
 	'error.fetch_form_data_generic': 'An error occurred while fetching form data',

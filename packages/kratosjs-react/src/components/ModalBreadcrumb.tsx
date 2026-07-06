@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronRight, Loader2 } from 'lucide-react';
 import { useResourceModal, ModalState } from '../contexts/ResourceModalContext';
 import { cn } from '../utils/classNames';
+import { buildModalPath } from '../utils/modalUrl';
 import { pillTabClass } from './ui/PillButton';
 import { translate } from '../i18n/activeLocale';
 
@@ -26,7 +27,9 @@ export function ModalBreadcrumb() {
 		}
 
 		const target = modalStack[targetIndex];
-		window.history.replaceState(null, '', `/${target.resource}/${target.recordId || ''}`);
+		// action modals have no routable path — fall back to the record they act on.
+		const targetPath = buildModalPath(target) ?? `/${target.resource}/${target.recordId || ''}`;
+		window.history.replaceState(null, '', targetPath);
 	};
 
 	return (

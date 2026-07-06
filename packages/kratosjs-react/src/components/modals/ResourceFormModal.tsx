@@ -103,6 +103,7 @@ export function ResourceFormModal({
 			width="max-w-2xl"
 			depth={depth}
 			onCloseAll={onCloseAll}
+			backdropClosesAll={mode !== 'action'}
 			onCopyUrl={handleCopyUrl}
 			urlCopied={urlCopied}>
 			{form.loading && (

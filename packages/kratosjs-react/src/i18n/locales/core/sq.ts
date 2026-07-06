@@ -262,6 +262,7 @@ const sq = {
 	'common.video_thumbnail': 'Miniatura e videos',
 	'common.error': 'Gabim',
 	'widget.data_label': 'Të dhëna',
+	'widget.legend': 'Legjenda',
 	'filters.advanced_search': 'Kërkim i avancuar',
 	'error.fetch_form_data': 'Marrja e të dhënave të formularit dështoi',
 	'error.fetch_form_data_generic': 'Ndodhi një gabim gjatë marrjes së të dhënave të formularit',

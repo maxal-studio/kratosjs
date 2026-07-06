@@ -213,7 +213,7 @@ export function ViewModal({
 				onCloseAll={onCloseAll}
 				onCopyUrl={handleCopyUrl}
 				urlCopied={urlCopied}>
-				<div className="-mx-4 -mt-4 flex h-full flex-col sm:-mx-6 sm:-mt-6">
+				<div className="-mx-4 -mt-4 flex h-full flex-col sm:-mx-6">
 					{view.loading && (
 						<div className="flex items-center justify-center py-12">
 							<Spinner size="lg" label={translate('core:common.loading_ellipsis')} />

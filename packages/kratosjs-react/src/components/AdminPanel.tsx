@@ -16,6 +16,7 @@ import { AdminPanelProps } from '../types';
 import { authenticatedFetch } from '../api/authenticatedFetch';
 import { useTranslation } from '../i18n/useTranslation';
 import { useLocale } from '../i18n/useLocale';
+import { useModalUrlSync } from '../hooks/useModalUrlSync';
 
 export interface PageMetadata {
 	slug: string;
@@ -258,6 +259,10 @@ function AdminPanelContent({ apiBaseUrl, panelId }: { apiBaseUrl: string; panelI
  */
 function ModalStackRenderer({ apiBaseUrl }: { apiBaseUrl: string }) {
 	const { modalStack, closeModal, closeAllModals } = useResourceModal();
+
+	// Keep the address bar in sync with the top of the modal stack (single source of
+	// truth). Handles every opener uniformly via replaceState — no redirect/remount.
+	useModalUrlSync(modalStack);
 
 	// Refs so handlers always read the latest values without being recreated.
 	// ResourceModalRenderer is memoized and ignores onClose/onCloseAll prop updates.
