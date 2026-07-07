@@ -1,6 +1,6 @@
 {
 	"name": "@maxal_studio/kratosjs",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "KratosJs - A powerful admin panel builder for Node.js.",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
@@ -59,7 +59,7 @@
 	"peerDependencies": {
 		"@aws-sdk/client-s3": "^3.0.0",
 		"@aws-sdk/s3-request-presigner": "^3.0.0",
-		"@maxal_studio/kratosjs-react": "^1.0.1",
+		"@maxal_studio/kratosjs-react": "^1.0.2",
 		"@mikro-orm/mariadb": "^7.0.0",
 		"@mikro-orm/migrations": "^7.0.0",
 		"@mikro-orm/migrations-mongodb": "^7.0.0",

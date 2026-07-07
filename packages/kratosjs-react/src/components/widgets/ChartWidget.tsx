@@ -13,8 +13,8 @@ import {
 	ChartOptions,
 } from 'chart.js';
 import { Line, Bar, Pie } from 'react-chartjs-2';
-import { cn } from '../../utils/classNames';
 import { WidgetShell } from './WidgetShell';
+import { ChartLegendPopover, ChartLegendItem } from './ChartLegendPopover';
 import { translate } from '../../i18n/activeLocale';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
@@ -108,6 +108,22 @@ function colorForLabel(theme: ReturnType<typeof getThemeColors>, label: string, 
 
 export function ChartWidget({ widget, data }: ChartWidgetProps) {
 	const theme = useMemo(() => getThemeColors(), []);
+	const showLegend = widget.showLegend ?? false;
+
+	const legendItems = useMemo<ChartLegendItem[]>(() => {
+		if (!data || data.length === 0) {
+			return [];
+		}
+
+		if (widget.chartType === 'line') {
+			return [{ label: widget.label || translate('core:widget.data_label'), color: theme.accent }];
+		}
+
+		return data.map((item, index) => ({
+			label: item.label,
+			color: colorForLabel(theme, item.label, index),
+		}));
+	}, [data, widget.chartType, widget.label, theme]);
 
 	const chartData = useMemo(() => {
 		if (!data || data.length === 0) {
@@ -164,24 +180,13 @@ export function ChartWidget({ widget, data }: ChartWidgetProps) {
 	}, [data, widget.label, widget.chartType, theme]);
 
 	const options: ChartOptions<'line' | 'bar' | 'pie'> = useMemo(() => {
-		const showLegend = widget.showLegend ?? false;
-
 		if (widget.chartType === 'pie') {
 			return {
 				responsive: true,
 				maintainAspectRatio: false,
 				plugins: {
-					legend: {
-						display: showLegend,
-						position: 'bottom',
-						labels: {
-							padding: 12,
-							usePointStyle: true,
-							boxWidth: 8,
-							color: theme.tick,
-							font: { size: 11 },
-						},
-					},
+					// Legend is surfaced via the header popover (ChartLegendPopover) so it never consumes chart height.
+					legend: { display: false },
 					tooltip: {
 						backgroundColor: theme.tooltipBg,
 						titleColor: theme.tick,
@@ -198,7 +203,7 @@ export function ChartWidget({ widget, data }: ChartWidgetProps) {
 			responsive: true,
 			maintainAspectRatio: false,
 			plugins: {
-				legend: { display: showLegend, labels: { color: theme.tick, boxWidth: 8 } },
+				legend: { display: false },
 				tooltip: {
 					backgroundColor: theme.tooltipBg,
 					titleColor: theme.tick,
@@ -223,9 +228,10 @@ export function ChartWidget({ widget, data }: ChartWidgetProps) {
 				},
 			},
 		};
-	}, [widget.chartType, widget.showLegend, theme]);
+	}, [widget.chartType, theme]);
 
 	const ChartComponent = widget.chartType === 'line' ? Line : widget.chartType === 'bar' ? Bar : Pie;
+	const legendAction = showLegend ? <ChartLegendPopover items={legendItems} /> : undefined;
 
 	if (!data || data.length === 0) {
 		return (
@@ -238,8 +244,8 @@ export function ChartWidget({ widget, data }: ChartWidgetProps) {
 	}
 
 	return (
-		<WidgetShell label={widget.label} icon={widget.icon} className={cn('min-h-[11rem]', widget.color)}>
-			<div className="min-h-[7.5rem] flex-1">
+		<WidgetShell label={widget.label} icon={widget.icon} headerAction={legendAction} className={widget.color}>
+			<div className="min-h-0 flex-1">
 				<ChartComponent data={chartData} options={options as any} />
 			</div>
 		</WidgetShell>

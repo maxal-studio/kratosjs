@@ -38,6 +38,10 @@ export class UserResource extends Resource {
 }
 ```
 
+![Dashboard](./docs/images/dashboard.png)
+
+![Orders](./docs/images/orders.png)
+
 ## Features
 
 | Feature                          | Description                                                                                                       |

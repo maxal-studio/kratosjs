@@ -18,6 +18,12 @@ export interface ModalDrawerProps {
 	urlCopied?: boolean;
 	/** Optional pinned footer (e.g. form buttons) */
 	footer?: ReactNode;
+	/**
+	 * When true (default), clicking the backdrop of a stacked modal closes the whole
+	 * stack (onCloseAll). Set false so the backdrop closes only this modal (onClose) —
+	 * used for action modals, whose onClose is the only path that tears down their state.
+	 */
+	backdropClosesAll?: boolean;
 }
 
 export function ModalDrawer({
@@ -30,6 +36,7 @@ export function ModalDrawer({
 	onCopyUrl,
 	urlCopied,
 	footer,
+	backdropClosesAll = true,
 }: ModalDrawerProps) {
 	useEffect(() => {
 		const handleEscape = (e: KeyboardEvent) => {
@@ -67,7 +74,7 @@ export function ModalDrawer({
 		<div className="fixed inset-0" style={{ zIndex }}>
 			<div
 				className={cn('absolute inset-0 transition-opacity', depth === 0 && 'bg-black/40 backdrop-blur-[2px]')}
-				onClick={onCloseAll ?? onClose}
+				onClick={backdropClosesAll ? (onCloseAll ?? onClose) : onClose}
 				aria-hidden
 			/>
 
@@ -123,7 +130,7 @@ export function ModalDrawer({
 
 				<ModalBreadcrumb />
 
-				<div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-surface p-4 sm:p-6">{children}</div>
+				<div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-surface p-4">{children}</div>
 
 				{/* Pinned footer: the `footer` prop and/or the `modal.footer` slot.
 				    `empty:hidden` collapses the bar when neither contributes. */}

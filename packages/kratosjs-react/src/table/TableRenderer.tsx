@@ -360,12 +360,7 @@ export function TableRenderer({
 							closeModal();
 						}}
 						actionName={actions.actionFormModal.actionName}
-						actionLabel={
-							(actions.actionFormModal.isBulk
-								? schema.bulkActions?.find(a => a.name === actions.actionFormModal!.actionName)?.label
-								: schema.actions?.find(a => a.name === actions.actionFormModal!.actionName)?.label) ||
-							actions.actionFormModal.actionName
-						}
+						actionLabel={actions.actionFormModal.actionLabel || actions.actionFormModal.actionName}
 						formSchema={actions.actionFormModal.formSchema}
 						recordIds={actions.actionFormModal.recordIds}
 						isBulk={actions.actionFormModal.isBulk}
