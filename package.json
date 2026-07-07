@@ -34,7 +34,7 @@
 	],
 	"scripts": {
 		"release": "npm run build && npm run publish:packages",
-		"publish:packages": "npm publish && npm publish -w @maxal_studio/kratosjs-react && npm publish -w @maxal_studio/kratosjs-cli",
+		"publish:packages": "npm publish && npm publish -w @maxal_studio/kratosjs-react && npm publish -w @maxal_studio/kratosjs-cli && npm publish -w @maxal_studio/kratosjs-skill",
 		"build": "npm run clean && tsc && npm run build:packages",
 		"build:packages": "npm run build:react && npm run build:cli",
 		"build:react": "npm run build -w @maxal_studio/kratosjs-react",
