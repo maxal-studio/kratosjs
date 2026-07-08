@@ -265,3 +265,27 @@ export function getFieldLayoutClasses(columns?: number | Record<string, number>)
 	}
 	return `${getGridClasses(columns)} gap-y-4`;
 }
+
+const BLOCK_COL_SPAN_LG: Record<number, string> = {
+	1: 'lg:col-span-1',
+	2: 'lg:col-span-2',
+	3: 'lg:col-span-3',
+	4: 'lg:col-span-4',
+	5: 'lg:col-span-5',
+	6: 'lg:col-span-6',
+	7: 'lg:col-span-7',
+	8: 'lg:col-span-8',
+	9: 'lg:col-span-9',
+	10: 'lg:col-span-10',
+	11: 'lg:col-span-11',
+	12: 'lg:col-span-12',
+};
+
+/**
+ * Responsive column span for the page block grid (12-col).
+ * Mobile stacks full-width, md shows 2-per-row, lg applies the author-defined columns.
+ */
+export function getBlockColSpanClasses(columns?: number): string {
+	const lg = BLOCK_COL_SPAN_LG[columns ?? 12] || 'lg:col-span-12';
+	return `col-span-12 md:col-span-6 ${lg}`;
+}
