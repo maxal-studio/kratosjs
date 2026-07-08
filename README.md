@@ -80,6 +80,10 @@ Open the printed URL and sign in with **admin@example.com** / **password** (seed
 | `@maxal_studio/kratosjs-react` | React rendering layer — `AdminPanel`, `FormRenderer`, `TableRenderer`, all field and column components |
 | `@maxal_studio/kratosjs-cli`   | Project scaffolding CLI                                                                                |
 
+## Demo
+
+A working demo is available at **[demo.kratosjs.com](https://demo.kratosjs.com)**.
+
 ## Documentation
 
 Full documentation is available at **[docs.kratosjs.com](https://docs.kratosjs.com)**.
