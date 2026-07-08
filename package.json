@@ -33,6 +33,7 @@
 		"examples/*"
 	],
 	"scripts": {
+		"version:all": "node scripts/version.mjs",
 		"release": "npm run build && npm run publish:packages",
 		"publish:packages": "npm publish --access public && npm publish --access public -w @maxal_studio/kratosjs-react && npm publish --access public -w @maxal_studio/kratosjs-cli && npm publish --access public -w @maxal_studio/kratosjs-skill",
 		"build": "npm run clean && tsc && npm run build:packages",
