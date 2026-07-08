@@ -18,7 +18,7 @@ KratosJs lets you describe your data model once with a fluent TypeScript API. Fr
 
 ```ts
 // One resource definition drives the API and the admin UI
-export class UserResource extends Resource {
+export class UserResource extends BaseResource {
 	static schema() {
 		return this.make()
 			.table(

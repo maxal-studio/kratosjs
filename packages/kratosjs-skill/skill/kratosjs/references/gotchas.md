@@ -56,17 +56,6 @@ await conn.execute('SET FOREIGN_KEY_CHECKS = 1');
 
 In hooks, actions, widgets, and seeders, always work on a fork: `panel.getEm().fork()` or `(ctx.adapter as any).getEm().fork()`. Don't reuse the global EM across requests.
 
-## 9. Superseded API names (don't use)
+## 9. Packages are public — treat breaking changes with care
 
-These appear in older material and are wrong for the current version:
-
-| Old / wrong                                                    | Current                                                                                                       |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `Action.make(x).action(async (records, ctx) => ({ message }))` | builders in `.actions()` + `static actions(): Record<string, ActionHandler>` returning `{ success, message }` |
-| `Relation.make(X).foreignKey('fk')`                            | `RelationConfig` object literal `{ name, resource, localKey, foreignKey, relatedKey }`                        |
-| `static searchableColumns = [...]`                             | `static globallySearchableAttributes = [...]` (+ column `.searchable()`)                                      |
-| `BooleanColumn`                                                | `ToggleColumn` / `CheckboxColumn`                                                                             |
-
-## 10. Pre-public packages — no back-compat shims
-
-The KratosJs packages aren't publicly released yet. When changing framework code, delete old code paths rather than adding compatibility shims; breaking changes are acceptable.
+The KratosJs packages are published on npm with real external consumers. When changing framework code, prefer deprecation paths and semver-appropriate versioning over silently deleting old behavior; don't make breaking changes casually.

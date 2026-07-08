@@ -1,6 +1,6 @@
 {
 	"name": "@maxal_studio/kratosjs-skill",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"description": "Portable Agent Skill that teaches AI coding assistants (Claude Code, Cursor, Codex, VS Code/Copilot, Gemini CLI, and 40+ others) how to build KratosJs admin panels.",
 	"type": "module",
 	"license": "ISC",

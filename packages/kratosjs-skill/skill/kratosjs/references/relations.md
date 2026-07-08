@@ -38,8 +38,6 @@ static relations(): RelationConfig[] {
 }
 ```
 
-> Use the `RelationConfig` object literal form. Older docs showing `Relation.make(X).foreignKey(...)` are outdated.
-
 ## Has-many (one-to-many)
 
 A parent shows an inline panel of children. Above, an `Order` lists its `OrderItem`s (`localKey: 'id'` on Order ↔ `foreignKey: 'order'` on OrderItem). The panel lets you list, create, edit, and delete children.
