@@ -52,6 +52,7 @@ export default defineConfig({
 					items: [
 						{ text: 'Overview', link: '/' },
 						{ text: 'Getting Started', link: '/getting-started' },
+						{ text: 'Build with AI', link: '/build-with-ai' },
 						{ text: 'Backend Setup', link: '/backend-setup' },
 						{ text: 'Database & MikroORM', link: '/database/overview' },
 					],

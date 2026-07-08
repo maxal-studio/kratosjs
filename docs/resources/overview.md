@@ -49,28 +49,28 @@ export class UserResource extends BaseResource {
 
 ## Resource Properties
 
-| Property            | Type           | Description                               |
-| ------------------- | -------------- | ----------------------------------------- |
-| `slug`              | `string`       | URL-friendly identifier (e.g., `'users'`) |
-| `entity`            | `EntitySchema` | MikroORM entity schema for this resource  |
-| `label`             | `string`       | Singular label (e.g., `'User'`)           |
-| `pluralLabel`       | `string`       | Plural label (e.g., `'Users'`)            |
-| `icon`              | `string`       | Lucide icon name (e.g., `'Users'`)        |
-| `navigationGroup`   | `string`       | Sidebar group name                        |
-| `navigationSort`    | `number`       | Sort order within the group               |
-| `searchableColumns` | `string[]`     | Columns included in global search         |
-| `defaultSort`       | `object`       | Default sort field and direction          |
+| Property                       | Type           | Description                                    |
+| ------------------------------ | -------------- | ---------------------------------------------- |
+| `slug`                         | `string`       | URL-friendly identifier (e.g., `'users'`)      |
+| `entity`                       | `EntitySchema` | MikroORM entity schema for this resource       |
+| `label`                        | `string`       | Singular label (e.g., `'User'`)                |
+| `pluralLabel`                  | `string`       | Plural label (e.g., `'Users'`)                 |
+| `icon`                         | `string`       | Lucide icon name (e.g., `'Users'`)             |
+| `navigationGroup`              | `string`       | Sidebar group name                             |
+| `navigationSort`               | `number`       | Sort order within the group                    |
+| `globallySearchableAttributes` | `string[]`     | Fields included in global search               |
+| `recordTitleAttribute`         | `string \| fn` | How a record's title is displayed in edit/view |
 
 ## Resource Methods
 
-| Method                 | Returns                   | Description                       |
-| ---------------------- | ------------------------- | --------------------------------- |
-| `form()`               | `FormBuilder`             | Form schema for create/edit       |
-| `table()`              | `TableBuilder`            | Table schema for list view        |
-| `actions()`            | `Action[]`                | Custom row/bulk actions           |
-| `widgets()`            | `Widget[]`                | Dashboard widgets                 |
-| `relations()`          | `Relation[]`              | Related resources shown on detail |
-| `getNavigationBadge()` | `NavigationBadge \| null` | Optional sidebar badge count      |
+| Method                 | Returns                         | Description                                 |
+| ---------------------- | ------------------------------- | ------------------------------------------- |
+| `form()`               | `FormBuilder`                   | Form schema for create/edit                 |
+| `table()`              | `TableBuilder`                  | Table schema for list view                  |
+| `actions()`            | `Record<string, ActionHandler>` | Handlers for custom row/bulk/header actions |
+| `widgets()`            | `Widget[]`                      | Dashboard widgets                           |
+| `relations()`          | `RelationConfig[]`              | Related resources shown on detail           |
+| `getNavigationBadge()` | `NavigationBadge \| null`       | Optional sidebar badge count                |
 
 ## Registering Resources
 

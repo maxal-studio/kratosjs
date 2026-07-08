@@ -35,11 +35,17 @@ export const User = new EntitySchema<IUser>({
 });
 ```
 
+> The primary-key shape above is for MongoDB. For SQL drivers (mysql, postgresql, mariadb, sqlite) use an auto-increment id instead:
+>
+> ```typescript
+> id: { type: 'number', primary: true, autoincrement: true },
+> ```
+
 ## 2. Create the Resource Class
 
 ```typescript
 // src/resources/UserResource.ts
-import { BaseResource, FormBuilder, TableBuilder, TextInput, TextColumn, BooleanColumn } from '@maxal_studio/kratosjs';
+import { BaseResource, FormBuilder, TableBuilder, TextInput, TextColumn, ToggleColumn } from '@maxal_studio/kratosjs';
 import { User } from '../entities/User';
 
 export class UserResource extends BaseResource {
@@ -50,7 +56,7 @@ export class UserResource extends BaseResource {
 	static icon = 'Users';
 	static navigationGroup = 'User Management';
 	static navigationSort = 1;
-	static searchableColumns = ['name', 'email'];
+	static globallySearchableAttributes = ['name', 'email'];
 
 	static form() {
 		return FormBuilder.make().schema([
@@ -61,13 +67,15 @@ export class UserResource extends BaseResource {
 
 	static table() {
 		return TableBuilder.make().columns([
-			TextColumn.make('name').label('Name'),
-			TextColumn.make('email').label('Email'),
-			BooleanColumn.make('active').label('Active'),
+			TextColumn.make('name').label('Name').searchable(),
+			TextColumn.make('email').label('Email').searchable(),
+			ToggleColumn.make('active').label('Active'),
 		]);
 	}
 }
 ```
+
+> Use `globallySearchableAttributes` to include fields in the global search. Enable per-column search with `.searchable()` on the column. (There is no `searchableColumns` member and no `BooleanColumn` — use `ToggleColumn` or `CheckboxColumn` for booleans.)
 
 ## 3. Configure the Panel
 
@@ -107,42 +115,54 @@ The render function receives `(em, entity)` where `em` is the MikroORM `EntityMa
 
 ## Adding Actions
 
-```typescript
-import { Action } from '@maxal_studio/kratosjs';
+Custom actions have two halves that link by name: **builders** placed in `table().actions()` / `.bulkActions()` / `.headerActions()`, and **handlers** returned from `static actions(): Record<string, ActionHandler>`.
 
-static actions() {
-	return [
-		Action.make('activate')
-			.label('Activate')
-			.icon('Check')
-			.action(async (records, context) => {
-				const em = context.em;
-				for (const record of records) {
-					record.active = true;
-				}
-				await em.flush();
-				return { message: 'Users activated' };
-			}),
-	];
+```typescript
+import { TableBuilder, Action, type ActionHandler } from '@maxal_studio/kratosjs';
+
+static table() {
+	return TableBuilder.make()
+		.columns([...])
+		.actions([Action.make('activate').label('Activate').icon('Check')]);
+}
+
+static actions(): Record<string, ActionHandler> {
+	return {
+		activate: async ({ records = [] }) => {
+			const em = this.getPanel().getEm().fork();
+			await em.nativeUpdate(this.entity, { id: { $in: records.map(r => r.id) } }, { active: true });
+			return { success: true, message: `${records.length} user(s) activated` };
+		},
+	};
 }
 ```
+
+Handlers receive `{ records, formData }` and return `{ success, message?, data?, redirect?, refreshBadges? }`. View / edit / delete are built in — don't add them here. See [Actions](./actions.md) for forms, confirmation dialogs, and bulk/header actions.
 
 ## Adding Relations
 
-Show related records on the detail view:
+Show related records on the detail view. Relations are plain `RelationConfig` objects:
 
 ```typescript
-import { Relation } from '@maxal_studio/kratosjs';
 import { CommentResource } from './CommentResource';
+import type { RelationConfig } from '@maxal_studio/kratosjs';
 
-static relations() {
+static relations(): RelationConfig[] {
 	return [
-		Relation.make(CommentResource)
-			.label('Comments')
-			.foreignKey('postId'),
+		{
+			name: 'comments',
+			resource: CommentResource,
+			label: 'Comment',
+			pluralLabel: 'Comments',
+			icon: 'MessageSquare',
+			localKey: 'id',        // field on this resource ('_id' for MongoDB)
+			foreignKey: 'postId',  // field on CommentResource referencing this record
+		},
 	];
 }
 ```
+
+See [Relations](./relations.md) for one-to-many, many-to-many (via a join resource), and self-referencing relations.
 
 ## Adding Hooks
 

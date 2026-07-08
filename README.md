@@ -79,6 +79,18 @@ Open the printed URL and sign in with **admin@example.com** / **password** (seed
 | `@maxal_studio/kratosjs`       | Core framework — resources, form builder, table builder, validation engine, ORM adapter, auth          |
 | `@maxal_studio/kratosjs-react` | React rendering layer — `AdminPanel`, `FormRenderer`, `TableRenderer`, all field and column components |
 | `@maxal_studio/kratosjs-cli`   | Project scaffolding CLI                                                                                |
+| `@maxal_studio/kratosjs-skill` | AI coding-assistant skill that teaches Claude Code, Cursor, Copilot, Codex & more to build panels      |
+
+## Build with AI
+
+Prefer to describe what you want instead of writing every resource by hand? Install the **KratosJs Agent Skill** into your AI coding assistant, then just ask it to generate panels — "add a `Product` resource with a relation to `Brand`, a stats widget, and an activate bulk action" — and it will follow the framework's real, current conventions (forms, tables, hooks, actions, widgets, relations, media, auth) instead of guessing.
+
+```bash
+# Installs to Claude Code (.claude/skills) and the universal .agents/skills location
+npx @maxal_studio/kratosjs-skill
+```
+
+It's built on the open **[Agent Skills](https://agentskills.io)** standard, so one install works across 40+ tools — Claude Code, Cursor, VS Code / GitHub Copilot, OpenAI Codex, Gemini CLI, and more. See the [package README](./packages/kratosjs-skill/README.md) for per-tool install commands.
 
 ## Demo
 

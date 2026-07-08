@@ -2,6 +2,16 @@
 
 This directory contains the documentation for `@maxal_studio/kratosjs`.
 
+## Build with AI
+
+You can generate admin panels with an AI coding assistant instead of writing everything by hand. The **[`@maxal_studio/kratosjs-skill`](https://www.npmjs.com/package/@maxal_studio/kratosjs-skill)** package installs a portable [Agent Skill](https://agentskills.io) that teaches Claude Code, Cursor, VS Code / Copilot, OpenAI Codex, Gemini CLI, and 40+ other tools the framework's current conventions and gotchas:
+
+```bash
+npx @maxal_studio/kratosjs-skill
+```
+
+Then ask your assistant to build resources, forms, tables, hooks, actions, widgets, relations, and more — it will follow the verified patterns documented below.
+
 ## Topics
 
 ### Database
