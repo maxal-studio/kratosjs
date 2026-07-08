@@ -7,7 +7,7 @@ description: Build admin panels with the KratosJs framework (@maxal_studio/krato
 
 KratosJs is a code-first admin-panel framework: you declare **resources** (backed by MikroORM entities) and it renders CRUD UI, forms, tables, dashboards, auth, and media. Backend is `@maxal_studio/kratosjs` (Express); the React client is `@maxal_studio/kratosjs-react`.
 
-**Everything in this skill reflects the current, verified API.** Some published docs show an older API (`Action.make().action()`, `Relation.make().foreignKey()`, `searchableColumns`, `BooleanColumn`) — do not use those; follow the patterns here.
+**Everything in this skill reflects the current, verified API.**
 
 ## Imports
 

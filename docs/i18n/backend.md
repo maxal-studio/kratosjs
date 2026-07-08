@@ -50,9 +50,18 @@ Call `t()` directly wherever you'd write a label. Because `form()`, `table()`, `
 serialized output is already translated:
 
 ```typescript
-import { Resource, FormBuilder, TextInput, TableBuilder, TextColumn, Action, t } from '@maxal_studio/kratosjs';
+import {
+	BaseResource,
+	FormBuilder,
+	TextInput,
+	TableBuilder,
+	TextColumn,
+	Action,
+	type ActionHandler,
+	t,
+} from '@maxal_studio/kratosjs';
 
-class UserResource extends Resource {
+class UserResource extends BaseResource {
 	static slug = 'users';
 
 	static form() {
@@ -63,18 +72,18 @@ class UserResource extends Resource {
 	}
 
 	static table() {
-		return TableBuilder.make().columns([TextColumn.make('email').label(t('app:users.fields.email'))]);
+		return TableBuilder.make()
+			.columns([TextColumn.make('email').label(t('app:users.fields.email'))])
+			.actions([Action.make('publish').label(t('app:actions.publish'))]);
 	}
 
-	static actions() {
-		return [
-			Action.make('publish')
-				.label(t('app:actions.publish'))
-				.handler(async ({ ids }) => ({
-					success: true,
-					message: t('app:actions.published', { count: ids.length }), // already translated
-				})),
-		];
+	static actions(): Record<string, ActionHandler> {
+		return {
+			publish: async ({ records = [] }) => ({
+				success: true,
+				message: t('app:actions.published', { count: records.length }), // already translated
+			}),
+		};
 	}
 }
 ```
@@ -86,7 +95,7 @@ Static class fields (`static label`, `static pluralLabel`, `static navigationGro
 would freeze to the default locale. Use a **static getter** instead, which re-resolves per request:
 
 ```typescript
-class UserResource extends Resource {
+class UserResource extends BaseResource {
 	static slug = 'users';
 	static get label() {
 		return t('app:users.label');
