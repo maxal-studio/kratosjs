@@ -29,6 +29,10 @@ npm run dev
 
 Open the printed URL and sign in with **admin@example.com** / **password** (seeded automatically on first boot).
 
+::: tip Build with AI
+Prefer to describe panels instead of hand-writing them? Install the [KratosJs Agent Skill](/build-with-ai) into your AI coding assistant (Claude Code, Cursor, Copilot, Codex, and more) and let it generate resources, forms, tables, and widgets that follow these conventions.
+:::
+
 ### What gets generated
 
 | Path                             | Purpose                                                    |

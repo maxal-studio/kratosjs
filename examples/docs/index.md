@@ -13,10 +13,16 @@ hero:
           text: Get Started
           link: /getting-started
         - theme: alt
+          text: Build with AI
+          link: /build-with-ai
+        - theme: alt
           text: View on Github
           link: https://github.com/maxal-studio/kratosjs
 
 features:
+    - title: Build with AI
+      details: Install the KratosJs Agent Skill into Claude Code, Cursor, Copilot, Codex, and 40+ tools — then describe the panel you want and let your assistant generate it.
+      link: /build-with-ai
     - title: Fluent TypeScript API
       details: Define resources, forms, and tables with a clean, chainable API. Full autocompletion and compile-time safety out of the box.
     - title: React Frontend
@@ -25,6 +31,8 @@ features:
       details: One adapter for MySQL, PostgreSQL, SQLite, MariaDB, and MongoDB. Swap databases without rewriting your resources.
     - title: Authentication & Permissions
       details: Built-in email auth, OAuth, and granular access control. Protect resources and actions with declarative policies.
+    - title: Shared Validation Engine
+      details: Rules declared on fields run on both client and server with the same isomorphic engine — no drift, and no way to bypass them via the API.
     - title: Plugin System
       details: Extend with plugins that register entities, migrations, resources, pages, routes, and lifecycle hooks.
     - title: Media Management
