@@ -5,6 +5,7 @@ import { cn } from '../../utils/classNames';
 import { authenticatedFetch } from '../../api/authenticatedFetch';
 import { translate } from '../../i18n/activeLocale';
 import { Slot } from '../../slots/Slot';
+import { getBlockColSpanClasses } from '../utils/layoutHelpers';
 
 export interface PageRendererProps {
 	pageSlug: string;
@@ -114,25 +115,6 @@ export function PageRenderer({ pageSlug, apiBaseUrl }: PageRendererProps) {
 		return rows;
 	};
 
-	// Map column numbers to Tailwind classes (ensures classes are recognized)
-	const getColSpanClass = (columns: number): string => {
-		const colMap: Record<number, string> = {
-			1: 'col-span-1',
-			2: 'col-span-2',
-			3: 'col-span-3',
-			4: 'col-span-4',
-			5: 'col-span-5',
-			6: 'col-span-6',
-			7: 'col-span-7',
-			8: 'col-span-8',
-			9: 'col-span-9',
-			10: 'col-span-10',
-			11: 'col-span-11',
-			12: 'col-span-12',
-		};
-		return colMap[columns] || 'col-span-12';
-	};
-
 	const blockRows = pageData.blocks && pageData.blocks.length > 0 ? groupBlocksIntoRows(pageData.blocks) : [];
 
 	return (
@@ -144,12 +126,12 @@ export function PageRenderer({ pageSlug, apiBaseUrl }: PageRendererProps) {
 				className="mb-6 space-y-6 empty:hidden"
 			/>
 			{blockRows.length > 0 ? (
-				<div className="space-y-6">
+				<div className="space-y-3 lg:space-y-6">
 					{blockRows.map((row, rowIndex) => (
-						<div key={rowIndex} className="grid grid-cols-12 gap-6">
+						<div key={rowIndex} className="grid grid-cols-12 gap-x-6 gap-y-3 lg:gap-y-6">
 							{row.map((block: any, blockIndex: number) => {
 								const blockColumns = block.columns || 12;
-								const colSpanClass = getColSpanClass(blockColumns);
+								const colSpanClass = getBlockColSpanClasses(blockColumns);
 								return (
 									<div key={blockIndex} className={colSpanClass}>
 										<BlockRenderer block={block} blockData={widgetData} apiBaseUrl={apiBaseUrl} />

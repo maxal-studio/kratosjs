@@ -58,19 +58,32 @@ export function TableToolbar({
 	const headerActions = schema.headerActions || [];
 
 	return (
-		<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
-			<div className="w-full min-w-0 sm:flex-1">
-				<TableSearchBar
-					searchable={schema.searchable || false}
-					searchQuery={query.searchQuery}
-					onSearchChange={query.handleSearch}
-					onCreateClick={onCreateClick}
-					onCreateModalOpen={onCreateModalOpen}
-					showCreateButton={showCreateButton}
-				/>
-			</div>
+		<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-end sm:gap-3">
+			{schema.searchable && (
+				<div className="w-full min-w-0 sm:flex-1">
+					<TableSearchBar
+						searchable
+						searchQuery={query.searchQuery}
+						onSearchChange={query.handleSearch}
+						onCreateClick={onCreateClick}
+						onCreateModalOpen={onCreateModalOpen}
+						showCreateButton={showCreateButton}
+					/>
+				</div>
+			)}
 
 			<div className="flex flex-wrap items-center justify-end gap-1 sm:gap-1.5">
+				{!schema.searchable && showCreateButton && (
+					<button
+						onClick={onCreateClick || onCreateModalOpen}
+						className="inline-flex h-9 w-auto shrink-0 touch-manipulation items-center justify-center gap-2 rounded-full bg-accent px-3 text-sm font-medium text-accent-fg transition-colors hover:bg-accent-hover sm:px-4"
+						title={translate('core:table.create_record')}
+						aria-label={translate('core:table.create_record')}>
+						<Icon name="Plus" className="h-4 w-4 shrink-0" />
+						<span className="hidden sm:inline">{translate('core:common.create')}</span>
+					</button>
+				)}
+
 				<SlotCluster name="table.toolbar" context={{ schema }} />
 
 				{headerActions.map(action => (

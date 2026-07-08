@@ -80,12 +80,9 @@ export function ModalDrawer({
 
 			<div
 				className={cn(
-					'fixed top-0 flex h-full w-full flex-col border-border bg-surface transition-transform duration-300 ease-out md:w-1/2 md:max-w-2xl md:border-l',
+					'fixed inset-y-0 right-0 flex h-full w-full flex-col border-border bg-surface transition-transform duration-300 ease-out md:w-1/2 md:max-w-2xl md:border-l',
 					'shadow-soft-lg',
 				)}
-				style={{
-					right: depth === 0 ? '0px' : `${depth * 16}px`,
-				}}
 				onClick={e => e.stopPropagation()}
 				role="dialog"
 				aria-modal="true">

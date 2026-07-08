@@ -36,34 +36,46 @@ export function RecordActions({
 	// contribution; the `empty:hidden` utility collapses it when nothing renders
 	// (the slot wrapper returns no DOM when no contributions are registered).
 	return (
-		<div className="sticky top-0 z-40 flex flex-wrap items-center justify-end gap-1.5 border-b border-border/60 bg-surface px-4 py-3 empty:hidden">
+		<div
+			className="sticky top-0 z-40 flex w-full max-w-full min-w-0 touch-pan-x items-center gap-1.5 overflow-x-auto overscroll-x-contain border-b border-border/60 bg-surface px-4 py-3 empty:hidden"
+			style={{ WebkitOverflowScrolling: 'touch' }}>
 			<Slot
 				name="detail.actions"
 				context={{ resourceSlug, record }}
 				as="div"
-				className="mr-auto flex flex-wrap items-center gap-1.5 empty:hidden"
+				className="flex shrink-0 items-center gap-1.5 empty:hidden"
 			/>
-			{actions.map(action => (
-				<PillButton
-					key={action.name}
-					onClick={() => onAction(action)}
-					className={cn(action.color)}
-					icon={action.icon ? <Icon name={action.icon} size={16} /> : undefined}>
-					{action.label}
-				</PillButton>
-			))}
+			<div className="ml-auto flex shrink-0 items-center gap-1.5">
+				{actions.map(action => (
+					<PillButton
+						key={action.name}
+						onClick={() => onAction(action)}
+						className={cn('shrink-0', action.color)}
+						icon={action.icon ? <Icon name={action.icon} size={16} /> : undefined}>
+						{action.label}
+					</PillButton>
+				))}
 
-			{canEdit && (
-				<PillButton variant="primary" onClick={onEdit} icon={<Edit className="h-4 w-4" />}>
-					{translate('core:common.edit')}
-				</PillButton>
-			)}
+				{canEdit && (
+					<PillButton
+						variant="primary"
+						className="shrink-0"
+						onClick={onEdit}
+						icon={<Edit className="h-4 w-4" />}>
+						{translate('core:common.edit')}
+					</PillButton>
+				)}
 
-			{canDelete && (
-				<PillButton variant="danger" onClick={onDelete} icon={<Trash2 className="h-4 w-4" />}>
-					{translate('core:common.delete')}
-				</PillButton>
-			)}
+				{canDelete && (
+					<PillButton
+						variant="danger"
+						className="shrink-0"
+						onClick={onDelete}
+						icon={<Trash2 className="h-4 w-4" />}>
+						{translate('core:common.delete')}
+					</PillButton>
+				)}
+			</div>
 		</div>
 	);
 }
