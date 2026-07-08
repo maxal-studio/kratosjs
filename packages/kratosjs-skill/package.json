@@ -1,0 +1,32 @@
+{
+	"name": "@maxal_studio/kratosjs-skill",
+	"version": "1.0.2",
+	"description": "Portable Agent Skill that teaches AI coding assistants (Claude Code, Cursor, Codex, VS Code/Copilot, Gemini CLI, and 40+ others) how to build KratosJs admin panels.",
+	"type": "module",
+	"license": "ISC",
+	"author": "MaxAl",
+	"repository": {
+		"type": "git",
+		"url": "git+ssh://git@github.com/maxal-studio/kratosjs.git"
+	},
+	"keywords": [
+		"kratosjs",
+		"agent-skill",
+		"skill",
+		"claude-code",
+		"cursor",
+		"codex",
+		"ai"
+	],
+	"bin": {
+		"kratosjs-skill": "bin/install.mjs"
+	},
+	"files": [
+		"skill",
+		"bin",
+		"README.md"
+	],
+	"scripts": {
+		"install-skill": "node bin/install.mjs"
+	}
+}

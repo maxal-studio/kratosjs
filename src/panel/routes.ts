@@ -79,7 +79,9 @@ export function buildPanelRouter(panel: Panel): Router {
 		const getUserById = (authManager as any)._getUserById;
 		router.use(
 			'/auth',
-			authManager.getRoutes(getUserById, () => panel.getEm()),
+			// Pass the panel base path so the refresh-token cookie is scoped to the real
+			// endpoint (`${basePath}/auth/refresh`), not the bare `/auth/refresh`.
+			authManager.getRoutes(getUserById, () => panel.getEm(), panel.getBasePath()),
 		);
 	}
 

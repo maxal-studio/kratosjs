@@ -1,6 +1,15 @@
 import { AuthUser, AuthProvider, AuthTokens, LoginCredentials, LoginResult } from './types';
 
 /**
+ * In-flight refresh requests, keyed by API base URL. Navigating the panel fires many API
+ * calls at once; when the access token has just expired they all 401 together. Rather than
+ * each firing its own POST /auth/refresh, the first request performs the single refresh and
+ * every other caller (across all AuthApiClient instances for this base URL) awaits the same
+ * promise, then retries. One refresh, one new access-token cookie, shared by everyone.
+ */
+const inFlightRefresh = new Map<string, Promise<AuthTokens | null>>();
+
+/**
  * API client for authentication endpoints.
  * Tokens are managed via HTTP-only cookies set by the server — no localStorage involved.
  */
@@ -76,20 +85,37 @@ export class AuthApiClient {
 		return data.user || null;
 	}
 
+	/**
+	 * Silently refresh the session. Concurrent calls (across every AuthApiClient instance for
+	 * this API base URL) share a single request so only one token rotation occurs — see
+	 * {@link inFlightRefresh}.
+	 */
 	async refreshToken(): Promise<AuthTokens | null> {
-		const response = await fetch(`${this.apiBaseUrl}/auth/refresh`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			credentials: 'include',
-			body: JSON.stringify({}),
-		});
+		const existing = inFlightRefresh.get(this.apiBaseUrl);
+		if (existing) return existing;
 
-		if (!response.ok) {
-			return null;
+		const request = (async (): Promise<AuthTokens | null> => {
+			const response = await fetch(`${this.apiBaseUrl}/auth/refresh`, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				credentials: 'include',
+				body: JSON.stringify({}),
+			});
+
+			if (!response.ok) {
+				return null;
+			}
+
+			const data = await response.json();
+			return data.tokens || null;
+		})();
+
+		inFlightRefresh.set(this.apiBaseUrl, request);
+		try {
+			return await request;
+		} finally {
+			inFlightRefresh.delete(this.apiBaseUrl);
 		}
-
-		const data = await response.json();
-		return data.tokens || null;
 	}
 
 	async logout(): Promise<void> {

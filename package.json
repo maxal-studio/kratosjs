@@ -1,6 +1,6 @@
 {
 	"name": "@maxal_studio/kratosjs",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "KratosJs - A powerful admin panel builder for Node.js.",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
@@ -34,7 +34,7 @@
 	],
 	"scripts": {
 		"release": "npm run build && npm run publish:packages",
-		"publish:packages": "npm publish && npm publish -w @maxal_studio/kratosjs-react && npm publish -w @maxal_studio/kratosjs-cli && npm publish -w @maxal_studio/kratosjs-skill",
+		"publish:packages": "npm publish --access public && npm publish --access public -w @maxal_studio/kratosjs-react && npm publish --access public -w @maxal_studio/kratosjs-cli && npm publish --access public -w @maxal_studio/kratosjs-skill",
 		"build": "npm run clean && tsc && npm run build:packages",
 		"build:packages": "npm run build:react && npm run build:cli",
 		"build:react": "npm run build -w @maxal_studio/kratosjs-react",
@@ -59,7 +59,7 @@
 	"peerDependencies": {
 		"@aws-sdk/client-s3": "^3.0.0",
 		"@aws-sdk/s3-request-presigner": "^3.0.0",
-		"@maxal_studio/kratosjs-react": "^1.0.1",
+		"@maxal_studio/kratosjs-react": "^1.0.2",
 		"@mikro-orm/mariadb": "^7.0.0",
 		"@mikro-orm/migrations": "^7.0.0",
 		"@mikro-orm/migrations-mongodb": "^7.0.0",

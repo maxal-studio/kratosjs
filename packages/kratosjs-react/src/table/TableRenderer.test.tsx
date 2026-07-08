@@ -5,6 +5,8 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { TableRenderer } from './TableRenderer';
 import { ResourceModalProvider } from '../contexts/ResourceModalContext';
+import { PanelMetadataProvider } from '../contexts/PanelMetadataContext';
+import { FieldRegistryProvider } from '../contexts/FieldRegistryContext';
 import { mockFetch, restoreFetch, RecordedRequest } from '../test/mockFetch';
 
 const API = 'http://api.test/admin';
@@ -193,5 +195,43 @@ describe('TableRenderer', () => {
 		});
 		expect(createObjectURL).toHaveBeenCalled();
 		expect(clickSpy).toHaveBeenCalled();
+	});
+
+	it('shows the header action label (not its name) as the action modal title', async () => {
+		const schemaWithFormHeaderAction = {
+			...tableSchema,
+			headerActions: [
+				{
+					type: 'action',
+					name: 'restockLowStock',
+					label: 'Restock low stock',
+					icon: 'Boxes',
+					hasHandler: true,
+					form: { type: 'form', components: [{ type: 'text-input', name: 'threshold', label: 'Threshold' }] },
+				},
+			],
+		} as any;
+
+		const user = userEvent.setup();
+		render(
+			<MemoryRouter>
+				<ResourceModalProvider>
+					<PanelMetadataProvider
+						resources={[{ slug: 'users', label: 'User', pluralLabel: 'Users' } as any]}
+						pages={[]}>
+						<FieldRegistryProvider>
+							<TableRenderer isResource apiUrl={`${API}/users`} schema={schemaWithFormHeaderAction} />
+						</FieldRegistryProvider>
+					</PanelMetadataProvider>
+				</ResourceModalProvider>
+			</MemoryRouter>,
+		);
+
+		await user.click(await screen.findByRole('button', { name: /restock low stock/i }));
+
+		// Regression: header actions live in schema.headerActions, so the old lookup in
+		// schema.actions/bulkActions missed them and fell back to the raw name.
+		expect(await screen.findByRole('heading', { name: 'Restock low stock' })).toBeInTheDocument();
+		expect(screen.queryByRole('heading', { name: 'restockLowStock' })).not.toBeInTheDocument();
 	});
 });
