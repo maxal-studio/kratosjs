@@ -122,8 +122,8 @@ For the latter — cron jobs, queues, per-recipient emails — pass an explicit 
 import { t, withLocale } from '@maxal_studio/kratosjs';
 
 // Custom route — uses the request's active locale automatically.
-panel.registerRoute('get', '/welcome', (req, res) => {
-	res.json({ message: t('app:emails.welcome', { name: req.authUser.name }) });
+panel.registerRoute('get', '/welcome', (req, reply) => {
+	reply.json({ message: t('app:emails.welcome', { name: req.authUser?.name }) });
 });
 
 // Per-recipient — pin a specific locale regardless of any request.

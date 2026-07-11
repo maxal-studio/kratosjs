@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import type { HttpMethod, KratosHandler, KratosReply, KratosRequest } from '../http/types';
 import { AuthProvider } from './AuthProvider';
 import {
 	AuthUser,
@@ -107,7 +107,7 @@ export class AuthManager {
 		}
 	}
 
-	private setAuthCookies(res: Response, tokens: AuthTokens): void {
+	private setAuthCookies(reply: KratosReply, tokens: AuthTokens): void {
 		const override = this.jwtConfig.cookie ?? {};
 		const base: any = {
 			httpOnly: override.httpOnly ?? true,
@@ -120,18 +120,18 @@ export class AuthManager {
 		const accessMaxAge = getTokenExpiration(this.jwtConfig.accessTokenExpiry || '15m') * 1000;
 		const refreshMaxAge = getTokenExpiration(this.jwtConfig.refreshTokenExpiry || '7d') * 1000;
 
-		res.cookie('kratosjs_access_token', tokens.accessToken, { ...base, maxAge: accessMaxAge });
-		res.cookie('kratosjs_refresh_token', tokens.refreshToken, {
+		reply.cookie('kratosjs_access_token', tokens.accessToken, { ...base, maxAge: accessMaxAge });
+		reply.cookie('kratosjs_refresh_token', tokens.refreshToken, {
 			...base,
 			maxAge: refreshMaxAge,
 			path: this.refreshCookiePath,
 		});
 	}
 
-	private clearAuthCookies(res: Response): void {
+	private clearAuthCookies(reply: KratosReply): void {
 		const domain = this.jwtConfig.cookie?.domain;
-		res.clearCookie('kratosjs_access_token', { path: '/', domain });
-		res.clearCookie('kratosjs_refresh_token', { path: this.refreshCookiePath, domain });
+		reply.clearCookie('kratosjs_access_token', { path: '/', domain });
+		reply.clearCookie('kratosjs_refresh_token', { path: this.refreshCookiePath, domain });
 	}
 
 	/**
@@ -351,15 +351,15 @@ export class AuthManager {
 	/**
 	 * Extract token from request (header or cookie)
 	 */
-	private extractToken(req: Request): string | null {
+	private extractToken(req: KratosRequest): string | null {
 		// Try Authorization header first
-		const authHeader = req.headers.authorization;
+		const authHeader = req.header('authorization');
 		if (authHeader && authHeader.startsWith('Bearer ')) {
 			return authHeader.substring(7);
 		}
 
 		// Try cookie
-		if (req.cookies && req.cookies['kratosjs_access_token']) {
+		if (req.cookies['kratosjs_access_token']) {
 			return req.cookies['kratosjs_access_token'];
 		}
 
@@ -370,10 +370,10 @@ export class AuthManager {
 	 * Send a LoginResult to the client. Cookies are set ONLY for the `authenticated`
 	 * branch; a pending `challenge` sets no auth cookies and echoes the challenge back.
 	 */
-	private respondWithResult(res: Response, result: LoginResult): void {
+	private respondWithResult(reply: KratosReply, result: LoginResult): void {
 		if (result.status === 'authenticated') {
-			this.setAuthCookies(res, result.tokens);
-			res.json({
+			this.setAuthCookies(reply, result.tokens);
+			reply.json({
 				status: 'authenticated',
 				user: result.user,
 				tokens: { expiresIn: result.tokens.expiresIn },
@@ -382,20 +382,25 @@ export class AuthManager {
 		}
 
 		// challenge: no cookies, return the continuation token + non-secret data
-		res.json(result);
+		reply.json(result);
 	}
 
 	/**
-	 * Get Express router with all auth routes
+	 * Get the auth route definitions (framework-neutral, relative paths).
+	 * The panel prefixes them with `${basePath}/auth` and composes each handler
+	 * into the shared pipeline (ORM + locale context — auth routes require no auth).
+	 *
 	 * @param getUserById - request-scoped user lookup (for /me, /refresh, /challenge)
 	 * @param getEm - request-scoped EntityManager accessor (passed to auth hooks/challenges)
-	 * @param basePath - URL prefix this router is mounted under (the panel's base path, e.g.
+	 * @param basePath - URL prefix the routes are mounted under (the panel's base path, e.g.
 	 *   `/kratosjs/api`). Used to scope the refresh-token cookie to the real refresh endpoint.
 	 */
-	getRoutes(getUserById?: (id: string) => Promise<AuthUser | null>, getEm?: () => any, basePath = ''): Router {
-		const router = Router();
-
-		// The router is mounted at `${basePath}/auth`; record the full prefix so the
+	getRouteDefinitions(
+		getUserById?: (id: string) => Promise<AuthUser | null>,
+		getEm?: () => any,
+		basePath = '',
+	): Array<{ method: HttpMethod; path: string; handler: KratosHandler }> {
+		// Routes are mounted at `${basePath}/auth`; record the full prefix so the
 		// refresh-token cookie's path matches the endpoint the client actually calls.
 		this.authMountPath = `${basePath}/auth`;
 
@@ -403,250 +408,282 @@ export class AuthManager {
 		const _getUserById = getUserById || this._getUserById;
 		const _getEm = getEm || (() => undefined);
 
+		const routes: Array<{ method: HttpMethod; path: string; handler: KratosHandler }> = [];
+
 		// GET /auth/providers - List available providers
-		router.get('/providers', (_req: Request, res: Response) => {
-			try {
-				const providers = this.getProviderButtons();
-				res.json({ providers });
-			} catch (error: any) {
-				res.status(500).json({ error: error.message || 'Failed to get providers' });
-			}
+		routes.push({
+			method: 'GET',
+			path: '/providers',
+			handler: (_req, reply) => {
+				try {
+					const providers = this.getProviderButtons();
+					reply.json({ providers });
+				} catch (error: any) {
+					reply.status(500).json({ error: error.message || 'Failed to get providers' });
+				}
+			},
 		});
 
 		// POST /auth/login - Login with provider (may return a pending challenge)
-		router.post('/login', async (req: Request, res: Response): Promise<void> => {
-			const { provider, ...credentials } = req.body;
-			const ctx: AuthHookContext = { provider, req, credentials, getEm: _getEm };
-			try {
-				if (!provider) {
-					res.status(400).json({ error: t('core:auth.provider_required') });
-					return;
-				}
+		routes.push({
+			method: 'POST',
+			path: '/login',
+			handler: async (req, reply) => {
+				const { provider, ...credentials } = req.body;
+				const ctx: AuthHookContext = { provider, req, credentials, getEm: _getEm };
+				try {
+					if (!provider) {
+						reply.status(400).json({ error: t('core:auth.provider_required') });
+						return;
+					}
 
-				const result = await this.attemptLogin(provider, credentials, ctx);
-				this.respondWithResult(res, result);
-			} catch (error: any) {
-				await this.runHook('onLoginFailure', error, ctx);
-				res.status(401).json({ error: error.message || 'Login failed' });
-			}
+					const result = await this.attemptLogin(provider, credentials, ctx);
+					this.respondWithResult(reply, result);
+				} catch (error: any) {
+					await this.runHook('onLoginFailure', error, ctx);
+					reply.status(401).json({ error: error.message || 'Login failed' });
+				}
+			},
 		});
 
 		// POST /auth/challenge - Respond to a pending login challenge (e.g. a one-time code)
-		router.post('/challenge', async (req: Request, res: Response): Promise<void> => {
-			const { challengeToken, type, payload } = req.body;
-			// Derive provider from the (verified) challenge token for the hook context.
-			const decoded = verifyChallengeToken(challengeToken, this.jwtConfig.secret);
-			const ctx: AuthHookContext = {
-				provider: decoded?.provider ?? 'unknown',
-				req,
-				getEm: _getEm,
-			};
-			try {
-				if (!challengeToken || !type) {
-					res.status(400).json({ error: t('core:auth.challenge_fields_required') });
-					return;
-				}
-				if (!_getUserById) {
-					res.status(500).json({ error: t('core:auth.user_lookup_not_configured') });
-					return;
-				}
+		routes.push({
+			method: 'POST',
+			path: '/challenge',
+			handler: async (req, reply) => {
+				const { challengeToken, type, payload } = req.body;
+				// Derive provider from the (verified) challenge token for the hook context.
+				const decoded = verifyChallengeToken(challengeToken, this.jwtConfig.secret);
+				const ctx: AuthHookContext = {
+					provider: decoded?.provider ?? 'unknown',
+					req,
+					getEm: _getEm,
+				};
+				try {
+					if (!challengeToken || !type) {
+						reply.status(400).json({ error: t('core:auth.challenge_fields_required') });
+						return;
+					}
+					if (!_getUserById) {
+						reply.status(500).json({ error: t('core:auth.user_lookup_not_configured') });
+						return;
+					}
 
-				const result = await this.verifyChallenge(challengeToken, type, payload, ctx, _getUserById);
-				this.respondWithResult(res, result);
-			} catch (error: any) {
-				await this.runHook('onLoginFailure', error, ctx);
-				res.status(401).json({ error: error.message || 'Challenge verification failed' });
-			}
+					const result = await this.verifyChallenge(challengeToken, type, payload, ctx, _getUserById);
+					this.respondWithResult(reply, result);
+				} catch (error: any) {
+					await this.runHook('onLoginFailure', error, ctx);
+					reply.status(401).json({ error: error.message || 'Challenge verification failed' });
+				}
+			},
 		});
 
 		// GET /auth/me - Get current user
-		router.get('/me', async (req: Request, res: Response): Promise<void> => {
-			try {
-				const token = this.extractToken(req);
-				if (!token) {
-					res.status(401).json({ error: t('core:auth.no_token') });
-					return;
-				}
-
-				// Decode token to get user ID
-				const tokenUser = await this.getCurrentUser(token);
-				if (!tokenUser) {
-					res.status(401).json({ error: t('core:auth.invalid_token') });
-					return;
-				}
-
-				// If getUserById is provided, fetch full user data (including resolved media URLs)
-				// Otherwise, return the user from token
-				let user = tokenUser;
-				if (_getUserById) {
-					const fullUser = await _getUserById(tokenUser.id);
-					if (fullUser) {
-						// `role` (if any) may be a relation reference/entity; expose its id consistently.
-						user = withNormalizedRole(fullUser);
+		routes.push({
+			method: 'GET',
+			path: '/me',
+			handler: async (req, reply) => {
+				try {
+					const token = this.extractToken(req);
+					if (!token) {
+						reply.status(401).json({ error: t('core:auth.no_token') });
+						return;
 					}
-				}
 
-				res.json({ user });
-			} catch (error: any) {
-				res.status(401).json({ error: error.message || 'Authentication failed' });
-			}
+					// Decode token to get user ID
+					const tokenUser = await this.getCurrentUser(token);
+					if (!tokenUser) {
+						reply.status(401).json({ error: t('core:auth.invalid_token') });
+						return;
+					}
+
+					// If getUserById is provided, fetch full user data (including resolved media URLs)
+					// Otherwise, return the user from token
+					let user = tokenUser;
+					if (_getUserById) {
+						const fullUser = await _getUserById(tokenUser.id);
+						if (fullUser) {
+							// `role` (if any) may be a relation reference/entity; expose its id consistently.
+							user = withNormalizedRole(fullUser);
+						}
+					}
+
+					reply.json({ user });
+				} catch (error: any) {
+					reply.status(401).json({ error: error.message || 'Authentication failed' });
+				}
+			},
 		});
 
 		// POST /auth/refresh - Refresh access token
-		router.post('/refresh', async (req: Request, res: Response): Promise<void> => {
-			try {
-				if (!getUserById) {
-					res.status(500).json({ error: t('core:auth.user_lookup_not_configured') });
-					return;
+		routes.push({
+			method: 'POST',
+			path: '/refresh',
+			handler: async (req, reply) => {
+				try {
+					if (!getUserById) {
+						reply.status(500).json({ error: t('core:auth.user_lookup_not_configured') });
+						return;
+					}
+
+					const refreshToken = req.body?.refreshToken || req.cookies['kratosjs_refresh_token'];
+					if (!refreshToken) {
+						reply.status(400).json({ error: t('core:auth.refresh_token_required') });
+						return;
+					}
+
+					const tokens = await this.refresh(refreshToken, getUserById);
+					if (!tokens) {
+						reply.status(401).json({ error: t('core:auth.invalid_refresh_token') });
+						return;
+					}
+
+					this.setAuthCookies(reply, tokens);
+
+					reply.json({ tokens: { expiresIn: tokens.expiresIn } });
+				} catch (error: any) {
+					reply.status(401).json({ error: error.message || 'Token refresh failed' });
 				}
-
-				const refreshToken = req.body.refreshToken || req.cookies?.['kratosjs_refresh_token'];
-				if (!refreshToken) {
-					res.status(400).json({ error: t('core:auth.refresh_token_required') });
-					return;
-				}
-
-				const tokens = await this.refresh(refreshToken, getUserById);
-				if (!tokens) {
-					res.status(401).json({ error: t('core:auth.invalid_refresh_token') });
-					return;
-				}
-
-				this.setAuthCookies(res, tokens);
-
-				res.json({ tokens: { expiresIn: tokens.expiresIn } });
-			} catch (error: any) {
-				res.status(401).json({ error: error.message || 'Token refresh failed' });
-			}
+			},
 		});
 
 		// POST /auth/logout - Logout (clear tokens)
-		router.post('/logout', async (req: Request, res: Response): Promise<void> => {
-			const ctx: AuthHookContext = { provider: 'unknown', req, getEm: _getEm };
-			await this.runHook('beforeLogout', ctx);
-			this.clearAuthCookies(res);
-			await this.runHook('afterLogout', ctx);
-			res.json({ message: t('core:auth.logged_out') });
+		routes.push({
+			method: 'POST',
+			path: '/logout',
+			handler: async (req, reply) => {
+				const ctx: AuthHookContext = { provider: 'unknown', req, getEm: _getEm };
+				await this.runHook('beforeLogout', ctx);
+				this.clearAuthCookies(reply);
+				await this.runHook('afterLogout', ctx);
+				reply.json({ message: t('core:auth.logged_out') });
+			},
 		});
 
 		// GET /auth/oauth/:provider - Initiate OAuth flow
-		router.get('/oauth/:provider', (req: Request, res: Response) => {
-			try {
-				const provider = req.params.provider as string;
-				const authProvider = this.getProvider(provider);
+		routes.push({
+			method: 'GET',
+			path: '/oauth/:provider',
+			handler: (req, reply) => {
+				try {
+					const provider = req.params.provider;
+					const authProvider = this.getProvider(provider);
 
-				if (!authProvider) {
-					res.status(404).json({ error: t('core:auth.provider_not_found', { provider }) });
-					return;
-				}
+					if (!authProvider) {
+						reply.status(404).json({ error: t('core:auth.provider_not_found', { provider }) });
+						return;
+					}
 
-				if (!authProvider.getAuthorizationUrl) {
-					res.status(400).json({ error: t('core:auth.provider_no_oauth', { provider }) });
-					return;
-				}
+					if (!authProvider.getAuthorizationUrl) {
+						reply.status(400).json({ error: t('core:auth.provider_no_oauth', { provider }) });
+						return;
+					}
 
-				// Generate state for CSRF protection
-				const state = crypto.randomBytes(32).toString('hex');
+					// Generate state for CSRF protection
+					const state = crypto.randomBytes(32).toString('hex');
 
-				// Get redirect_uri from query params (frontend URL to redirect back to)
-				const redirectUri = (req.query.redirect_uri as string) || null;
+					// Get redirect_uri from query params (frontend URL to redirect back to)
+					const redirectUri = (req.query.redirect_uri as string) || null;
 
-				// Store state and redirect_uri in cookie for verification
-				res.cookie(`oauth_state_${provider}`, state, {
-					httpOnly: true,
-					secure: process.env.NODE_ENV === 'production',
-					sameSite: 'lax',
-					maxAge: 600000, // 10 minutes
-					path: '/', // Ensure cookie is accessible from all paths
-				});
-
-				// Store redirect_uri in cookie if provided
-				if (redirectUri) {
-					res.cookie(`oauth_redirect_uri_${provider}`, redirectUri, {
+					// Store state and redirect_uri in cookie for verification
+					reply.cookie(`oauth_state_${provider}`, state, {
 						httpOnly: true,
 						secure: process.env.NODE_ENV === 'production',
 						sameSite: 'lax',
 						maxAge: 600000, // 10 minutes
-						path: '/',
+						path: '/', // Ensure cookie is accessible from all paths
 					});
+
+					// Store redirect_uri in cookie if provided
+					if (redirectUri) {
+						reply.cookie(`oauth_redirect_uri_${provider}`, redirectUri, {
+							httpOnly: true,
+							secure: process.env.NODE_ENV === 'production',
+							sameSite: 'lax',
+							maxAge: 600000, // 10 minutes
+							path: '/',
+						});
+					}
+
+					const authorizationUrl = authProvider.getAuthorizationUrl(state);
+
+					reply.redirect(authorizationUrl);
+				} catch (error: any) {
+					reply.status(500).json({ error: error.message || 'Failed to initiate OAuth flow' });
 				}
-
-				// Store state in session or cookie (for production, use proper session storage)
-				// For now, we'll pass it in the redirect and verify in callback
-				const authorizationUrl = authProvider.getAuthorizationUrl(state);
-
-				res.redirect(authorizationUrl);
-			} catch (error: any) {
-				res.status(500).json({ error: error.message || 'Failed to initiate OAuth flow' });
-			}
+			},
 		});
 
 		// GET /auth/oauth/:provider/callback - Handle OAuth callback
-		router.get('/oauth/:provider/callback', async (req: Request, res: Response): Promise<void> => {
-			try {
-				const provider = req.params.provider as string;
-				const { code, state } = req.query;
+		routes.push({
+			method: 'GET',
+			path: '/oauth/:provider/callback',
+			handler: async (req, reply) => {
+				try {
+					const provider = req.params.provider;
+					const { code, state } = req.query;
 
-				if (!code || !state) {
-					res.status(400).json({ error: t('core:auth.missing_oauth_params') });
-					return;
-				}
+					if (!code || !state) {
+						reply.status(400).json({ error: t('core:auth.missing_oauth_params') });
+						return;
+					}
 
-				const authProvider = this.getProvider(provider);
-				if (!authProvider) {
-					res.status(404).json({ error: t('core:auth.provider_not_found', { provider }) });
-					return;
-				}
+					const authProvider = this.getProvider(provider);
+					if (!authProvider) {
+						reply.status(404).json({ error: t('core:auth.provider_not_found', { provider }) });
+						return;
+					}
 
-				if (!authProvider.handleCallback) {
-					res.status(400).json({ error: t('core:auth.provider_no_oauth_callback', { provider }) });
-					return;
-				}
+					if (!authProvider.handleCallback) {
+						reply.status(400).json({ error: t('core:auth.provider_no_oauth_callback', { provider }) });
+						return;
+					}
 
-				// Verify state from cookie
-				const storedState = req.cookies?.[`oauth_state_${provider}`];
-				if (!storedState || storedState !== state) {
-					res.status(400).json({ error: t('core:auth.invalid_state') });
-					return;
-				}
+					// Verify state from cookie
+					const storedState = req.cookies[`oauth_state_${provider}`];
+					if (!storedState || storedState !== state) {
+						reply.status(400).json({ error: t('core:auth.invalid_state') });
+						return;
+					}
 
-				// Clear state cookie (use same options as when setting)
-				res.clearCookie(`oauth_state_${provider}`, {
-					path: '/',
-				});
-
-				// Get redirect_uri from cookie (frontend URL to redirect back to)
-				const redirectUri = req.cookies?.[`oauth_redirect_uri_${provider}`] || null;
-
-				// Clear redirect_uri cookie
-				if (redirectUri) {
-					res.clearCookie(`oauth_redirect_uri_${provider}`, {
+					// Clear state cookie (use same options as when setting)
+					reply.clearCookie(`oauth_state_${provider}`, {
 						path: '/',
 					});
+
+					// Get redirect_uri from cookie (frontend URL to redirect back to)
+					const redirectUri = req.cookies[`oauth_redirect_uri_${provider}`] || null;
+
+					// Clear redirect_uri cookie
+					if (redirectUri) {
+						reply.clearCookie(`oauth_redirect_uri_${provider}`, {
+							path: '/',
+						});
+					}
+
+					// Handle OAuth callback — provider returns the raw entity; shape it the
+					// same way the credentials flow does, via serializeUser.
+					const entity = await authProvider.handleCallback(code as string, state as string);
+					if (!entity) {
+						reply.status(401).json({ error: t('core:auth.oauth_failed') });
+						return;
+					}
+					const user = await this.serialize(entity);
+
+					// Generate tokens
+					const tokens = this.generateTokens(user);
+
+					this.setAuthCookies(reply, tokens);
+
+					// Redirect to frontend — cookies carry the session, no tokens in URL
+					const finalRedirectUri = redirectUri || `${req.protocol}://${req.host}/`;
+					reply.redirect(finalRedirectUri);
+				} catch (error: any) {
+					reply.status(500).json({ error: error.message || 'OAuth callback failed' });
 				}
-
-				// Handle OAuth callback — provider returns the raw entity; shape it the
-				// same way the credentials flow does, via serializeUser.
-				const entity = await authProvider.handleCallback(code as string, state as string);
-				if (!entity) {
-					res.status(401).json({ error: t('core:auth.oauth_failed') });
-					return;
-				}
-				const user = await this.serialize(entity);
-
-				// Generate tokens
-				const tokens = this.generateTokens(user);
-
-				this.setAuthCookies(res, tokens);
-
-				// Redirect to frontend — cookies carry the session, no tokens in URL
-				const finalRedirectUri = redirectUri || req.protocol + '://' + req.get('host') + '/';
-				res.redirect(finalRedirectUri);
-			} catch (error: any) {
-				res.status(500).json({ error: error.message || 'OAuth callback failed' });
-			}
+			},
 		});
 
-		return router;
+		return routes;
 	}
 }

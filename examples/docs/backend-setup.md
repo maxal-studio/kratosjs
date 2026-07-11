@@ -2,6 +2,68 @@
 title: Backend Setup
 ---
 
+# HTTP Adapter
+
+KratosJs core is **HTTP-framework agnostic**. A small adapter package wires the
+panel to a concrete framework. `kratosjs new` installs one for you
+(`--http express|fastify|hapi|koa`, Express by default):
+
+```bash
+npm install @maxal_studio/kratosjs-express   # or -fastify / -hapi / -koa
+```
+
+```typescript
+import { Panel } from '@maxal_studio/kratosjs';
+import { ExpressAdapter } from '@maxal_studio/kratosjs-express';
+
+const adminPanel = Panel.make('admin').httpAdapter(new ExpressAdapter());
+```
+
+Prefer Fastify, Hapi, or Koa? Swap two lines — everything else (resources, auth, custom
+routes) is identical:
+
+```typescript
+import { FastifyAdapter } from '@maxal_studio/kratosjs-fastify';
+// or HapiAdapter from '@maxal_studio/kratosjs-hapi', KoaAdapter from '@maxal_studio/kratosjs-koa'
+
+const adminPanel = Panel.make('admin').httpAdapter(new FastifyAdapter());
+```
+
+An adapter is **required** — `start()` throws a descriptive error without one. Other
+frameworks (NestJS, ...) can be supported by implementing the same contract; see
+[HTTP Adapters](/backend/http-adapters) and [Writing an Adapter](/backend/writing-an-adapter).
+
+```typescript
+// Optional HTTP behavior (defaults shown):
+adminPanel.http({
+	bodyLimit: '50mb', // JSON limit — file uploads travel as base64 JSON
+	cors: { origin: true, credentials: true },
+});
+```
+
+# Admin panel path
+
+By default the admin UI is served at the domain root (`/`), and the API lives at its own
+base path (`.path()`, default `/kratosjs/api`). To relocate the UI — e.g. to `/admin`,
+freeing `/` for your own landing page — set `panelPath`:
+
+```typescript
+const adminPanel = Panel.make('admin').httpAdapter(new ExpressAdapter()).panelPath('/admin'); // SPA + its assets now served under /admin; '/' is free
+```
+
+With `panelPath('/admin')`: `GET /admin` (and any `/admin/*` client route) serves the
+panel, `GET /admin/assets/*` serves its bundle, and everything outside `/admin` returns
+404 — ready for your own routes (add them via the framework-native instance, e.g.
+`getExpressApp(panel).get('/', ...)`, **before** `panel.start()`). The API base path is
+unaffected.
+
+**This is the only thing you set** — `.panelPath()` on the backend. No `vite.config`
+change is needed: the admin client is built with a relative asset base, and the KratosJs
+server drives the Vite base from `panelPath` (setting it on the dev server and rewriting the
+built `index.html`'s asset URLs in production). The React client also picks up its router
+basename automatically from a server-injected global. `vite.config.mts` stays a plain
+`export default defineConfig(kratosAdminVite())`.
+
 # Panel branding
 
 Configure how your admin panel appears in the browser tab, header, and login screen:
@@ -31,40 +93,89 @@ In production, the favicon is also injected into the admin HTML shell automatica
 
 ## What Panel Automatically Handles
 
-When you create a Panel instance, it automatically:
+When you start a Panel, it automatically:
 
-1. **Creates Express app**: No need to manually create `express()`
-2. **Registers default middlewares**:
-    - CORS (with credentials support)
-    - Cookie parser
-    - JSON body parser (50MB limit for file uploads)
-3. **Initializes MikroORM**: Collects entities from resources and plugins, runs migrations (SQL), and optionally updates schema
-4. **Mounts panel routes**: All resource routes are automatically mounted at the base path
+1. **Drives the HTTP adapter**: creates the framework app (e.g. Express), installs CORS and
+   JSON body parsing (50MB limit for base64 file uploads) per your `http()` options
+2. **Parses cookies**: handled by the core on every adapter — no cookie middleware needed
+3. **Initializes MikroORM**: collects entities from resources and plugins, runs migrations (SQL), and optionally updates schema
+4. **Registers panel routes**: every resource/auth/media endpoint is registered at the base path with a fully composed pipeline (ORM context, locale, auth, request context, error handling)
 5. **Registers static file serving**: LocalMediaAdapter automatically sets up static file serving based on `publicUrl`
+6. **Serves the admin SPA**: with HMR through Vite in development, as a static bundle in production (disable with `adminClient(false)` for headless/API-only deployments)
 
 ## Registering Custom Routes
 
-You can register custom routes that automatically get:
+Custom route handlers are **framework-neutral**: they receive a `KratosRequest` and a
+`KratosReply` and run unchanged on any HTTP adapter. Each route automatically gets:
 
 - Base path prepended
-- Authentication middleware (if auth is configured)
-- Media helpers middleware
+- Authentication (when auth is configured)
+- The request context — `getRequestContext()` and server-side `t()` work inside handlers
+- Media helpers (`req.transformMediaFieldsForStorage`, `req.formatMediaKey`, `req.resolveMediaUrl`)
 
 ```typescript
-adminPanel.registerRoute('post', '/dashboard/stats', async (req, res) => {
+adminPanel.registerRoute('post', '/dashboard/stats', async (req, reply) => {
 	const em = adminPanel.getEm();
 	const stats = { userCount: await em.count('User', {}) };
-	res.json(stats);
+	reply.json(stats);
 });
 ```
 
-### Route Registration Methods
+### The request and reply
 
-Supported HTTP methods: `get`, `post`, `put`, `patch`, `delete`
+```typescript
+adminPanel.registerRoute('get', '/demo/:id', async (req, reply) => {
+	req.method; // 'GET'
+	req.params.id; // path params
+	req.query; // parsed query string
+	req.body; // parsed JSON body
+	req.cookies; // parsed cookies
+	req.header('x-my-header'); // case-insensitive header lookup
+	req.authUser; // the authenticated user
+	req.raw; // escape hatch: the framework-native request
+
+	reply
+		.status(200)
+		.header('X-Custom', 'value')
+		.cookie('name', 'value', { httpOnly: true, maxAge: 60_000 })
+		.json({ ok: true }); // terminal: json / send / html / redirect / redirectTo
+});
+```
+
+Supported HTTP methods: `get`, `post`, `put`, `patch`, `delete`.
+
+Pass multiple handlers and all but the last act as middleware (they receive `next`):
+
+```typescript
+adminPanel.registerRoute(
+	'get',
+	'/reports',
+	async (req, reply, next) => {
+		if (!req.authUser) return reply.status(401).json({ error: 'No' });
+		await next();
+	},
+	async (req, reply) => reply.json({ report: [] }),
+);
+```
 
 ### Route Order
 
-Custom routes are registered **after** panel routes, so panel routes take precedence if there's a conflict.
+Custom routes are registered **before** panel routes, so a custom route wins over the
+panel's `/:resource/...` patterns if there's a conflict.
+
+### Escape hatch: the raw framework instance
+
+When you need more than the neutral API (raw middleware, streaming, websockets), grab the
+native app from the adapter. This ties the code to a specific adapter — prefer
+`registerRoute()` for anything portable:
+
+```typescript
+import { getExpressApp } from '@maxal_studio/kratosjs-express';
+
+// Register raw routes BEFORE start() so they precede the admin SPA catch-all.
+const app = getExpressApp(adminPanel); // or adminPanel.getServer<Express>()
+app.get('/raw-express', (req, res) => res.send('raw express route'));
+```
 
 ## Static File Serving
 
@@ -98,6 +209,7 @@ await adminPanel.start(PORT, async () => {
 ```
 
 The callback is optional and runs after the server starts listening. Use it for seeding data.
+`await adminPanel.stop()` shuts the server down (useful in tests).
 
 ## App Layout: Server + Admin Client
 
@@ -110,7 +222,7 @@ examples/sql-app/                    # reference layout
 ├── package.json                     # dev / build / start scripts
 ├── tsconfig.json                    # server only — excludes **/*.tsx
 └── src/
-    ├── index.ts                     # server entry (Panel, plugins, auth)
+    ├── index.ts                     # server entry (Panel, adapter, plugins, auth)
     ├── admin/
     │   └── main.tsx                 # admin client entry (mountAdminPanel)
     ├── entities/
@@ -120,7 +232,7 @@ examples/sql-app/                    # reference layout
 
 ### Server entry (`src/index.ts`)
 
-Configures the panel, registers plugins and resources, sets up auth, and calls `panel.start()`. This is always required.
+Configures the panel, sets the HTTP adapter, registers plugins and resources, sets up auth, and calls `panel.start()`. This is always required.
 
 ### Admin client entry (`src/admin/main.tsx`)
 
@@ -142,13 +254,13 @@ mountAdminPanel({
 
 ### Scripts and builds
 
-| Script         | What it does                                                                          |
-| -------------- | ------------------------------------------------------------------------------------- |
-| `dev`          | Runs `src/index.ts`; vite-express serves `index.html` + `src/admin/main.tsx` with HMR |
-| `build`        | Builds backend and front end                                                          |
-| `build:server` | `tsc` — compiles `src/index.ts` and server code to `dist/`                            |
-| `build:admin`  | `vite build` — bundles the admin client to `dist/admin/`                              |
-| `start`        | `NODE_ENV=production node dist/index.js` — serves the static admin bundle             |
+| Script         | What it does                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------ |
+| `dev`          | Runs `src/index.ts`; the server embeds Vite (middleware mode) to serve the admin client with HMR |
+| `build`        | Builds backend and front end                                                                     |
+| `build:server` | `tsc` — compiles `src/index.ts` and server code to `dist/`                                       |
+| `build:admin`  | `vite build` — bundles the admin client to `dist/admin/`                                         |
+| `start`        | `NODE_ENV=production node dist/index.js` — serves the static admin bundle                        |
 
 See [Getting Started](/getting-started) for the full walkthrough and [Custom Components](/plugins/custom-components) for plugin client manifests.
 
@@ -160,6 +272,7 @@ See `examples/app/src/index.ts` for a full working MongoDB setup with auth, seed
 import 'dotenv/config';
 import path from 'path';
 import { Panel, LocalMediaAdapter, EmailAuthProvider } from '@maxal_studio/kratosjs';
+import { ExpressAdapter } from '@maxal_studio/kratosjs-express';
 import { MongoDriver } from '@mikro-orm/mongodb';
 import { UserResource } from './resources/UserResource';
 import { PostResource } from './resources/PostResource';
@@ -169,6 +282,7 @@ import { seedAdminUser } from './seedAdminUser';
 const PORT = 3001;
 
 const adminPanel = Panel.make('admin')
+	.httpAdapter(new ExpressAdapter())
 	.orm({ driver: MongoDriver, clientUrl: 'mongodb://localhost:27017', dbName: 'kratosjs' }, { updateSchema: true })
 	.mediaAdapters([
 		new LocalMediaAdapter({
@@ -203,6 +317,7 @@ For a MySQL example with plugins, admin client, and migrations, see `examples/sq
 
 ## Next Steps
 
+- [HTTP Adapters](/backend/http-adapters) — the pluggable HTTP layer
 - [Database & MikroORM](/database/overview) — entities, drivers, and configuration
 - [Creating Resources](/resources/creating-resources) — build your first resource
 - [Authentication](/authentication/overview) — JWT and auth providers

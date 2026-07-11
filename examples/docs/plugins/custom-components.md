@@ -117,7 +117,7 @@ export default defineConfig(kratosAdminVite());
 
 ### Dev vs Production
 
-- **Development** (`npm run dev`): the KratosJs server serves the app's `index.html` + entry through vite-express with HMR
+- **Development** (`npm run dev`): the KratosJs server serves the app's `index.html` + entry through Vite (middleware mode) with HMR
 - **Production**: run `vite build` (outputs to `dist/admin`), then start the server with `NODE_ENV=production` — it serves the static bundle with SPA fallback and HTML transformation (title, favicon, settings injection)
 
 Typical app scripts:

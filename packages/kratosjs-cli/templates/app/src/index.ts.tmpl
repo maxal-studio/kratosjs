@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import path from 'path';
 import { Panel, LocalMediaAdapter, EmailAuthProvider } from '@maxal_studio/kratosjs';
+{{adapterImport}}
 {{driverImport}}
 {{migratorImport}}
 import { UserResource } from './resources/UserResource';
@@ -15,6 +16,12 @@ const adminPanel = Panel.make('admin')
 	.title('{{appTitle}}')
 	.favicon('/assets/icon.png')
 	.icon('/assets/icon.png')
+	// The HTTP framework is pluggable ({{adapterLabel}}).
+	.httpAdapter({{adapterNew}})
+	// The admin UI mount path. Default '/' (root). Change to e.g. '/admin' to relocate
+	// the UI and free '/' for your own routes — no other change needed (the client and
+	// its asset URLs are handled automatically by the server).
+	.panelPath('/')
 	.orm(
 		{{ormConfig}},
 		{ migrate: true, updateSchema: true },

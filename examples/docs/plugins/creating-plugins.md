@@ -227,25 +227,25 @@ Create a plugin that adds custom API endpoints:
 
 ```typescript
 // src/plugins/notifications/notificationController.ts
-import { KratosJsRequest, KratosJsResponse } from '@maxal_studio/kratosjs';
+import { KratosRequest, KratosReply } from '@maxal_studio/kratosjs';
 
-export async function getNotifications(req: KratosJsRequest, res: KratosJsResponse) Promise<void> {
+export async function getNotifications(req: KratosRequest, reply: KratosReply) Promise<void> {
 	try {
 		const userId = req.authUser?.id;
 		if (!userId) {
-			res.status(401).json({ error: 'Unauthorized' });
+			reply.status(401).json({ error: 'Unauthorized' });
 			return;
 		}
 
 		// Fetch notifications logic here
 		const notifications = [];
 
-		res.json({
+		reply.json({
 			data: notifications,
 			count: notifications.length,
 		});
 	} catch (error: any) {
-		res.status(500).json({ error: error.message });
+		reply.status(500).json({ error: error.message });
 	}
 }
 ```
@@ -263,9 +263,9 @@ export class NotificationsPlugin extends Plugin {
 	register(panel: Panel): void {
 		// Register routes
 		panel.registerRoute('get', '/notifications', getNotifications);
-		panel.registerRoute('post', '/notifications/mark-read', async (req: KratosJsRequest, res: KratosJsResponse) => {
+		panel.registerRoute('post', '/notifications/mark-read', async (req: KratosRequest, reply: KratosReply) => {
 			// Mark notification as read
-			res.json({ success: true });
+			reply.json({ success: true });
 		});
 	}
 }
@@ -391,15 +391,15 @@ Here's a complete example from the KratosJs codebase - the Profile Plugin:
 
 ```typescript
 // src/plugins/profile/profileController.ts
-import { KratosJsRequest, KratosJsResponse } from '@maxal_studio/kratosjs';
+import { KratosRequest, KratosReply } from '@maxal_studio/kratosjs';
 import { User } from '../../entities/User';
 import bcrypt from 'bcrypt';
 
-export async function updateProfile(req: KratosJsRequest, res: KratosJsResponse) Promise<void> {
+export async function updateProfile(req: KratosRequest, reply: KratosReply) Promise<void> {
 	try {
 		const userId = req.authUser?.id;
 		if (!userId) {
-			res.status(401).json({ error: 'Unauthorized' });
+			reply.status(401).json({ error: 'Unauthorized' });
 			return;
 		}
 
@@ -408,7 +408,7 @@ export async function updateProfile(req: KratosJsRequest, res: KratosJsResponse)
 		// Get media helper
 		const formatMediaKey = req.formatMediaKey;
 		if (!formatMediaKey) {
-			res.status(500).json({ error: 'Media formatting helper not available' });
+			reply.status(500).json({ error: 'Media formatting helper not available' });
 			return;
 		}
 
@@ -426,21 +426,21 @@ export async function updateProfile(req: KratosJsRequest, res: KratosJsResponse)
 		}
 
 		if (!user) {
-			res.status(404).json({ error: 'User not found' });
+			reply.status(404).json({ error: 'User not found' });
 			return;
 		}
 
-		res.json({
+		reply.json({
 			success: true,
 			message: 'Profile updated successfully',
 			data: user,
 		});
 	} catch (error: any) {
-		res.status(500).json({ error: error.message || 'Failed to update profile' });
+		reply.status(500).json({ error: error.message || 'Failed to update profile' });
 	}
 }
 
-export async function changePassword(req: KratosJsRequest, res: KratosJsResponse) Promise<void> {
+export async function changePassword(req: KratosRequest, reply: KratosReply) Promise<void> {
 	// Password change logic...
 }
 ```
@@ -522,10 +522,10 @@ export class ProfilePlugin extends Plugin {
 Routes registered via plugins automatically have access to media helper functions:
 
 ```typescript
-import { KratosJsRequest, KratosJsResponse } from '@maxal_studio/kratosjs';
+import { KratosRequest, KratosReply } from '@maxal_studio/kratosjs';
 
 register(panel: Panel): void {
-  panel.registerRoute('post', '/upload-avatar', async (req: KratosJsRequest, res: KratosJsResponse) => {
+  panel.registerRoute('post', '/upload-avatar', async (req: KratosRequest, reply: KratosReply) => {
     const formatMediaKey = req.formatMediaKey;
     const resolveMediaUrl = req.resolveMediaUrl;
 
@@ -537,7 +537,7 @@ register(panel: Panel): void {
     // Resolve media URL
     const url = await resolveMediaUrl(formatted);
 
-    res.json({ url, key: formatted.key });
+    reply.json({ url, key: formatted.key });
   });
 }
 ```

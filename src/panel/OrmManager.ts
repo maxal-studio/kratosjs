@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction, RequestHandler } from 'express';
 import { MikroORM, RequestContext as OrmRequestContext, EntityManager } from '@mikro-orm/core';
+import type { KratosMiddleware } from '../http/types';
 
 export interface OrmOptions {
 	migrate?: boolean;
@@ -103,14 +103,16 @@ export class OrmManager {
 	}
 
 	/**
-	 * Express middleware that creates a request-scoped MikroORM context (forked EntityManager).
+	 * Pipeline step that creates a request-scoped MikroORM context (forked EntityManager).
+	 * `RequestContext.create` accepts an async callback and returns its promise, so the
+	 * forked EntityManager stays bound for the whole downstream chain.
 	 */
-	contextMiddleware(): RequestHandler {
-		return (_req: Request, _res: Response, next: NextFunction) => {
+	contextStep(): KratosMiddleware {
+		return async (_req, _reply, next) => {
 			if (this._orm) {
-				OrmRequestContext.create(this._orm.em, next);
+				await OrmRequestContext.create(this._orm.em, next);
 			} else {
-				next();
+				await next();
 			}
 		};
 	}

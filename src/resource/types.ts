@@ -231,9 +231,9 @@ export interface HookContext {
 	 * HTTP context (optional, when called from route handlers)
 	 */
 	http?: {
-		/** Express request object */
+		/** Framework-neutral request (KratosRequest; native request at request.raw) */
 		request: any;
-		/** Express response object */
+		/** Framework-neutral reply (KratosReply; native response at reply.raw) */
 		response: any;
 	};
 

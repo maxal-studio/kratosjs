@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { KratosRequest, KratosReply } from '../../http/types';
 import type { Panel } from '../../Panel';
 import { t } from '../../i18n/serverT';
 
@@ -12,12 +12,12 @@ export class SearchController {
 	/**
 	 * Handle global search across all resources
 	 */
-	async handleGlobalSearch(req: Request, res: Response): Promise<void> {
+	async handleGlobalSearch(req: KratosRequest, reply: KratosReply): Promise<void> {
 		try {
 			const { query } = req.body;
 
 			if (!query || typeof query !== 'string' || query.trim().length === 0) {
-				res.json({});
+				reply.json({});
 				return;
 			}
 
@@ -96,10 +96,10 @@ export class SearchController {
 				}
 			}
 
-			res.json(results);
+			reply.json(results);
 		} catch (error: any) {
 			console.error('Error in global search:', error);
-			res.status(500).json({
+			reply.status(500).json({
 				message: error.message || t('core:search.failed'),
 			});
 		}

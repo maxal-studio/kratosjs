@@ -1,7 +1,16 @@
 import path from 'path';
-import { Router, Request, Response, RequestHandler, NextFunction } from 'express';
 import { MikroORM, EntityManager } from '@mikro-orm/core';
-import { KratosJsRequestHandler } from './panel/request';
+import type {
+	CorsOptions,
+	HttpMethod,
+	KratosMiddleware,
+	KratosRouteHandler,
+	RouteDefinition,
+	StaticMount,
+} from './http/types';
+import { KratosHttpAdapter } from './http/KratosHttpAdapter';
+import { AdminSpaService, normalizePanelPath } from './http/adminSpa';
+import { buildPanelRouteTable, composeCustomRouteHandler } from './http/pipeline';
 import { ResourceClass } from './BaseResource';
 import { Resource } from './Resource';
 import { ResourceHooks } from './resource/types';
@@ -48,10 +57,7 @@ export interface ClientI18nConfig {
 	/** Client-facing catalogs (plugin + app namespaces, all locales). Framework `core` is excluded. */
 	resources: I18nResources;
 }
-import { HttpAdapter } from './adapters/http/HttpAdapter';
-import { ExpressAdapter } from './adapters/http/ExpressAdapter';
 import { Plugin } from './plugins/Plugin';
-import { attachRedirectHelper } from './utils/redirectHelper';
 import { mergeHooks, mergeMediaHooks } from './utils/panelHelpers';
 import { MediaFileInfo } from './utils/mediaHelpers';
 import { OrmManager, OrmOptions, DriverKind } from './panel/OrmManager';
@@ -70,11 +76,8 @@ import {
 	MediaHookContext,
 } from './panel/PanelHooks';
 import { buildPanelMetadata, buildPanelBadges } from './panel/metadata';
-import { buildPanelRouter } from './panel/routes';
 import { applyGlobalConfiguration } from './panel/applyGlobalConfiguration';
 import { Exporter } from './panel/export';
-// Import request types to ensure declaration merging is applied
-import './panel/request';
 
 /** Default panel favicon path — served from bundled assets or app `assets/` via `useStatic`. */
 export const DEFAULT_PANEL_FAVICON = '/assets/icon.png';
@@ -123,16 +126,32 @@ export class Panel {
 	private _icon?: string;
 	private _favicon?: string;
 	private _basePath: string = '/kratosjs/api';
+	private _panelPath: string = '/';
 	private _adapterClass?: AdapterClass;
 	private _defaultSearchableFields: string[] = [];
 	private _resources: Map<string, RegisteredResource> = new Map();
 	private _pages: Map<string, typeof Page> = new Map();
-	private _middleware: RequestHandler[] = [];
+	private _middleware: KratosMiddleware[] = [];
 	private _resourceHooks: Map<ResourceClass, ResourceHooks> = new Map();
 	private _mediaHooks: MediaHooks = {};
 	private _authManager?: AuthManager;
-	private _httpAdapterClass?: new (panel: Panel, basePath: string) => HttpAdapter;
-	private _httpAdapter?: HttpAdapter;
+	private _httpAdapter?: KratosHttpAdapter;
+	/** Custom routes registered via registerRoute(), buffered until start() */
+	private _customRoutes: Array<{
+		method: HttpMethod;
+		path: string;
+		handlers: KratosRouteHandler[];
+		source: 'app' | 'plugin';
+	}> = [];
+	/** Static mounts registered via useStatic(), buffered until start() */
+	private _staticMounts: StaticMount[] = [];
+	/** The final route table, built during start() */
+	private _routeTable?: RouteDefinition[];
+	/** HTTP behavior options passed to the adapter's init() */
+	private _httpOptions: { bodyLimit?: string; cors?: CorsOptions } = {};
+	/** Whether to serve the admin SPA client (disable for headless / API-only usage) */
+	private _serveAdminClient = true;
+	private _adminSpa?: AdminSpaService;
 	private _plugins: Array<Plugin | (new () => Plugin)> = [];
 	private _pluginInstances: Plugin[] = [];
 	// Custom component type names registered by plugins (for metadata/introspection).
@@ -246,6 +265,30 @@ export class Panel {
 	 */
 	getBasePath(): string {
 		return this._basePath;
+	}
+
+	/**
+	 * Set the admin UI mount path (where the panel SPA is served), independent of the
+	 * API base path set by `.path()`. Default `/` serves the SPA at the domain root
+	 * (whole-domain catch-all). A value like `/admin` scopes the SPA and its assets to
+	 * that path, freeing `/` (and everything outside it) for your own routes.
+	 *
+	 * Note: a non-root path also requires the admin client's Vite `base` to match —
+	 * `kratosAdminVite({ base: '/admin/' })` — so production asset URLs are emitted
+	 * under the same path.
+	 *
+	 * @param uiPath - UI mount path, e.g. '/admin'
+	 */
+	panelPath(uiPath: string): this {
+		this._panelPath = normalizePanelPath(uiPath);
+		return this;
+	}
+
+	/**
+	 * Get the admin UI mount path (normalized; '/' means root).
+	 */
+	getPanelPath(): string {
+		return this._panelPath;
 	}
 
 	// ============================================================================
@@ -387,18 +430,20 @@ export class Panel {
 	}
 
 	/**
-	 * Add Express middleware to all panel routes
-	 * @param middleware - Array of Express middleware functions
+	 * Add middleware to all panel routes. Middleware receives framework-neutral
+	 * (req, reply, next) and runs on every adapter — respond via `reply` (without
+	 * calling next()) to short-circuit, e.g. for rate limiting.
+	 * @param middleware - Array of KratosMiddleware functions
 	 */
-	middleware(middleware: RequestHandler[]): this {
+	middleware(middleware: KratosMiddleware[]): this {
 		this._middleware = middleware;
 		return this;
 	}
 
 	/**
-	 * Get the panel-level middleware (used when building routes)
+	 * Get the panel-level middleware (used when composing routes)
 	 */
-	getMiddleware(): RequestHandler[] {
+	getMiddleware(): KratosMiddleware[] {
 		return this._middleware;
 	}
 
@@ -501,11 +546,11 @@ export class Panel {
 	}
 
 	/**
-	 * Express middleware that creates a request-scoped MikroORM context (forked EntityManager).
+	 * Pipeline step that creates a request-scoped MikroORM context (forked EntityManager).
 	 * Applied automatically to panel routes and plugin-registered routes.
 	 */
-	ormContextMiddleware(): RequestHandler {
-		return this._ormManager.contextMiddleware();
+	ormContextStep(): KratosMiddleware {
+		return this._ormManager.contextStep();
 	}
 
 	// ============================================================================
@@ -513,43 +558,60 @@ export class Panel {
 	// ============================================================================
 
 	/**
-	 * Set the HTTP adapter class to use for the server
-	 * Defaults to ExpressAdapter if not specified
-	 * @param adapterClass - HTTP adapter class constructor
+	 * Set the HTTP adapter instance to run the server on.
+	 * Required — install an adapter package (e.g. @maxal_studio/kratosjs-express)
+	 * and pass an instance: `panel.httpAdapter(new ExpressAdapter())`.
 	 */
-	httpAdapter(adapterClass: new (panel: Panel, basePath: string) => HttpAdapter): this {
-		this._httpAdapterClass = adapterClass;
+	httpAdapter(adapter: KratosHttpAdapter): this {
+		this._httpAdapter = adapter;
 		return this;
 	}
 
 	/**
 	 * Get the HTTP adapter instance
 	 */
-	getHttpAdapter(): HttpAdapter | undefined {
+	getHttpAdapter(): KratosHttpAdapter | undefined {
 		return this._httpAdapter;
 	}
 
 	/**
-	 * Initialize the HTTP adapter if not already initialized
-	 * Creates ExpressAdapter by default or uses custom adapter if set
-	 * Note: Panel routes are NOT mounted here - they are mounted in start() to ensure
-	 * all configuration (auth, resources, etc.) is complete before routes are built
+	 * Configure HTTP behavior passed to the adapter (JSON body limit, CORS).
+	 * Defaults: bodyLimit '50mb' (file uploads travel as base64 JSON),
+	 * cors { origin: true, credentials: true }.
 	 */
-	private initializeHttpAdapter(): void {
-		if (this._httpAdapter) {
-			return;
-		}
+	http(options: { bodyLimit?: string; cors?: CorsOptions }): this {
+		this._httpOptions = { ...this._httpOptions, ...options };
+		return this;
+	}
 
-		const AdapterClass = this._httpAdapterClass || ExpressAdapter;
-		this._httpAdapter = new AdapterClass(this, this._basePath);
-		// Panel routes will be mounted in start() after all configuration is done
+	/**
+	 * Disable (or re-enable) serving the admin SPA client.
+	 * Useful for headless / API-only deployments and tests.
+	 */
+	adminClient(enabled: boolean): this {
+		this._serveAdminClient = enabled;
+		return this;
+	}
+
+	/** Throw a descriptive error when no HTTP adapter was configured. */
+	private requireHttpAdapter(): KratosHttpAdapter {
+		if (!this._httpAdapter) {
+			throw new Error(
+				'[kratosjs] No HTTP adapter configured.\n' +
+					'Install one:  npm install @maxal_studio/kratosjs-express\n' +
+					'Then configure it:\n' +
+					"  import { ExpressAdapter } from '@maxal_studio/kratosjs-express';\n" +
+					'  panel.httpAdapter(new ExpressAdapter());',
+			);
+		}
+		return this._httpAdapter;
 	}
 
 	/**
 	 * Serve bundled branding assets when the app has not mounted its own `/assets` directory.
 	 */
 	private mountDefaultAssetsIfNeeded(): void {
-		if (this._httpAdapter!.hasStaticMount('/assets')) {
+		if (this._staticMounts.some(mount => mount.urlPath === '/assets')) {
 			return;
 		}
 
@@ -558,48 +620,68 @@ export class Panel {
 	}
 
 	/**
-	 * Get the underlying HTTP server app instance
-	 * @returns The server app instance (Express, Fastify, etc.)
+	 * Get the framework-native server instance (escape hatch).
+	 * With the express adapter this is the Express app — use it to register raw
+	 * framework routes/middleware that need more than the neutral API.
+	 * @example const app = panel.getServer<Express>();
 	 */
-	getApp(): any {
-		this.initializeHttpAdapter();
-		return this._httpAdapter!.getApp();
+	getServer<T = unknown>(): T {
+		return this.requireHttpAdapter().getNative<T>();
 	}
 
 	/**
-	 * Register a custom route with automatic base path, auth, and media helpers
-	 * Handlers receive KratosJsRequest and KratosJsResponse with all KratosJs properties available
+	 * @deprecated Use {@link getServer} instead.
+	 */
+	getApp(): any {
+		return this.getServer();
+	}
+
+	/**
+	 * Register a custom route with automatic base path, auth, request context, and
+	 * media helpers. Handlers receive framework-neutral KratosRequest/KratosReply and
+	 * run unchanged on any HTTP adapter. All but the last handler act as middleware
+	 * (they receive `next` as a third argument).
+	 *
+	 * Routes are buffered and registered during start(), BEFORE the panel's own
+	 * routes — a custom route wins over `/:resource/...` patterns.
+	 *
 	 * @param method - HTTP method (get, post, put, patch, delete)
 	 * @param path - Route path (will be prepended with basePath)
-	 * @param handlers - Route handler functions (can use KratosJsRequest and KratosJsResponse)
+	 * @param handlers - Route handler functions
 	 */
 	registerRoute(
 		method: 'get' | 'post' | 'put' | 'patch' | 'delete',
 		path: string,
-		...handlers: KratosJsRequestHandler[]
+		...handlers: KratosRouteHandler[]
 	): this {
-		this.initializeHttpAdapter();
-		this._httpAdapter!.registerRoute(method, path, ...handlers);
+		if (handlers.length === 0) {
+			throw new Error(`[kratosjs] registerRoute('${method}', '${path}') needs at least one handler`);
+		}
+		this._customRoutes.push({
+			method: method.toUpperCase() as HttpMethod,
+			path,
+			handlers,
+			source: this._registeringPlugins ? 'plugin' : 'app',
+		});
 		return this;
 	}
 
 	/**
-	 * Serve static files from a directory
+	 * Serve static files from a directory. Buffered and mounted during start().
 	 * @param path - URL path to serve files from
 	 * @param directory - Directory path to serve files from
 	 */
 	useStatic(path: string, directory: string): this {
-		this.initializeHttpAdapter();
-		this._httpAdapter!.useStatic(path, directory);
+		this._staticMounts.push({ urlPath: path, directory });
 		return this;
 	}
 
 	/**
-	 * Get all registered routes from the HTTP server
+	 * Get all registered routes (exact — read from the core route table).
 	 */
 	getRegisteredRoutes(): Array<{ method: string; path: string }> {
-		this.initializeHttpAdapter();
-		return this._httpAdapter!.getRegisteredRoutes();
+		const table = this._routeTable ?? this.getRouteTable();
+		return table.map(route => ({ method: route.method, path: route.path }));
 	}
 
 	// ============================================================================
@@ -723,11 +805,10 @@ export class Panel {
 	 * @param callback - Optional callback function called when server starts
 	 */
 	async start(port: number, callback?: () => void): Promise<void> {
-		this.initializeHttpAdapter();
-		this.mountDefaultAssetsIfNeeded();
+		const adapter = this.requireHttpAdapter();
 
 		// 1. Register all plugins (after all configuration is complete, before ORM init)
-		// Plugins can register resources, entities, and migrations at this point.
+		// Plugins can register resources, entities, migrations, and routes at this point.
 		// The flag routes plugin `registerTranslations` calls into the plugin bucket
 		// so app-level translations always win over them.
 		this._registeringPlugins = true;
@@ -754,9 +835,40 @@ export class Panel {
 		// create adapters, and run plugin boot hooks (seeding)
 		await this.initializeOrm();
 
-		// Mount panel routes now that all configuration (including plugins) is complete
-		this._httpAdapter!.mountRouter(this._basePath, this.routes());
-		this._httpAdapter!.start(port, callback);
+		// 3. Drive the HTTP adapter: init → static mounts → routes → admin SPA → listen.
+		// The route table is built now, after all configuration (including plugins).
+		this.mountDefaultAssetsIfNeeded();
+		this._routeTable = this.getRouteTable();
+
+		await adapter.init({
+			panel: this,
+			basePath: this._basePath,
+			panelPath: this._panelPath,
+			bodyLimit: this._httpOptions.bodyLimit ?? '50mb',
+			cors: this._httpOptions.cors ?? { origin: true, credentials: true },
+		});
+
+		for (const mount of this._staticMounts) {
+			adapter.useStatic(mount);
+		}
+		for (const route of this._routeTable) {
+			adapter.registerRoute(route);
+		}
+
+		if (this._serveAdminClient) {
+			this._adminSpa = new AdminSpaService(this);
+			await adapter.serveAdminSpa(this._adminSpa);
+		}
+
+		await adapter.listen(port, callback);
+	}
+
+	/**
+	 * Stop the HTTP server (and the Vite dev server in development).
+	 */
+	async stop(): Promise<void> {
+		await this._adminSpa?.close();
+		await this._httpAdapter?.close();
 	}
 
 	/**
@@ -875,21 +987,9 @@ export class Panel {
 		return this._mediaManager.transformFieldsForStorage(data, formSchema);
 	}
 
-	/**
-	 * Middleware that attaches media helper functions to the request
-	 * Attaches transformMediaFieldsForStorage, formatMediaKey, and resolveMediaUrl to req
-	 * Also attaches redirectTo helper to res for easy redirect responses
-	 */
-	attachMediaHelpers(): RequestHandler {
-		return (req: Request, res: Response, next: NextFunction) => {
-			req.transformMediaFieldsForStorage = (data: Record<string, any>, formSchema: any) =>
-				this.transformMediaFieldsForStorage(data, formSchema);
-			req.formatMediaKey = (key: string, bucketName?: string) => this.formatMediaKey(key, bucketName);
-			req.resolveMediaUrl = (mediaValue: any) => this.resolveMediaUrl(mediaValue);
-			attachRedirectHelper(res);
-			next();
-		};
-	}
+	// Note: v1's attachMediaHelpers() middleware is gone — media helpers are built
+	// into every KratosRequest (see buildKratosRequest), and redirectTo is a
+	// standard KratosReply method.
 
 	// ============================================================================
 	// Authentication
@@ -1022,10 +1122,10 @@ export class Panel {
 	}
 
 	/**
-	 * Get authentication middleware for protecting routes
-	 * @returns Express middleware that requires authentication
+	 * Get the authentication pipeline step for protecting custom routes
+	 * @returns KratosMiddleware that requires authentication
 	 */
-	getAuthMiddleware(): RequestHandler {
+	getAuthMiddleware(): KratosMiddleware {
 		if (!this._authManager) {
 			throw new Error('Authentication not configured. Call panel.auth() first.');
 		}
@@ -1033,10 +1133,10 @@ export class Panel {
 	}
 
 	/**
-	 * Get optional authentication middleware
-	 * Attaches user to request if token is valid, but doesn't block if not authenticated
+	 * Get the optional authentication pipeline step
+	 * Attaches the user to the request if the token is valid, but doesn't block if not
 	 */
-	getOptionalAuthMiddleware(): RequestHandler {
+	getOptionalAuthMiddleware(): KratosMiddleware {
 		if (!this._authManager) {
 			throw new Error('Authentication not configured. Call panel.auth() first.');
 		}
@@ -1081,10 +1181,10 @@ export class Panel {
 	}
 
 	/**
-	 * Get authentication middleware that requires authentication
-	 * @throws Error if authentication is not configured
+	 * @deprecated Auth is applied to custom routes automatically; for manual use,
+	 * prefer {@link getAuthMiddleware}.
 	 */
-	attachAuth(): RequestHandler {
+	attachAuth(): KratosMiddleware {
 		return this.getAuthMiddleware();
 	}
 
@@ -1481,10 +1581,18 @@ export class Panel {
 	}
 
 	/**
-	 * Generate Express Router with all resource routes
-	 * Routes are global with resource as URL parameter
+	 * Build the complete declarative route table: custom routes first (they win
+	 * over `/:resource/...` patterns, matching v1 precedence), then all panel routes.
+	 * Every handler is fully composed — adapters register these one-to-one.
 	 */
-	routes(): Router {
-		return buildPanelRouter(this);
+	getRouteTable(): RouteDefinition[] {
+		const customRoutes: RouteDefinition[] = this._customRoutes.map(route => ({
+			method: route.method,
+			path: `${this._basePath}${route.path}`,
+			handler: composeCustomRouteHandler(this, route.handlers),
+			source: route.source,
+		}));
+
+		return [...customRoutes, ...buildPanelRouteTable(this)];
 	}
 }

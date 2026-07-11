@@ -170,9 +170,9 @@ Routes registered via plugins automatically get the base path, auth middleware, 
 
 ```typescript
 register(panel: Panel): void {
-  panel.registerRoute('post', '/my-endpoint', async (req, res) => {
+  panel.registerRoute('post', '/my-endpoint', async (req, reply) => {
     const user = req.authUser;
-    res.json({ message: 'Hello from plugin!' });
+    reply.json({ message: 'Hello from plugin!' });
   });
 }
 ```

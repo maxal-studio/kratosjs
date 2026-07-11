@@ -1,5 +1,3 @@
-import { Response } from 'express';
-import { ValidationError } from '../resource/types';
 import { ResourceHooks } from '../resource/types';
 import { MediaHooks } from '../panel/PanelHooks';
 import { traverseComponent } from './formSchemaTraversal';
@@ -144,27 +142,7 @@ export function collectMediaFilesFromRecords(records: (any | null)[], fileUpload
 	return files;
 }
 
-/**
- * Handle error response
- * Formats different error types into appropriate HTTP responses
- */
-export function handleError(res: Response, error: any): void {
-	if (error instanceof ValidationError) {
-		res.status(400).json({
-			message: error.message,
-			field: error.field,
-			rule: error.rule,
-			// Structured fields let the client render the message in the active locale.
-			...(error.messageKey ? { messageKey: error.messageKey } : {}),
-			...(error.params ? { params: error.params } : {}),
-		});
-	} else if (error.message?.includes('not found')) {
-		res.status(404).json({
-			message: error.message,
-		});
-	} else {
-		res.status(500).json({
-			message: error.message || 'Internal server error',
-		});
-	}
-}
+// handleError moved to src/http/errors.ts (framework-neutral); re-exported here
+// so existing imports keep working. Express Response satisfies ErrorReplyTarget.
+export { handleError } from '../http/errors';
+export type { ErrorReplyTarget } from '../http/errors';

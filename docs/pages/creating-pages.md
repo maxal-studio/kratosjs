@@ -186,20 +186,17 @@ TableBlock.make(table).title('Recent Users').subtitle('Last 10 registered users'
 
 ## Custom Routes for Pages
 
-For pages that need custom API endpoints, you can create routes:
+For pages that need custom API endpoints, register a route on the panel. The base path,
+authentication, request context, and media helpers are applied automatically, and the
+handler is framework-neutral — it runs on any HTTP adapter:
 
 ```typescript
 // In your backend index.ts
-app.post(
-	adminPanel.getBasePath() + '/dashboard/recent-users',
-	adminPanel.attachAuth(),
-	adminPanel.attachMediaHelpers(),
-	async (req, res) => {
-		// Handle the request
-		const users = await User.find().limit(10);
-		res.json({ data: users });
-	},
-);
+adminPanel.registerRoute('post', '/dashboard/recent-users', async (req, reply) => {
+	const em = adminPanel.getEm();
+	const users = await em.find('User', {}, { limit: 10 });
+	reply.json({ data: users });
+});
 ```
 
 ## Next Steps

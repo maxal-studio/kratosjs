@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { Panel } from '../src/Panel';
-import { ExpressAdapter } from '../src/adapters/http/ExpressAdapter';
+import { transformAdminIndexHtml } from '../src/http/adminSpa';
 
 // The admin HTML carries the i18n config so the client auto-configures from the
-// server (see ExpressAdapter.transformIndexHtml). This verifies the injection
-// shape and the <-escaping that prevents a catalog value from breaking the script.
+// server (see transformAdminIndexHtml, shared by every HTTP adapter via
+// AdminSpaService). This verifies the injection shape and the <-escaping that
+// prevents a catalog value from breaking the script.
 
 const TEMPLATE = [
 	'<!DOCTYPE html><html><head>',
@@ -15,8 +16,7 @@ const TEMPLATE = [
 ].join('\n');
 
 function transform(panel: Panel): string {
-	const adapter = new ExpressAdapter(panel, panel.getBasePath());
-	return (adapter as unknown as { transformIndexHtml(html: string): string }).transformIndexHtml(TEMPLATE);
+	return transformAdminIndexHtml(panel, TEMPLATE);
 }
 
 function extractInjectedI18n(html: string): unknown {
@@ -25,7 +25,7 @@ function extractInjectedI18n(html: string): unknown {
 	return JSON.parse(match[1]);
 }
 
-describe('ExpressAdapter i18n injection', () => {
+describe('Admin SPA i18n injection', () => {
 	it('injects window.__VALAJS_I18N__ with the panel locale config + app/plugin catalogs', () => {
 		const panel = Panel.make('admin').i18n({ locales: ['en', 'sq'], defaultLocale: 'en', fallbackLocale: 'en' });
 		panel.registerTranslations('app', { en: { 'home.title': 'Home' }, sq: { 'home.title': 'Ballina' } });

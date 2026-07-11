@@ -1,17 +1,18 @@
 ---
 name: kratosjs
-description: Build admin panels with the KratosJs framework (@maxal_studio/kratosjs + @maxal_studio/kratosjs-react, MikroORM, Express). Use when creating or editing a KratosJs resource, entity, FormBuilder form, TableBuilder table, hook, custom/bulk action, dashboard widget, page, relation, media adapter, auth config, i18n, or plugin — or when scaffolding a new KratosJs app.
+description: Build admin panels with the KratosJs framework (@maxal_studio/kratosjs + @maxal_studio/kratosjs-react, MikroORM, pluggable HTTP adapters with Express as the default). Use when creating or editing a KratosJs resource, entity, FormBuilder form, TableBuilder table, hook, custom/bulk action, dashboard widget, page, relation, media adapter, auth config, i18n, or plugin — or when scaffolding a new KratosJs app.
 ---
 
 # KratosJs
 
-KratosJs is a code-first admin-panel framework: you declare **resources** (backed by MikroORM entities) and it renders CRUD UI, forms, tables, dashboards, auth, and media. Backend is `@maxal_studio/kratosjs` (Express); the React client is `@maxal_studio/kratosjs-react`.
+KratosJs is a code-first admin-panel framework: you declare **resources** (backed by MikroORM entities) and it renders CRUD UI, forms, tables, dashboards, auth, and media. Backend is `@maxal_studio/kratosjs` (HTTP-framework agnostic since v2; every panel needs an adapter — `.httpAdapter(new ExpressAdapter())` from `@maxal_studio/kratosjs-express` (the default), or `FastifyAdapter`/`HapiAdapter`/`KoaAdapter` from `@maxal_studio/kratosjs-fastify`/`-hapi`/`-koa`); the React client is `@maxal_studio/kratosjs-react`.
 
 **Everything in this skill reflects the current, verified API.**
 
 ## Imports
 
-- Backend authoring: `@maxal_studio/kratosjs` — `Panel`, `BaseResource`, `Page`, `FormBuilder` + inputs, `TableBuilder` + columns, `Action`/`BulkAction`, `StatsWidget`/`ChartWidget`, `WidgetBlock`, `LocalMediaAdapter`/`S3MediaAdapter`, `EmailAuthProvider`, and types `ActionHandler`, `ResourceHooks`, `HookContext`, `RelationConfig`, `Widget`, `FormContext`.
+- Backend authoring: `@maxal_studio/kratosjs` — `Panel`, `BaseResource`, `Page`, `FormBuilder` + inputs, `TableBuilder` + columns, `Action`/`BulkAction`, `StatsWidget`/`ChartWidget`, `WidgetBlock`, `LocalMediaAdapter`/`S3MediaAdapter`, `EmailAuthProvider`, and types `ActionHandler`, `ResourceHooks`, `HookContext`, `RelationConfig`, `Widget`, `FormContext`, `KratosRequest`/`KratosReply` (framework-neutral custom-route types).
+- HTTP adapter (required on every panel), same neutral API on all: `@maxal_studio/kratosjs-express` — `ExpressAdapter` + `getExpressApp(panel)`; `-fastify` — `FastifyAdapter` + `getFastifyApp`; `-hapi` — `HapiAdapter` + `getHapiApp`; `-koa` — `KoaAdapter` + `getKoaApp`. E.g. `.httpAdapter(new ExpressAdapter())`.
 - Entities: `@mikro-orm/core` (`EntitySchema`) + a driver (`@mikro-orm/mysql`, `-postgresql`, `-mariadb`, `-sqlite`, `-mongodb`) + `@mikro-orm/migrations`.
 - React client: `@maxal_studio/kratosjs-react` (`mountAdminPanel`) + `@maxal_studio/kratosjs-react/styles.css`.
 
@@ -21,7 +22,7 @@ KratosJs is a code-first admin-panel framework: you declare **resources** (backe
 2. Create a **resource** class extending `BaseResource` with static config + `form()`, `table()`, and optionally `relations()`, `widgets()`, `hooks()`, `actions()`. → `references/resources.md`
 3. Register it on the **panel**: `Panel.make('admin').orm(...).resources([X]).pages([...]).plugins([...])`. → `references/getting-started.md`
 
-The CLI scaffolds all of this: `npx @maxal_studio/kratosjs-cli new my-app --driver mysql`. (`@maxal_studio/kratosjs` is the runtime, `@maxal_studio/kratosjs-cli` is the scaffolder.)
+The CLI scaffolds all of this: `npx @maxal_studio/kratosjs-cli new my-app --driver mysql --http express` (`--http express|fastify|hapi|koa`, Express is the default). (`@maxal_studio/kratosjs` is the runtime, `@maxal_studio/kratosjs-cli` is the scaffolder.)
 
 ## Reference map — load on demand
 

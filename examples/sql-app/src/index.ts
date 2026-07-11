@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import path from 'path';
 import { Panel, LocalMediaAdapter, EmailAuthProvider, t, withLocale } from '@maxal_studio/kratosjs';
+import { ExpressAdapter, getExpressApp } from '@maxal_studio/kratosjs-express';
 import enApp from './lang/en';
 import sqApp from './lang/sq';
 import { MySqlDriver } from '@mikro-orm/mysql';
@@ -26,6 +27,8 @@ const adminPanel = Panel.make('admin')
 	.title('KratosJs (MySQL)')
 	.favicon('/assets/icon.png')
 	.icon('/assets/icon.png')
+	// The HTTP framework is pluggable — Express is the default adapter.
+	.httpAdapter(new ExpressAdapter())
 	.orm(
 		{
 			driver: MySqlDriver,
@@ -57,9 +60,11 @@ const adminPanel = Panel.make('admin')
 
 // Custom route demonstrating server-side t(): resolves against the request locale
 // (?locale / X-KratosJs-Locale / Accept-Language), with an explicit override too.
-adminPanel.registerRoute('get', '/greet', (req: any, res: any) => {
+// Handlers are framework-neutral (KratosRequest/KratosReply) — the same code runs
+// on any HTTP adapter.
+adminPanel.registerRoute('get', '/greet', (req, reply) => {
 	const name = (req.query.name as string) || 'there';
-	res.json({
+	reply.json({
 		// Active request locale:
 		message: t('app:greeting', { name, count: 3 }),
 		// Forced Albanian (e.g. a per-recipient email), regardless of request locale:
@@ -89,6 +94,16 @@ adminPanel.auth({
 });
 
 adminPanel.useStatic('/assets', assetsPath);
+
+// Escape hatch: when you need more than the neutral registerRoute() API
+// (raw middleware, streaming, websockets...), grab the framework-native app.
+// Register raw routes BEFORE start() so they precede the admin SPA catch-all.
+// This ties the route to the Express adapter specifically — prefer
+// adminPanel.registerRoute() for anything portable.
+const app = getExpressApp(adminPanel);
+app.get('/raw-express', (_req, res) => {
+	res.send('Served straight from the raw Express app.');
+});
 
 adminPanel
 	.start(PORT, async () => {

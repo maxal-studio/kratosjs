@@ -51,13 +51,13 @@ export class TwoFactorPlugin extends Plugin {
 
 		// Enrollment routes. registerRoute already applies the request-scoped ORM context
 		// AND the auth middleware, so these run only for an authenticated user (req.authUser).
-		panel.registerRoute('post', '/auth/2fa/setup', (req, res) => {
+		panel.registerRoute('post', '/auth/2fa/setup', (req, reply) => {
 			/* return secret + QR */
 		});
-		panel.registerRoute('post', '/auth/2fa/enable', (req, res) => {
+		panel.registerRoute('post', '/auth/2fa/enable', (req, reply) => {
 			/* verify + enable */
 		});
-		panel.registerRoute('post', '/auth/2fa/disable', (req, res) => {
+		panel.registerRoute('post', '/auth/2fa/disable', (req, reply) => {
 			/* verify + remove */
 		});
 	}
@@ -172,7 +172,7 @@ export class TwoFactorPage extends Page {
 // in the plugin's register(panel):
 panel.registerCustomBlock('two-factor-setup');
 panel.registerPage(TwoFactorPage);
-panel.registerRoute('get', '/auth/2fa/status', (req, res) => /* { enabled } for req.authUser */);
+panel.registerRoute('get', '/auth/2fa/status', (req, reply) => /* { enabled } for req.authUser */);
 ```
 
 The block's client component calls the same authenticated `/auth/2fa/*` routes to enroll

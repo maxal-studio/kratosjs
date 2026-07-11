@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { KratosRequest, KratosReply } from '../../http/types';
 import type { Panel } from '../../Panel';
 import { ActionRequest } from '../types';
 import { applyColumnFormatters, applyFieldFormatters } from '../../utils/dataFormatters';
@@ -22,7 +22,7 @@ export class CrudController {
 	/**
 	 * Create a new record
 	 */
-	async handleCreate(req: Request, res: Response): Promise<void> {
+	async handleCreate(req: KratosRequest, reply: KratosReply): Promise<void> {
 		const registered = getPanelResource(req);
 
 		try {
@@ -31,7 +31,7 @@ export class CrudController {
 			// Check operation access (combines resource flags and plugin permissions)
 			const accessCheck = await checkOperationAccess(this.panel, registered, 'create', req.authUser);
 			if (!accessCheck.allowed) {
-				res.status(403).json({
+				reply.status(403).json({
 					message: accessCheck.message,
 				});
 				return;
@@ -55,8 +55,8 @@ export class CrudController {
 
 			// Compute record title and return response
 			const recordTitle = registered.resourceClass.computeRecordTitle?.(formattedResult);
-			res.setHeader('X-KratosJs-Refresh-Badges', 'true');
-			res.status(201).json({
+			reply.header('X-KratosJs-Refresh-Badges', 'true');
+			reply.status(201).json({
 				data: formattedResult,
 				metadata: {
 					...(recordTitle ? { recordTitle } : {}),
@@ -64,14 +64,14 @@ export class CrudController {
 				},
 			});
 		} catch (error: any) {
-			handleError(res, error);
+			handleError(reply, error);
 		}
 	}
 
 	/**
 	 * Find a record by ID
 	 */
-	async handleFindById(req: Request, res: Response): Promise<void> {
+	async handleFindById(req: KratosRequest, reply: KratosReply): Promise<void> {
 		const registered = getPanelResource(req);
 
 		try {
@@ -80,7 +80,7 @@ export class CrudController {
 			// Check operation access (combines resource flags and plugin permissions)
 			const accessCheck = await checkOperationAccess(this.panel, registered, 'read', req.authUser);
 			if (!accessCheck.allowed) {
-				res.status(403).json({
+				reply.status(403).json({
 					message: accessCheck.message,
 				});
 				return;
@@ -91,7 +91,7 @@ export class CrudController {
 			let result = await resourceInstance.findById(req.params.id);
 
 			if (!result) {
-				res.status(404).json({
+				reply.status(404).json({
 					message: t('core:record.not_found'),
 				});
 				return;
@@ -106,7 +106,7 @@ export class CrudController {
 					authUser,
 				);
 				if (filtered.length === 0) {
-					res.status(403).json({
+					reply.status(403).json({
 						message: t('core:record.access_denied_view'),
 					});
 					return;
@@ -129,14 +129,14 @@ export class CrudController {
 			const recordTitle = registered.resourceClass.computeRecordTitle?.(transformedResult);
 
 			// Wrap response in data/metadata structure
-			res.json({
+			reply.json({
 				data: transformedResult,
 				metadata: {
 					...(recordTitle ? { recordTitle } : {}),
 				},
 			});
 		} catch (error: any) {
-			res.status(500).json({
+			reply.status(500).json({
 				message: error.message || 'Internal server error',
 			});
 		}
@@ -145,7 +145,7 @@ export class CrudController {
 	/**
 	 * List records with filtering, sorting, and pagination
 	 */
-	async handleList(req: Request, res: Response): Promise<void> {
+	async handleList(req: KratosRequest, reply: KratosReply): Promise<void> {
 		const registered = getPanelResource(req);
 
 		try {
@@ -153,7 +153,7 @@ export class CrudController {
 			// Check operation access (combines resource flags and plugin permissions)
 			const accessCheck = await checkOperationAccess(this.panel, registered, 'read', req.authUser);
 			if (!accessCheck.allowed) {
-				res.status(403).json({
+				reply.status(403).json({
 					message: accessCheck.message,
 				});
 				return;
@@ -255,12 +255,12 @@ export class CrudController {
 			}
 
 			// Return result with widget data
-			res.json({
+			reply.json({
 				...result,
 				widgets: widgetData && Object.keys(widgetData).length > 0 ? widgetData : undefined,
 			});
 		} catch (error: any) {
-			res.status(500).json({
+			reply.status(500).json({
 				message: error.message || 'Internal server error',
 			});
 		}
@@ -271,7 +271,7 @@ export class CrudController {
 	 * always-applied queryBuilder rules at the end (highest priority).
 	 * Shared by list and export.
 	 */
-	private buildListParams(req: Request, tableSchema: any): Record<string, any> {
+	private buildListParams(req: KratosRequest, tableSchema: any): Record<string, any> {
 		const userQueryBuilders = req.body.queryBuilders || {};
 		const finalQueryBuilders = { ...userQueryBuilders };
 
@@ -304,14 +304,14 @@ export class CrudController {
 	 * the body, only those records are exported (bulk "export selected"). File
 	 * serialization is delegated to an exporter registered by a plugin.
 	 */
-	async handleExport(req: Request, res: Response): Promise<void> {
+	async handleExport(req: KratosRequest, reply: KratosReply): Promise<void> {
 		const registered = getPanelResource(req);
 		const MAX_EXPORT_ROWS = 10000;
 
 		try {
 			const accessCheck = await checkOperationAccess(this.panel, registered, 'read', req.authUser);
 			if (!accessCheck.allowed) {
-				res.status(403).json({ message: accessCheck.message });
+				reply.status(403).json({ message: accessCheck.message });
 				return;
 			}
 
@@ -323,7 +323,7 @@ export class CrudController {
 					req.authUser,
 				);
 				if (!allowed) {
-					res.status(403).json({ message: t('core:export.no_permission') });
+					reply.status(403).json({ message: t('core:export.no_permission') });
 					return;
 				}
 			}
@@ -331,7 +331,7 @@ export class CrudController {
 			const format = (req.body.format as string) || 'csv';
 			const exporter = this.panel.getExporter(format);
 			if (!exporter) {
-				res.status(400).json({ message: t('core:export.no_exporter', { format }) });
+				reply.status(400).json({ message: t('core:export.no_exporter', { format }) });
 				return;
 			}
 
@@ -371,19 +371,20 @@ export class CrudController {
 				resourceLabel: registered.resourceClass.label,
 			});
 
-			res.setHeader('Content-Type', contentType);
-			res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-			res.send(content);
+			reply
+				.header('Content-Type', contentType)
+				.header('Content-Disposition', `attachment; filename="${filename}"`)
+				.send(content);
 		} catch (error: any) {
 			console.error('Error exporting records:', error);
-			res.status(500).json({ message: error.message || 'Internal server error' });
+			reply.status(500).json({ message: error.message || 'Internal server error' });
 		}
 	}
 
 	/**
 	 * Update a record
 	 */
-	async handleUpdate(req: Request, res: Response): Promise<void> {
+	async handleUpdate(req: KratosRequest, reply: KratosReply): Promise<void> {
 		const registered = getPanelResource(req);
 
 		try {
@@ -391,7 +392,7 @@ export class CrudController {
 			// Check operation access (combines resource flags and plugin permissions)
 			const accessCheck = await checkOperationAccess(this.panel, registered, 'update', req.authUser);
 			if (!accessCheck.allowed) {
-				res.status(403).json({
+				reply.status(403).json({
 					message: accessCheck.message,
 				});
 				return;
@@ -410,7 +411,7 @@ export class CrudController {
 			const existingRecord = await resourceInstance.findById(req.params.id);
 
 			if (!existingRecord) {
-				res.status(404).json({ message: t('core:record.not_found') });
+				reply.status(404).json({ message: t('core:record.not_found') });
 				return;
 			}
 
@@ -440,8 +441,8 @@ export class CrudController {
 
 			// Compute record title and return response
 			const recordTitle = registered.resourceClass.computeRecordTitle?.(transformedResult);
-			res.setHeader('X-KratosJs-Refresh-Badges', 'true');
-			res.json({
+			reply.header('X-KratosJs-Refresh-Badges', 'true');
+			reply.json({
 				data: transformedResult,
 				metadata: {
 					...(recordTitle ? { recordTitle } : {}),
@@ -449,21 +450,21 @@ export class CrudController {
 				},
 			});
 		} catch (error: any) {
-			handleError(res, error);
+			handleError(reply, error);
 		}
 	}
 
 	/**
 	 * Delete records
 	 */
-	async handleDelete(req: Request, res: Response): Promise<void> {
+	async handleDelete(req: KratosRequest, reply: KratosReply): Promise<void> {
 		const registered = getPanelResource(req);
 
 		try {
 			// Check operation access (combines resource flags and plugin permissions)
 			const accessCheck = await checkOperationAccess(this.panel, registered, 'delete', req.authUser);
 			if (!accessCheck.allowed) {
-				res.status(403).json({
+				reply.status(403).json({
 					message: accessCheck.message,
 				});
 				return;
@@ -472,7 +473,7 @@ export class CrudController {
 			const { ids } = req.body;
 
 			if (!ids || !Array.isArray(ids) || ids.length === 0) {
-				res.status(400).json({ message: t('core:request.ids_required') });
+				reply.status(400).json({ message: t('core:request.ids_required') });
 				return;
 			}
 
@@ -499,34 +500,34 @@ export class CrudController {
 
 			// Delete the records
 			const result = await resourceInstance.delete(ids);
-			res.setHeader('X-KratosJs-Refresh-Badges', 'true');
-			res.json({
+			reply.header('X-KratosJs-Refresh-Badges', 'true');
+			reply.json({
 				...result,
 				metadata: { refreshBadges: true },
 			});
 		} catch (error: any) {
-			handleError(res, error);
+			handleError(reply, error);
 		}
 	}
 
 	/**
 	 * Execute a custom action
 	 */
-	async handleAction(req: Request, res: Response): Promise<void> {
+	async handleAction(req: KratosRequest, reply: KratosReply): Promise<void> {
 		const registered = getPanelResource(req);
 
 		try {
 			const { action, data } = req.body as ActionRequest;
 
 			if (!action) {
-				res.status(400).json({
+				reply.status(400).json({
 					message: t('core:action.name_required'),
 				});
 				return;
 			}
 
 			if (!data) {
-				res.status(400).json({
+				reply.status(400).json({
 					message: t('core:action.data_required'),
 				});
 				return;
@@ -536,7 +537,7 @@ export class CrudController {
 			const handler = registered.actions[action];
 
 			if (!handler) {
-				res.status(404).json({
+				reply.status(404).json({
 					message: t('core:action.handler_not_found', { action }),
 				});
 				return;
@@ -550,7 +551,7 @@ export class CrudController {
 					req.authUser,
 				);
 				if (!allowed) {
-					res.status(403).json({ message: t('core:action.no_permission') });
+					reply.status(403).json({ message: t('core:action.no_permission') });
 					return;
 				}
 			}
@@ -561,7 +562,7 @@ export class CrudController {
 			let records = recordIds.length > 0 ? await registered.adapter.findByIds(recordIds) : [];
 
 			if (recordIds.length > 0 && records.length === 0) {
-				res.status(404).json({
+				reply.status(404).json({
 					message: t('core:action.no_valid_records'),
 				});
 				return;
@@ -577,7 +578,7 @@ export class CrudController {
 					req.authUser,
 				);
 				if (records.length === 0) {
-					res.status(403).json({ message: t('core:action.no_permission_bulk') });
+					reply.status(403).json({ message: t('core:action.no_permission_bulk') });
 					return;
 				}
 			}
@@ -596,22 +597,22 @@ export class CrudController {
 
 			if (result.success) {
 				if (result.refreshBadges) {
-					res.setHeader('X-KratosJs-Refresh-Badges', 'true');
+					reply.header('X-KratosJs-Refresh-Badges', 'true');
 				}
-				res.status(200).json({
+				reply.status(200).json({
 					...(result.redirect ? { redirect: result.redirect } : {}),
 					message: result.message || t('core:action.completed'),
 					data: result.data,
 					...(result.refreshBadges ? { refreshBadges: true } : {}),
 				});
 			} else {
-				res.status(400).json({
+				reply.status(400).json({
 					message: result.message || t('core:action.failed'),
 				});
 			}
 		} catch (error: any) {
 			console.error('Error executing action:', error);
-			res.status(500).json({
+			reply.status(500).json({
 				message: error.message || 'Internal server error',
 			});
 		}

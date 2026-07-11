@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import path from 'path';
 import { Panel, LocalMediaAdapter, EmailAuthProvider } from '@maxal_studio/kratosjs';
+import { ExpressAdapter } from '@maxal_studio/kratosjs-express';
 import { MongoDriver } from '@mikro-orm/mongodb';
 import { Migrator } from '@mikro-orm/migrations-mongodb';
 import { UserResource } from './resources/UserResource';
@@ -23,6 +24,8 @@ const DATABASE_NAME = process.env.DATABASE_NAME || 'kratosjs';
 const adminPanel = Panel.make('admin')
 	.title('KratosJs (MongoDB)')
 	.favicon('/assets/icon.png')
+	// The HTTP framework is pluggable — Express is the default adapter.
+	.httpAdapter(new ExpressAdapter())
 	.orm(
 		{
 			driver: MongoDriver,
