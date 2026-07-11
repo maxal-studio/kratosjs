@@ -1,0 +1,65 @@
+{
+	"name": "@maxal_studio/kratosjs-nestjs",
+	"version": "2.0.0",
+	"description": "NestJS integration for KratosJs admin panels (mounts onto an existing Nest app — express or fastify)",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"build": "npm run clean && tsc -p tsconfig.json",
+		"clean": "rm -rf dist",
+		"lint": "eslint ./src",
+		"test": "vitest run"
+	},
+	"keywords": [
+		"kratosjs",
+		"kratosjs-plugin",
+		"nestjs",
+		"nest",
+		"http-adapter"
+	],
+	"author": "MaxAl",
+	"license": "ISC",
+	"repository": {
+		"type": "git",
+		"url": "git+ssh://git@github.com/maxal-studio/kratosjs.git"
+	},
+	"peerDependencies": {
+		"@maxal_studio/kratosjs": "^2.0.0",
+		"@maxal_studio/kratosjs-express": "^2.0.0",
+		"@maxal_studio/kratosjs-fastify": "^2.0.0",
+		"@nestjs/common": "^10.0.0 || ^11.0.0",
+		"@nestjs/core": "^10.0.0 || ^11.0.0"
+	},
+	"peerDependenciesMeta": {
+		"@maxal_studio/kratosjs-express": {
+			"optional": true
+		},
+		"@maxal_studio/kratosjs-fastify": {
+			"optional": true
+		}
+	},
+	"devDependencies": {
+		"@maxal_studio/kratosjs": "^2.0.0",
+		"@maxal_studio/kratosjs-express": "^2.0.0",
+		"@maxal_studio/kratosjs-fastify": "^2.0.0",
+		"@mikro-orm/sqlite": "^7.1.4",
+		"@nestjs/common": "^11.0.0",
+		"@nestjs/core": "^11.0.0",
+		"@nestjs/platform-express": "^11.0.0",
+		"@types/node": "^25.9.3",
+		"reflect-metadata": "^0.2.2",
+		"rxjs": "^7.8.1",
+		"typescript": "^5.9.3",
+		"vitest": "^4.1.8"
+	}
+}

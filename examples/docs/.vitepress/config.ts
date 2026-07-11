@@ -20,6 +20,7 @@ const sidebar: DefaultTheme.SidebarMulti = {
 			text: 'Backend & HTTP',
 			items: [
 				{ text: 'HTTP Adapters', link: '/backend/http-adapters' },
+				{ text: 'NestJS Integration', link: '/backend/nestjs' },
 				{ text: 'Writing an Adapter', link: '/backend/writing-an-adapter' },
 			],
 		},

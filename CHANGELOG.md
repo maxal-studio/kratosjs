@@ -26,6 +26,11 @@ parties can now ship Fastify/NestJS/etc. adapters — see the "Writing an Adapte
 - **`@maxal_studio/kratosjs-koa`** — the Koa adapter package. Exports `KoaAdapter`
   (with `{ app }` option) and `getKoaApp(panel)`. Passes the same contract suite; honors
   `panel.http({ bodyLimit })` normally.
+- **`@maxal_studio/kratosjs-nestjs`** — mount a KratosJs panel onto an existing **NestJS**
+  app. One package for both Nest platforms: `mountKratos(app, panel)` auto-detects Express
+  vs Fastify (via `app.getHttpAdapter().getInstance()`), builds the matching adapter over the
+  Nest instance, and runs the panel mount sequence — Nest keeps ownership of `listen()`. Also
+  exports `NestAdapter`. See the "NestJS Integration" guide.
 - **`kratosjs new --http express|fastify|hapi|koa`** — choose the HTTP framework when
   scaffolding (interactive prompt when omitted; Express is the default).
 - **Configurable admin UI path** — `panel.panelPath('/admin')` serves the admin SPA (and

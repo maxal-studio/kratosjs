@@ -7,8 +7,10 @@ title: HTTP Adapters
 KratosJs core does not depend on any HTTP framework. Everything HTTP-shaped —
 routes, requests, replies, cookies, middleware — is expressed through a small
 framework-neutral contract, and an **adapter** translates that contract to a concrete
-framework. Express (the default), Fastify, Hapi, and Koa ship as official adapters; NestJS
-or anything else can be supported by implementing the same contract.
+framework. Express (the default), Fastify, Hapi, and Koa ship as official adapters. Already
+have a **NestJS** app? Mount a panel onto it with
+[`@maxal_studio/kratosjs-nestjs`](/backend/nestjs). Anything else can be supported by
+implementing the same contract.
 
 ## How it fits together
 
@@ -199,5 +201,6 @@ const url = `http://127.0.0.1:${adapter.getPort()}`;
 
 ## Next steps
 
+- [NestJS Integration](/backend/nestjs) — mount a panel onto an existing NestJS app
 - [Writing an Adapter](/backend/writing-an-adapter) — implement the contract for another framework
 - [Backend Setup](/backend-setup) — the day-to-day server configuration
