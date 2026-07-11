@@ -74,12 +74,17 @@ Open the printed URL and sign in with **admin@example.com** / **password** (seed
 
 ## Packages
 
-| Package                        | Description                                                                                            |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| `@maxal_studio/kratosjs`       | Core framework — resources, form builder, table builder, validation engine, ORM adapter, auth          |
-| `@maxal_studio/kratosjs-react` | React rendering layer — `AdminPanel`, `FormRenderer`, `TableRenderer`, all field and column components |
-| `@maxal_studio/kratosjs-cli`   | Project scaffolding CLI                                                                                |
-| `@maxal_studio/kratosjs-skill` | AI coding-assistant skill that teaches Claude Code, Cursor, Copilot, Codex & more to build panels      |
+| Package                          | Description                                                                                                         |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `@maxal_studio/kratosjs`         | Core framework — resources, form builder, table builder, validation engine, ORM adapter, auth                       |
+| `@maxal_studio/kratosjs-react`   | React rendering layer — `AdminPanel`, `FormRenderer`, `TableRenderer`, all field and column components              |
+| `@maxal_studio/kratosjs-express` | Express HTTP adapter (the default; installed by `kratosjs new`)                                                     |
+| `@maxal_studio/kratosjs-fastify` | Fastify HTTP adapter                                                                                                |
+| `@maxal_studio/kratosjs-hapi`    | Hapi HTTP adapter                                                                                                   |
+| `@maxal_studio/kratosjs-koa`     | Koa HTTP adapter                                                                                                    |
+| `@maxal_studio/kratosjs-nestjs`  | Mount a panel onto an existing NestJS app (Express or Fastify) — see [`examples/nestjs-app`](./examples/nestjs-app) |
+| `@maxal_studio/kratosjs-cli`     | Project scaffolding CLI                                                                                             |
+| `@maxal_studio/kratosjs-skill`   | AI coding-assistant skill that teaches Claude Code, Cursor, Copilot, Codex & more to build panels                   |
 
 ## Build with AI
 

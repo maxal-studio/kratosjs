@@ -1,0 +1,34 @@
+{
+	"name": "kratosjs-nestjs-example",
+	"version": "2.0.0",
+	"private": true,
+	"description": "Demo: a KratosJs admin panel mounted onto a NestJS (Express) app",
+	"scripts": {
+		"dev": "tsx watch src/main.ts",
+		"build": "npm run build:server && npm run build:admin",
+		"build:server": "tsc",
+		"build:admin": "vite build",
+		"start": "NODE_ENV=production node dist/main.js"
+	},
+	"dependencies": {
+		"@maxal_studio/kratosjs": "file:../..",
+		"@maxal_studio/kratosjs-express": "file:../../packages/kratosjs-express",
+		"@maxal_studio/kratosjs-nestjs": "file:../../packages/kratosjs-nestjs",
+		"@mikro-orm/core": "^7.1.4",
+		"@mikro-orm/sqlite": "^7.1.4",
+		"@nestjs/common": "^11.0.0",
+		"@nestjs/core": "^11.0.0",
+		"@nestjs/platform-express": "^11.0.0",
+		"reflect-metadata": "^0.2.2",
+		"rxjs": "^7.8.1"
+	},
+	"devDependencies": {
+		"@maxal_studio/kratosjs-react": "file:../../packages/kratosjs-react",
+		"react": "^19.2.7",
+		"react-dom": "^19.2.7",
+		"react-hook-form": "^7.79.0",
+		"tsx": "^4.22.4",
+		"typescript": "^5.9.3",
+		"vite": "^7.3.5"
+	}
+}
