@@ -15,8 +15,10 @@ npx @maxal_studio/kratosjs-cli new
 This runs an interactive wizard (project name + database driver). You can also pass everything up front:
 
 ```bash
-# Pick a driver directly (mysql | postgresql | mariadb | sqlite | mongo)
-npx @maxal_studio/kratosjs-cli new my-app --driver sqlite
+# Pick a driver and HTTP framework directly
+npx @maxal_studio/kratosjs-cli new my-app --driver sqlite --http express
+# --driver: mysql | postgresql | mariadb | sqlite | mongo
+# --http:   express (default) | fastify | hapi | koa
 ```
 
 Then:
@@ -66,10 +68,12 @@ For full working examples, see `examples/app/` (MongoDB) and `examples/sql-app/`
 #### Backend
 
 ```bash
-npm install @maxal_studio/kratosjs @mikro-orm/core @mikro-orm/mongodb
+npm install @maxal_studio/kratosjs @maxal_studio/kratosjs-express @mikro-orm/core @mikro-orm/mongodb
 ```
 
-Express, CORS, and cookie-parser are automatically managed by Panel.
+The HTTP framework is pluggable: `@maxal_studio/kratosjs-express` is the default adapter —
+configure it with `panel.httpAdapter(new ExpressAdapter())`. CORS, body parsing, and
+cookies are managed automatically.
 
 #### Frontend
 
@@ -100,12 +104,12 @@ my-app/
     └── resources/
 ```
 
-| Entry                | Purpose                                                                            |
-| -------------------- | ---------------------------------------------------------------------------------- |
-| `src/index.ts`       | Backend server — configures the panel, registers plugins/resources, starts Express |
-| `src/admin/main.tsx` | Admin client — mounts the React panel and bundles plugin UI components             |
-| `index.html`         | Admin HTML template — required for dev and production                              |
-| `vite.config.mts`    | Vite config — uses `kratosAdminVite()` from `@maxal_studio/kratosjs/vite`          |
+| Entry                | Purpose                                                                           |
+| -------------------- | --------------------------------------------------------------------------------- |
+| `src/index.ts`       | Backend server — configures the panel + HTTP adapter, registers plugins/resources |
+| `src/admin/main.tsx` | Admin client — mounts the React panel and bundles plugin UI components            |
+| `index.html`         | Admin HTML template — required for dev and production                             |
+| `vite.config.mts`    | Vite config — uses `kratosAdminVite()` from `@maxal_studio/kratosjs/vite`         |
 
 These three admin client files are **always required**. Every app uses the same structure whether or not you use plugins.
 
@@ -132,6 +136,7 @@ Create `src/index.ts` and set up your panel:
 ```typescript
 import path from 'path';
 import { Panel, LocalMediaAdapter, EmailAuthProvider } from '@maxal_studio/kratosjs';
+import { ExpressAdapter } from '@maxal_studio/kratosjs-express';
 import { MongoDriver } from '@mikro-orm/mongodb';
 import { UserResource } from './resources/UserResource';
 
@@ -141,6 +146,7 @@ const adminPanel = Panel.make('admin')
 	.title('My Admin')
 	.icon('LayoutDashboard')
 	.favicon('/assets/logo.png')
+	.httpAdapter(new ExpressAdapter())
 	.orm(
 		{
 			driver: MongoDriver,
@@ -189,11 +195,11 @@ await adminPanel.start(PORT);
 
 **What Panel automatically handles:**
 
-- **Express app creation**: No need to manually create `express()`
+- **HTTP server setup**: the adapter creates the framework app (Express by default) — no manual `express()`
 - **MikroORM initialization**: Entities from resources and plugins are collected automatically
-- **Default middlewares**: CORS, cookie parser, and JSON body parser
+- **Defaults**: CORS, JSON body parsing (50MB for uploads), and cookie parsing
 - **Static file serving**: LocalMediaAdapter registers static routes from `publicUrl`
-- **Route mounting**: All panel routes are mounted at the base path
+- **Route registration**: All panel routes are registered at the base path
 
 **Panel branding:** `title()`, `icon()` (Lucide icon name), and `favicon()` (image URL) configure the admin header and login screen. Values are returned by `GET /meta` and the favicon is injected into the production HTML shell.
 
@@ -294,6 +300,10 @@ import { kratosAdminVite } from '@maxal_studio/kratosjs/vite';
 
 export default defineConfig(kratosAdminVite());
 ```
+
+To serve the admin UI under a sub-path, just set `panel.panelPath('/admin')` on the backend
+— no Vite config needed. `kratosAdminVite()` builds with a relative asset base and the
+KratosJs server derives the runtime base from `panelPath`.
 
 Add scripts to `package.json`:
 

@@ -27,9 +27,9 @@ import type { Panel } from '../Panel.js';
  *     panel.registerResource(PostResource);
  *     panel.registerResource(CategoryResource);
  *
- *     // Register routes
- *     panel.registerRoute('get', '/cms/stats', (req, res) => {
- *       res.json({ message: 'Hello from plugin!' });
+ *     // Register routes (framework-neutral: the same handler runs on any HTTP adapter)
+ *     panel.registerRoute('get', '/cms/stats', (req, reply) => {
+ *       reply.json({ message: 'Hello from plugin!' });
  *     });
  *   }
  *

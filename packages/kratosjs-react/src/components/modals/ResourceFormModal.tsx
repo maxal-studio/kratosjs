@@ -7,6 +7,7 @@ import { Spinner } from '../ui/Spinner';
 import { useResourceForm, ResourceFormMode } from './useResourceForm';
 import { RecordEnvelope } from '../../api/resourceApi';
 import { translate } from '../../i18n/activeLocale';
+import { withPanelBase } from '../../utils/panelPath';
 
 export interface ResourceFormModalProps {
 	isOpen: boolean;
@@ -86,7 +87,7 @@ export function ResourceFormModal({
 
 	const handleCopyUrl = copyUrlPath
 		? () => {
-				navigator.clipboard.writeText(`${window.location.origin}${copyUrlPath}`).then(() => {
+				navigator.clipboard.writeText(`${window.location.origin}${withPanelBase(copyUrlPath)}`).then(() => {
 					setUrlCopied(true);
 					setTimeout(() => setUrlCopied(false), 2000);
 				});

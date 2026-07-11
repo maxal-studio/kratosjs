@@ -17,6 +17,7 @@ import { useToast } from './ui/Toast';
 import { bulkDelete } from '../api/resourceApi';
 import { executeAction } from '../api/actionsApi';
 import { handleRedirect } from '../utils/redirectHandler';
+import { withPanelBase } from '../utils/panelPath';
 import { usePanelMetadata } from '../contexts/PanelMetadataContext';
 import { useResourceModal } from '../contexts/ResourceModalContext';
 import { SerializedRelation } from '../types';
@@ -111,10 +112,12 @@ export function ViewModal({
 	if (!isOpen) return null;
 
 	const handleCopyUrl = () => {
-		navigator.clipboard.writeText(`${window.location.origin}/${resourceSlug}/${recordId}`).then(() => {
-			setUrlCopied(true);
-			setTimeout(() => setUrlCopied(false), 2000);
-		});
+		navigator.clipboard
+			.writeText(`${window.location.origin}${withPanelBase(`/${resourceSlug}/${recordId}`)}`)
+			.then(() => {
+				setUrlCopied(true);
+				setTimeout(() => setUrlCopied(false), 2000);
+			});
 	};
 
 	const handleDelete = async () => {

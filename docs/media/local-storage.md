@@ -33,40 +33,36 @@ const adminPanel = Panel.make('admin').mediaAdapters([
 
 ## Serving Static Files
 
-Make sure to serve uploaded files statically:
+The panel serves the upload directory statically for you: registering a
+`LocalMediaAdapter` automatically mounts its `uploadPath` at the path derived from
+`publicUrl`. For any extra static directories use `useStatic()`:
 
 ```typescript
-import express from 'express';
-import path from 'path';
-
-const uploadsPath = path.join(process.cwd(), 'uploads');
-app.use('/uploads', express.static(uploadsPath));
+adminPanel.useStatic('/files', path.join(process.cwd(), 'files'));
 ```
 
 ## Complete Example
 
 ```typescript
-import express from 'express';
 import path from 'path';
 import { Panel, LocalMediaAdapter } from '@maxal_studio/kratosjs';
+import { ExpressAdapter } from '@maxal_studio/kratosjs-express';
 
-const app = express();
 const PORT = 3001;
-
-// Serve uploaded files statically
 const uploadsPath = path.join(process.cwd(), 'uploads');
-app.use('/uploads', express.static(uploadsPath));
 
-// Create panel with local storage
-const adminPanel = Panel.make('admin').mediaAdapters([
-	new LocalMediaAdapter({
-		name: 'local-uploads',
-		uploadPath: uploadsPath,
-		publicUrl: `http://localhost:${PORT}/`,
-		createDirectories: true,
-		isDefault: true,
-	}),
-]);
+// Create panel with local storage (the /uploads static mount is set up automatically)
+const adminPanel = Panel.make('admin')
+	.httpAdapter(new ExpressAdapter())
+	.mediaAdapters([
+		new LocalMediaAdapter({
+			name: 'local-uploads',
+			uploadPath: uploadsPath,
+			publicUrl: `http://localhost:${PORT}/uploads`,
+			createDirectories: true,
+			isDefault: true,
+		}),
+	]);
 ```
 
 ## File Structure

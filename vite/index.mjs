@@ -41,15 +41,22 @@ function splitVendorChunks(id) {
  *
  * @param {object} [options]
  * @param {string} [options.outDir] Build output directory (default: 'dist/admin')
+ * @param {string} [options.base] Public base path. Default `'./'` (relative) — the admin
+ *   UI path is driven entirely from the backend `panel.panelPath()`: the KratosJs server
+ *   sets the dev base and rewrites the built index.html's asset URLs to match, so you
+ *   normally do NOT set this. A relative base keeps JS chunks and CSS assets
+ *   panel-path-independent. Only override for advanced/standalone-hosting scenarios.
  * @param {import('vite').UserConfig} [options.vite] Extra Vite config merged on top
  * @returns {import('vite').UserConfig}
  */
 export function kratosAdminVite(options = {}) {
-	const { outDir = 'dist/admin', vite = {} } = options;
+	const { outDir = 'dist/admin', base = './', vite = {} } = options;
 
 	/** @type {import('vite').UserConfig} */
 	const config = {
-		base: '/',
+		// Relative base by default so the server can drive the runtime base from panelPath.
+		// Explicit option wins; a `vite.base` override still takes final precedence below.
+		base: vite.base ?? base,
 		plugins: [
 			react({
 				include: /\.(tsx?|jsx)$/,

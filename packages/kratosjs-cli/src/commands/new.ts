@@ -4,6 +4,7 @@ import { execSync } from 'child_process';
 import { input, select } from '@inquirer/prompts';
 import pc from 'picocolors';
 import { DRIVERS, DRIVER_KEYS, type DriverKey, type DriverDescriptor } from '../drivers';
+import { ADAPTERS, ADAPTER_KEYS, type AdapterKey, type AdapterDescriptor } from '../adapters';
 import { renderTemplateTree, templatePath, toKebabCase, type TokenMap } from '../render';
 import { kratosCoreDep, kratosReactDep } from '../versions';
 
@@ -11,6 +12,7 @@ const MIKRO_ORM_CORE = '^7.1.4';
 
 export interface NewCommandOptions {
 	driver?: string;
+	http?: string;
 	install?: boolean;
 	local?: boolean;
 }
@@ -21,13 +23,19 @@ function monorepoRoot(): string {
 	return path.resolve(__dirname, '..', '..', '..', '..');
 }
 
-function buildDependencies(driver: DriverDescriptor, local: boolean): Record<string, string> {
+function buildDependencies(
+	driver: DriverDescriptor,
+	adapter: AdapterDescriptor,
+	local: boolean,
+): Record<string, string> {
 	return {
 		'@maxal_studio/kratosjs': kratosCoreDep(local),
+		// The chosen HTTP adapter (the framework arrives transitively; apps using the
+		// raw escape hatch should add express/fastify themselves)
+		[adapter.packageName]: adapter.dep(local),
 		'@mikro-orm/core': MIKRO_ORM_CORE,
 		...driver.dependencies,
 		dotenv: '^17.4.2',
-		express: '^5.2.1',
 	};
 }
 
@@ -58,6 +66,14 @@ function resolveDriver(value: string | undefined): DriverDescriptor | null {
 	}
 	const key = value.toLowerCase() as DriverKey;
 	return DRIVERS[key] ?? null;
+}
+
+function resolveAdapter(value: string | undefined): AdapterDescriptor | null {
+	if (!value) {
+		return null;
+	}
+	const key = value.toLowerCase() as AdapterKey;
+	return ADAPTERS[key] ?? null;
 }
 
 export async function runNew(nameArg: string | undefined, options: NewCommandOptions): Promise<void> {
@@ -91,6 +107,20 @@ export async function runNew(nameArg: string | undefined, options: NewCommandOpt
 		driver = DRIVERS[driverKey];
 	}
 
+	let adapter = resolveAdapter(options.http);
+	if (options.http && !adapter) {
+		console.error(pc.red(`✖ Unknown HTTP adapter "${options.http}". Valid options: ${ADAPTER_KEYS.join('|')}`));
+		process.exit(1);
+	}
+
+	if (!adapter) {
+		const adapterKey = await select<AdapterKey>({
+			message: 'Which HTTP framework do you want to use?',
+			choices: ADAPTER_KEYS.map(key => ({ name: ADAPTERS[key].label, value: key })),
+		});
+		adapter = ADAPTERS[adapterKey];
+	}
+
 	const local = options.local ?? false;
 
 	const tokens: TokenMap = {
@@ -103,13 +133,16 @@ export async function runNew(nameArg: string | undefined, options: NewCommandOpt
 		idProps: driver.idProps,
 		idInterfaceFields: driver.idInterfaceFields,
 		envVars: driver.envVars,
-		dependencies: jsonBlock(buildDependencies(driver, local)),
+		adapterLabel: adapter.label,
+		adapterImport: adapter.adapterImport,
+		adapterNew: adapter.adapterNew,
+		dependencies: jsonBlock(buildDependencies(driver, adapter, local)),
 		devDependencies: jsonBlock(buildDevDependencies(local)),
 	};
 
 	console.log('');
 	console.log(pc.cyan(`Creating a new KratosJs app in ${pc.bold(targetDir)}`));
-	console.log(pc.dim(`  driver: ${driver.label}${local ? '  (local file: links)' : ''}`));
+	console.log(pc.dim(`  driver: ${driver.label}   http: ${adapter.label}${local ? '   (local file: links)' : ''}`));
 	console.log('');
 
 	fs.mkdirSync(targetDir, { recursive: true });

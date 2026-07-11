@@ -14,6 +14,11 @@ Then ask your assistant to build resources, forms, tables, hooks, actions, widge
 
 ## Topics
 
+### Backend & HTTP
+
+- [HTTP Adapters](./backend/http-adapters.md)
+- [Writing an HTTP Adapter](./backend/writing-an-adapter.md)
+
 ### Database
 
 - [Database & MikroORM](./database/overview.md)

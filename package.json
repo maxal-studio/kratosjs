@@ -1,6 +1,6 @@
 {
 	"name": "@maxal_studio/kratosjs",
-	"version": "1.0.4",
+	"version": "2.0.0",
 	"description": "KratosJs - A powerful admin panel builder for Node.js.",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
@@ -21,6 +21,10 @@
 			"types": "./vite/index.d.mts",
 			"import": "./vite/index.mjs"
 		},
+		"./testing": {
+			"types": "./dist/http/testing/index.d.ts",
+			"default": "./dist/http/testing/index.js"
+		},
 		"./package.json": "./package.json"
 	},
 	"files": [
@@ -35,9 +39,13 @@
 	"scripts": {
 		"version:all": "node scripts/version.mjs",
 		"release": "npm run build && npm run publish:packages",
-		"publish:packages": "npm publish --access public && npm publish --access public -w @maxal_studio/kratosjs-react && npm publish --access public -w @maxal_studio/kratosjs-cli && npm publish --access public -w @maxal_studio/kratosjs-skill",
+		"publish:packages": "npm publish --access public && npm publish --access public -w @maxal_studio/kratosjs-express && npm publish --access public -w @maxal_studio/kratosjs-fastify && npm publish --access public -w @maxal_studio/kratosjs-hapi && npm publish --access public -w @maxal_studio/kratosjs-koa && npm publish --access public -w @maxal_studio/kratosjs-react && npm publish --access public -w @maxal_studio/kratosjs-cli && npm publish --access public -w @maxal_studio/kratosjs-skill",
 		"build": "npm run clean && tsc && npm run build:packages",
-		"build:packages": "npm run build:react && npm run build:cli",
+		"build:packages": "npm run build:express && npm run build:fastify && npm run build:hapi && npm run build:koa && npm run build:react && npm run build:cli",
+		"build:express": "npm run build -w @maxal_studio/kratosjs-express",
+		"build:fastify": "npm run build -w @maxal_studio/kratosjs-fastify",
+		"build:hapi": "npm run build -w @maxal_studio/kratosjs-hapi",
+		"build:koa": "npm run build -w @maxal_studio/kratosjs-koa",
 		"build:react": "npm run build -w @maxal_studio/kratosjs-react",
 		"build:cli": "npm run build -w @maxal_studio/kratosjs-cli",
 		"lint": "eslint ./src",
@@ -60,7 +68,7 @@
 	"peerDependencies": {
 		"@aws-sdk/client-s3": "^3.0.0",
 		"@aws-sdk/s3-request-presigner": "^3.0.0",
-		"@maxal_studio/kratosjs-react": "^1.0.4",
+		"@maxal_studio/kratosjs-react": "^2.0.0",
 		"@mikro-orm/mariadb": "^7.0.0",
 		"@mikro-orm/migrations": "^7.0.0",
 		"@mikro-orm/migrations-mongodb": "^7.0.0",
@@ -107,14 +115,10 @@
 		"@mikro-orm/core": "^7.1.4",
 		"@vitejs/plugin-react": "^5.2.0",
 		"bcryptjs": "^3.0.3",
-		"cookie-parser": "^1.4.7",
-		"cors": "^2.8.6",
-		"express": "^5.2.1",
 		"i18next": "^26.3.1",
 		"i18next-icu": "^2.4.0",
 		"jsonwebtoken": "^9.0.3",
-		"vite": "^7.3.5",
-		"vite-express": "^0.22.1"
+		"vite": "^7.3.5"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.39.4",
@@ -122,9 +126,6 @@
 		"@mikro-orm/mongodb": "^7.1.4",
 		"@mikro-orm/sqlite": "^7.1.4",
 		"@swc/core": "^1.15.41",
-		"@types/cookie-parser": "^1.4.10",
-		"@types/cors": "^2.8.19",
-		"@types/express": "^5.0.6",
 		"@types/jsonwebtoken": "^9.0.10",
 		"@types/node": "^25.9.3",
 		"@types/react": "^19.2.17",

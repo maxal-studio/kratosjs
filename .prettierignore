@@ -4,3 +4,6 @@ package-lock.json
 
 # Build outputs
 dist
+
+# Editor/assistant caches (gitignored)
+**/.impeccable/

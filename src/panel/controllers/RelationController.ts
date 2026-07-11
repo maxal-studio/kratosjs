@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { KratosRequest, KratosReply } from '../../http/types';
 import type { Panel } from '../../Panel';
 import { SerializedRelation } from '../../resource/types';
 import { applyColumnFormatters, applyFieldFormatters } from '../../utils/dataFormatters';
@@ -15,7 +15,7 @@ export class RelationController {
 	/**
 	 * Get relations metadata for a resource
 	 */
-	async handleRelations(req: Request, res: Response): Promise<void> {
+	async handleRelations(req: KratosRequest, reply: KratosReply): Promise<void> {
 		const registered = getPanelResource(req);
 
 		try {
@@ -40,9 +40,7 @@ export class RelationController {
 			}
 
 			// Build full absolute URL from request
-			const protocol = req.protocol;
-			const host = req.get('host');
-			const baseUrl = `${protocol}://${host}${this.panel.getBasePath()}`;
+			const baseUrl = `${req.protocol}://${req.host}${this.panel.getBasePath()}`;
 
 			// Enhance relations with full API URLs
 			const enhancedRelations = relations.map(relation => ({
@@ -50,10 +48,10 @@ export class RelationController {
 				resourceApiUrl: `${baseUrl}/${relation.resourceSlug}`,
 			}));
 
-			res.json({ relations: enhancedRelations });
+			reply.json({ relations: enhancedRelations });
 		} catch (error: any) {
 			console.error('Error fetching relations:', error);
-			res.status(500).json({
+			reply.status(500).json({
 				message: error.message || 'Failed to fetch relations',
 			});
 		}
@@ -62,7 +60,7 @@ export class RelationController {
 	/**
 	 * Get relation data for a specific record
 	 */
-	async handleRelationData(req: Request, res: Response): Promise<void> {
+	async handleRelationData(req: KratosRequest, reply: KratosReply): Promise<void> {
 		const registered = getPanelResource(req);
 		const { id, relationName } = req.params;
 		const { page = 1, perPage = 10, search, sort, sortDirection, filters = {}, queryBuilders = {} } = req.body;
@@ -73,14 +71,14 @@ export class RelationController {
 			const relation = relations.find(r => r.name === relationName);
 
 			if (!relation) {
-				res.status(404).json({ message: t('core:relation.not_found') });
+				reply.status(404).json({ message: t('core:relation.not_found') });
 				return;
 			}
 
 			// Get related resource
 			const relatedResource = this.panel.getResource(relation.resourceSlug);
 			if (!relatedResource) {
-				res.status(404).json({ message: t('core:relation.related_not_found') });
+				reply.status(404).json({ message: t('core:relation.related_not_found') });
 				return;
 			}
 			const relatedResourceInstance = this.panel.createResourceInstance(relatedResource);
@@ -112,10 +110,10 @@ export class RelationController {
 				);
 			}
 
-			res.json(result);
+			reply.json(result);
 		} catch (error: any) {
 			console.error('Error loading relation data:', error);
-			res.status(500).json({
+			reply.status(500).json({
 				message: error.message || 'Failed to load relation data',
 			});
 		}
@@ -124,7 +122,7 @@ export class RelationController {
 	/**
 	 * Create a new relation (related record for hasMany)
 	 */
-	async handleCreateRelation(req: Request, res: Response): Promise<void> {
+	async handleCreateRelation(req: KratosRequest, reply: KratosReply): Promise<void> {
 		const registered = getPanelResource(req);
 		const { id, relationName } = req.params;
 		const relationData = req.body;
@@ -135,14 +133,14 @@ export class RelationController {
 			const relation = relations.find(r => r.name === relationName);
 
 			if (!relation) {
-				res.status(404).json({ message: t('core:relation.not_found') });
+				reply.status(404).json({ message: t('core:relation.not_found') });
 				return;
 			}
 
 			// Get related resource
 			const relatedResource = this.panel.getResource(relation.resourceSlug);
 			if (!relatedResource) {
-				res.status(404).json({ message: t('core:relation.related_not_found') });
+				reply.status(404).json({ message: t('core:relation.related_not_found') });
 				return;
 			}
 
@@ -175,8 +173,8 @@ export class RelationController {
 			const recordTitle = relatedResource.resourceClass.computeRecordTitle?.(formattedCreated);
 
 			// Wrap response in data/metadata structure
-			res.setHeader('X-KratosJs-Refresh-Badges', 'true');
-			res.status(201).json({
+			reply.header('X-KratosJs-Refresh-Badges', 'true');
+			reply.status(201).json({
 				data: formattedCreated,
 				metadata: {
 					...(recordTitle ? { recordTitle } : {}),
@@ -185,7 +183,7 @@ export class RelationController {
 			});
 		} catch (error: any) {
 			console.error('Error creating relation:', error);
-			res.status(500).json({
+			reply.status(500).json({
 				message: error.message || 'Failed to create relation',
 			});
 		}
@@ -194,8 +192,8 @@ export class RelationController {
 	/**
 	 * Update a relation (not supported for hasMany - update the related record directly)
 	 */
-	async handleUpdateRelation(_req: Request, res: Response): Promise<void> {
-		res.status(400).json({
+	async handleUpdateRelation(_req: KratosRequest, reply: KratosReply): Promise<void> {
+		reply.status(400).json({
 			message: t('core:relation.update_unsupported'),
 		});
 	}

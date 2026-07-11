@@ -11,9 +11,28 @@ export type { KratosJsRequest, KratosJsResponse, KratosJsRequestHandler } from '
 export { DataAdapter } from './adapters/database/DataAdapter';
 export { MikroOrmAdapter } from './adapters/database/MikroOrmAdapter';
 
-// HTTP Adapters
-export { HttpAdapter } from './adapters/http/HttpAdapter';
-export { ExpressAdapter } from './adapters/http/ExpressAdapter';
+// HTTP contract (v2 pluggable HTTP framework support)
+// Framework adapters live in their own packages, e.g. @maxal_studio/kratosjs-express.
+export { KratosHttpAdapter } from './http/KratosHttpAdapter';
+export { createReply, buildKratosRequest, parseByteSize, composeHandler } from './http';
+export { serializeCookie, serializeClearCookie, parseCookieHeader } from './http/cookies';
+export { AdminSpaService, transformAdminIndexHtml } from './http/adminSpa';
+export type { AdminSpaDevServer, ConnectMiddleware } from './http/adminSpa';
+export type {
+	HttpMethod,
+	KratosRequest,
+	KratosReply,
+	KratosHandler,
+	KratosMiddleware,
+	KratosRouteHandler,
+	KratosRequestInit,
+	CookieOptions,
+	CorsOptions,
+	RouteDefinition,
+	StaticMount,
+	AdapterInitContext,
+	ReplyDriver,
+} from './http/types';
 
 // Media Adapters
 export { MediaAdapter, S3MediaAdapter, LocalMediaAdapter } from './adapters/media';

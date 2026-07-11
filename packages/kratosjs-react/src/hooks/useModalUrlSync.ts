@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { ModalState } from '../contexts/ResourceModalContext';
 import { buildModalPath } from '../utils/modalUrl';
+import { withPanelBase, stripPanelBase } from '../utils/panelPath';
 
 /**
  * Keeps the browser address bar in sync with the top of the modal stack.
@@ -32,9 +33,11 @@ export function useModalUrlSync(modalStack: ModalState[]): void {
 		const target = buildModalPath(modalStack[len - 1]);
 		if (!target) return; // action / unroutable modal → leave the parent's URL showing
 
-		const current = window.location.pathname + window.location.search;
+		// Compare in root-relative space (React Router strips the basename; raw
+		// window.location does not), then write the panel-path-prefixed URL.
+		const current = stripPanelBase(window.location.pathname) + window.location.search;
 		if (current !== target) {
-			window.history.replaceState(null, '', target);
+			window.history.replaceState(null, '', withPanelBase(target));
 		}
 	}, [modalStack]);
 }

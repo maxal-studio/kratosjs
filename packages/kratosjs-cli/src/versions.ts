@@ -78,3 +78,55 @@ export function kratosReactDep(local: boolean): string {
 			readPublishedVersion('@maxal_studio/kratosjs-react'),
 	);
 }
+
+/** Resolve a semver range for @maxal_studio/kratosjs-express (the default HTTP adapter). */
+export function kratosExpressDep(local: boolean): string {
+	if (local) {
+		return 'file:../packages/kratosjs-express';
+	}
+
+	return toVersionRange(
+		readInstalledVersion('@maxal_studio/kratosjs-express') ??
+			readMonorepoVersion('packages/kratosjs-express') ??
+			readPublishedVersion('@maxal_studio/kratosjs-express'),
+	);
+}
+
+/** Resolve a semver range for @maxal_studio/kratosjs-fastify (an alternative HTTP adapter). */
+export function kratosFastifyDep(local: boolean): string {
+	if (local) {
+		return 'file:../packages/kratosjs-fastify';
+	}
+
+	return toVersionRange(
+		readInstalledVersion('@maxal_studio/kratosjs-fastify') ??
+			readMonorepoVersion('packages/kratosjs-fastify') ??
+			readPublishedVersion('@maxal_studio/kratosjs-fastify'),
+	);
+}
+
+/** Resolve a semver range for @maxal_studio/kratosjs-hapi (an alternative HTTP adapter). */
+export function kratosHapiDep(local: boolean): string {
+	if (local) {
+		return 'file:../packages/kratosjs-hapi';
+	}
+
+	return toVersionRange(
+		readInstalledVersion('@maxal_studio/kratosjs-hapi') ??
+			readMonorepoVersion('packages/kratosjs-hapi') ??
+			readPublishedVersion('@maxal_studio/kratosjs-hapi'),
+	);
+}
+
+/** Resolve a semver range for @maxal_studio/kratosjs-koa (an alternative HTTP adapter). */
+export function kratosKoaDep(local: boolean): string {
+	if (local) {
+		return 'file:../packages/kratosjs-koa';
+	}
+
+	return toVersionRange(
+		readInstalledVersion('@maxal_studio/kratosjs-koa') ??
+			readMonorepoVersion('packages/kratosjs-koa') ??
+			readPublishedVersion('@maxal_studio/kratosjs-koa'),
+	);
+}

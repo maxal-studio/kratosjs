@@ -5,6 +5,7 @@ import { runNew } from './commands/new';
 import { runPlugin } from './commands/plugin';
 import { runInit } from './commands/init';
 import { DRIVER_KEYS } from './drivers';
+import { ADAPTER_KEYS } from './adapters';
 
 const program = new Command();
 
@@ -15,6 +16,7 @@ program
 	.argument('[name]', 'project name')
 	.description('Create a new KratosJs app')
 	.option('--driver <driver>', `database driver (${DRIVER_KEYS.join('|')})`)
+	.option('--http <adapter>', `HTTP framework (${ADAPTER_KEYS.join('|')})`)
 	.option('--no-install', 'skip installing dependencies')
 	.option('--local', 'use file: links to the monorepo packages (for local testing)')
 	.action(async (name, options) => {

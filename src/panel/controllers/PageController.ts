@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { KratosRequest, KratosReply } from '../../http/types';
 import type { Panel } from '../../Panel';
 import { t } from '../../i18n/serverT';
 
@@ -11,13 +11,13 @@ export class PageController {
 	/**
 	 * Handle page data request
 	 */
-	async handlePageData(req: Request, res: Response): Promise<void> {
+	async handlePageData(req: KratosRequest, reply: KratosReply): Promise<void> {
 		try {
 			const pageSlug = req.params.page as string;
 			const PageClass = this.panel.getPages().get(pageSlug);
 
 			if (!PageClass) {
-				res.status(404).json({
+				reply.status(404).json({
 					message: t('core:page.not_found', { slug: pageSlug }),
 				});
 				return;
@@ -27,7 +27,7 @@ export class PageController {
 			if (this.panel.hooks.pageAccessCheck) {
 				const hasAccess = await this.panel.hooks.pageAccessCheck(pageSlug, req.authUser);
 				if (!hasAccess) {
-					res.status(403).json({
+					reply.status(403).json({
 						message: t('core:page.access_denied'),
 					});
 					return;
@@ -103,13 +103,13 @@ export class PageController {
 			}
 
 			// Return page data with widget data
-			res.json({
+			reply.json({
 				page: pageData,
 				widgetData: Object.keys(widgetData).length > 0 ? widgetData : undefined,
 			});
 		} catch (error: any) {
 			console.error('Error fetching page data:', error);
-			res.status(500).json({
+			reply.status(500).json({
 				message: error.message || 'Failed to fetch page data',
 			});
 		}

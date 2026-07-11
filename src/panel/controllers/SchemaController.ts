@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { KratosRequest, KratosReply } from '../../http/types';
 import type { Panel } from '../../Panel';
 import { getFilteredCapabilities } from '../access';
 import { enrichFormSchemaRelationships } from '../enrichFormSchema';
@@ -13,7 +13,7 @@ export class SchemaController {
 	/**
 	 * Get form schema for a resource
 	 */
-	async handleFormSchema(req: Request, res: Response): Promise<void> {
+	async handleFormSchema(req: KratosRequest, reply: KratosReply): Promise<void> {
 		const resource = getPanelResource(req);
 		const resourceInstance = this.panel.createResourceInstance(resource);
 		let schema = resourceInstance.getFormSchema();
@@ -55,7 +55,7 @@ export class SchemaController {
 		// Get filtered capabilities (includes plugin permissions)
 		const capabilities = await getFilteredCapabilities(this.panel, resource, req.authUser);
 
-		res.json({
+		reply.json({
 			resource: resource.resourceClass.getSlug(),
 			schema,
 			...capabilities,
@@ -65,7 +65,7 @@ export class SchemaController {
 	/**
 	 * Get table schema for a resource
 	 */
-	async handleTableSchema(req: Request, res: Response): Promise<void> {
+	async handleTableSchema(req: KratosRequest, reply: KratosReply): Promise<void> {
 		const resource = getPanelResource(req);
 		const resourceInstance = this.panel.createResourceInstance(resource);
 
@@ -110,7 +110,7 @@ export class SchemaController {
 		// Get filtered capabilities (includes plugin permissions)
 		const capabilities = await getFilteredCapabilities(this.panel, resource, req.authUser);
 
-		res.json({
+		reply.json({
 			resource: resource.resourceClass.getSlug(),
 			schema,
 			...capabilities,

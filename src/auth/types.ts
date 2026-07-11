@@ -116,8 +116,11 @@ export interface AuthTokens {
 export interface AuthHookContext {
 	/** Provider name that authenticated (or attempted to). */
 	provider: string;
-	/** Raw Express request (ip, headers, body) — for rate-limit / audit / captcha. */
-	req: import('express').Request;
+	/**
+	 * Framework-neutral request (ip, headers, body, cookies) — for rate-limit / audit /
+	 * captcha. The framework-native request is available as `req.raw`.
+	 */
+	req: import('../http/types').KratosRequest;
 	/** Login credentials. Only populated for `beforeAuthenticate`. */
 	credentials?: any;
 	/** Request-scoped EntityManager accessor. */

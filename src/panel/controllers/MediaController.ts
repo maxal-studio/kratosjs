@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import type { KratosRequest, KratosReply } from '../../http/types';
 import type { Panel } from '../../Panel';
 import { getFilteredCapabilities } from '../access';
 import { MediaHookContext } from '../PanelHooks';
@@ -28,7 +28,7 @@ export class MediaController {
 	 * Resolve the resource slug for the current request, if this is a per-resource route.
 	 * Global media routes have no `panelResource`, so this returns undefined.
 	 */
-	private getResourceSlug(req: Request): string | undefined {
+	private getResourceSlug(req: KratosRequest): string | undefined {
 		return req.panelResource?.resourceClass.getSlug();
 	}
 
@@ -36,7 +36,7 @@ export class MediaController {
 	 * Enforce per-resource write access. Returns true when allowed (or when there is no
 	 * resource context, i.e. a global route); writes a 403 and returns false otherwise.
 	 */
-	private async ensureResourceWriteAccess(req: Request, res: Response): Promise<boolean> {
+	private async ensureResourceWriteAccess(req: KratosRequest, reply: KratosReply): Promise<boolean> {
 		const registered = req.panelResource;
 		if (!registered) {
 			return true;
@@ -44,7 +44,7 @@ export class MediaController {
 
 		const caps = await getFilteredCapabilities(this.panel, registered, req.authUser);
 		if (!caps.canCreate && !caps.canEdit) {
-			res.status(403).json({
+			reply.status(403).json({
 				message: t('core:media.no_permission_manage'),
 			});
 			return false;
@@ -57,21 +57,21 @@ export class MediaController {
 	 * Handle media file upload
 	 * Expects the file to be sent as base64 in the JSON body
 	 */
-	async handleUpload(req: Request, res: Response): Promise<void> {
+	async handleUpload(req: KratosRequest, reply: KratosReply): Promise<void> {
 		let context: MediaHookContext | undefined;
 		try {
 			const { file, filename, contentType, fieldName, isArray, existingValue, path, visibility, bucket } =
 				req.body;
 
 			if (!file) {
-				res.status(400).json({
+				reply.status(400).json({
 					message: t('core:media.file_required'),
 				});
 				return;
 			}
 
 			// Per-resource write-access gate (no-op for global routes)
-			if (!(await this.ensureResourceWriteAccess(req, res))) {
+			if (!(await this.ensureResourceWriteAccess(req, reply))) {
 				return;
 			}
 
@@ -94,7 +94,7 @@ export class MediaController {
 			if (this.panel.hooks.mediaUploadAccessCheck) {
 				const allowed = await this.panel.hooks.mediaUploadAccessCheck(context);
 				if (!allowed) {
-					res.status(403).json({
+					reply.status(403).json({
 						message: t('core:media.no_permission_upload'),
 					});
 					return;
@@ -110,7 +110,7 @@ export class MediaController {
 				: this.panel.media.getAdapter() || this.panel.media.getOrCreateDefaultAdapter();
 
 			if (!mediaAdapter) {
-				res.status(400).json({
+				reply.status(400).json({
 					message: t('core:media.adapter_not_found'),
 				});
 				return;
@@ -131,7 +131,7 @@ export class MediaController {
 			// Lifecycle: let plugins link the stored file to its owner, log, etc.
 			await this.panel.executeMediaHooks('afterMediaUpload', context);
 
-			res.status(200).json({
+			reply.status(200).json({
 				data: {
 					url: context.result.url,
 					key: context.result.key,
@@ -140,7 +140,7 @@ export class MediaController {
 		} catch (error: any) {
 			await this.runErrorHooks(context, error);
 			console.error('Error uploading media:', error);
-			res.status(500).json({
+			reply.status(500).json({
 				message: error.message || 'Failed to upload media',
 			});
 		}
@@ -149,20 +149,20 @@ export class MediaController {
 	/**
 	 * Handle media file deletion
 	 */
-	async handleDelete(req: Request, res: Response): Promise<void> {
+	async handleDelete(req: KratosRequest, reply: KratosReply): Promise<void> {
 		let context: MediaHookContext | undefined;
 		try {
 			const { key, bucket, fieldName } = req.body;
 
 			if (!key) {
-				res.status(400).json({
+				reply.status(400).json({
 					message: t('core:media.key_required'),
 				});
 				return;
 			}
 
 			// Per-resource write-access gate (no-op for global routes)
-			if (!(await this.ensureResourceWriteAccess(req, res))) {
+			if (!(await this.ensureResourceWriteAccess(req, reply))) {
 				return;
 			}
 
@@ -184,7 +184,7 @@ export class MediaController {
 			if (this.panel.hooks.mediaDeleteAccessCheck) {
 				const allowed = await this.panel.hooks.mediaDeleteAccessCheck(context);
 				if (!allowed) {
-					res.status(403).json({
+					reply.status(403).json({
 						message: t('core:media.no_permission_delete'),
 					});
 					return;
@@ -199,7 +199,7 @@ export class MediaController {
 				: this.panel.media.getAdapter() || this.panel.media.getOrCreateDefaultAdapter();
 
 			if (!mediaAdapter) {
-				res.status(400).json({
+				reply.status(400).json({
 					message: t('core:media.adapter_not_found'),
 				});
 				return;
@@ -211,14 +211,14 @@ export class MediaController {
 			// Lifecycle: let plugins remove the owner link, log, etc.
 			await this.panel.executeMediaHooks('afterMediaDelete', context);
 
-			res.status(200).json({
+			reply.status(200).json({
 				success: true,
 				message: t('core:media.deleted'),
 			});
 		} catch (error: any) {
 			await this.runErrorHooks(context, error);
 			console.error('Error deleting media:', error);
-			res.status(500).json({
+			reply.status(500).json({
 				message: error.message || 'Failed to delete media',
 			});
 		}

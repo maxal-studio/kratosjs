@@ -1,21 +1,19 @@
-import { Request, Response, NextFunction, RequestHandler } from 'express';
+import type { KratosMiddleware, KratosRequest } from '../http/types';
 import { AuthManager } from './AuthManager';
-// Import request types to ensure declaration merging is applied
-import '../panel/request';
 import { t } from '../i18n/serverT';
 
 /**
- * Extract token from request (header or cookie)
+ * Extract token from request (Authorization header or access-token cookie)
  */
-function extractToken(req: Request): string | null {
+function extractToken(req: KratosRequest): string | null {
 	// Try Authorization header first
-	const authHeader = req.headers.authorization;
+	const authHeader = req.header('authorization');
 	if (authHeader && authHeader.startsWith('Bearer ')) {
 		return authHeader.substring(7);
 	}
 
 	// Try cookie
-	if (req.cookies && req.cookies['kratosjs_access_token']) {
+	if (req.cookies['kratosjs_access_token']) {
 		return req.cookies['kratosjs_access_token'];
 	}
 
@@ -23,53 +21,55 @@ function extractToken(req: Request): string | null {
 }
 
 /**
- * Authentication middleware - requires valid token
- * Attaches user to req.authUser
+ * Authentication pipeline step - requires a valid token.
+ * Attaches the user to req.authUser; responds 401 (without continuing) otherwise.
  */
-export function authMiddleware(authManager: AuthManager): RequestHandler {
-	return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export function authMiddleware(authManager: AuthManager): KratosMiddleware {
+	return async (req, reply, next) => {
+		// Guard ONLY the token validation: errors thrown downstream (controllers)
+		// must propagate to the pipeline's handleError, not become a 401 here.
 		try {
 			const token = extractToken(req);
 			if (!token) {
-				res.status(401).json({ error: t('core:auth.unauthorized_no_token') });
+				reply.status(401).json({ error: t('core:auth.unauthorized_no_token') });
 				return;
 			}
 
 			const user = await authManager.getCurrentUser(token);
 			if (!user) {
-				res.status(401).json({ error: t('core:auth.unauthorized_invalid_token') });
+				reply.status(401).json({ error: t('core:auth.unauthorized_invalid_token') });
 				return;
 			}
 
 			req.authUser = user;
-			next();
 		} catch (error: any) {
-			res.status(401).json({ error: error.message || 'Authentication failed' });
+			reply.status(401).json({ error: error.message || 'Authentication failed' });
+			return;
 		}
+
+		await next();
 	};
 }
 
 /**
- * Optional authentication middleware - attaches user if token is valid
- * Does not block request if no token or invalid token
+ * Optional authentication step - attaches the user when the token is valid,
+ * but never blocks the request.
  */
-export function optionalAuthMiddleware(authManager?: AuthManager): RequestHandler {
-	return async (req: Request, _res: Response, next: NextFunction) => {
+export function optionalAuthMiddleware(authManager?: AuthManager): KratosMiddleware {
+	return async (req, _reply, next) => {
 		try {
-			if (!authManager) {
-				next();
-				return;
-			}
-			const token = extractToken(req);
-			if (token) {
-				const user = await authManager.getCurrentUser(token);
-				if (user) {
-					req.authUser = user;
+			if (authManager) {
+				const token = extractToken(req);
+				if (token) {
+					const user = await authManager.getCurrentUser(token);
+					if (user) {
+						req.authUser = user;
+					}
 				}
 			}
-		} catch (error) {
+		} catch {
 			// Silently fail - optional auth
 		}
-		next();
+		await next();
 	};
 }

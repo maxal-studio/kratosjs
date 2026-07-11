@@ -2,6 +2,23 @@
 
 Non-obvious pitfalls. Read this first when a relation, deeplink, total, or projection misbehaves.
 
+## 0. v2: HTTP adapter is required; handlers are framework-neutral
+
+Since v2 the core has no HTTP framework built in. Every panel needs an adapter or `start()` throws — Express (default), Fastify, Hapi, or Koa, same neutral handler API:
+
+```ts
+import { ExpressAdapter } from '@maxal_studio/kratosjs-express';
+Panel.make('admin').httpAdapter(new ExpressAdapter());
+// or FastifyAdapter / HapiAdapter / KoaAdapter from @maxal_studio/kratosjs-fastify / -hapi / -koa
+// fastify & hapi: set bodyLimit on the adapter (new FastifyAdapter({ bodyLimit })), not panel.http()
+```
+
+Custom routes get `(req: KratosRequest, reply: KratosReply)` — NOT Express `req`/`res`. Use `reply.json/send/html/redirect/redirectTo`, `reply.header(k, v)` (not `res.setHeader`), `req.header('x')` / `req.host` (not `req.get(...)`). New in v2: `getRequestContext()` and server `t()` work inside custom routes. For raw framework access use `getExpressApp(panel)` and register raw routes **before** `start()` (after it, the admin SPA catch-all swallows them). `panel.middleware([...])` takes `(req, reply, next)` where `next()` returns a promise.
+
+## 0b. Relocating the admin UI: `.panelPath()` (backend-only)
+
+By default the admin SPA is served at the domain root `/` (API is separate, at `.path()`, default `/kratosjs/api`). To move the UI to e.g. `/admin` and free `/`, set ONLY `panel.panelPath('/admin')` on the backend — **no vite.config change**. `kratosAdminVite()` builds with a relative asset base and the server drives the Vite base from `panelPath` (dev server base + rewriting the built index.html). The React client auto-picks the router basename from an injected global. Outside the panel path everything 404s (own `/` via the raw framework instance before `start()`). Default `'/'` = root, no config needed.
+
 ## 1. `extraFields` before `populate`
 
 On `TableBuilder`, `.extraFields([...])` **replaces** the projected-field list, while `.populate([...])` **appends** relation paths to it. If you call them in the wrong order, `extraFields` wipes the populated relations off each row.

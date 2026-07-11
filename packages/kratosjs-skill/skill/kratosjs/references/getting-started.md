@@ -3,7 +3,7 @@
 ## Scaffold a new app
 
 ```bash
-npx @maxal_studio/kratosjs-cli new my-app --driver mysql   # or postgresql | mariadb | sqlite | mongo
+npx @maxal_studio/kratosjs-cli new my-app --driver mysql --http express   # --driver: postgresql|mariadb|sqlite|mongo · --http: express(default)|fastify|hapi|koa
 cd my-app && npm run dev
 ```
 
@@ -33,6 +33,7 @@ This layout (separate `hooks/`, `actions/`, `cells/` directories) is the convent
 import 'dotenv/config';
 import path from 'path';
 import { Panel, LocalMediaAdapter, EmailAuthProvider } from '@maxal_studio/kratosjs';
+import { ExpressAdapter } from '@maxal_studio/kratosjs-express';
 import { MySqlDriver } from '@mikro-orm/mysql';
 import { Migrator } from '@mikro-orm/migrations';
 import { UserResource } from './resources/UserResource';
@@ -45,6 +46,7 @@ const adminPanel = Panel.make('admin')
 	.title('My App')
 	.favicon('/assets/icon.png')
 	.icon('/assets/icon.png')
+	.httpAdapter(new ExpressAdapter()) // required — the HTTP framework is pluggable
 	.orm(
 		{
 			driver: MySqlDriver,
@@ -87,7 +89,7 @@ adminPanel.start(PORT, async () => {
 });
 ```
 
-Key `Panel` builder methods: `.title()`, `.favicon()`, `.icon()`, `.orm(config, options)`, `.mediaAdapters([...])`, `.resources([...])`, `.pages([...])`, `.plugins([...])`, `.auth({...})`, `.i18n({...})`, `.useStatic(route, dir)`, `.registerRoute(method, path, handler)`, `.start(port, onReady)`. Access the ORM/EM at runtime with `panel.getOrm().em.fork()` or `panel.getEm().fork()`.
+Key `Panel` builder methods: `.title()`, `.favicon()`, `.icon()`, `.httpAdapter(adapter)` (required; `new ExpressAdapter()` from `@maxal_studio/kratosjs-express`), `.orm(config, options)`, `.mediaAdapters([...])`, `.resources([...])`, `.pages([...])`, `.plugins([...])`, `.auth({...})`, `.i18n({...})`, `.useStatic(route, dir)`, `.registerRoute(method, path, handler)` (handler gets framework-neutral `(req: KratosRequest, reply: KratosReply)` — `reply.json(...)`, not `res.json(...)`), `.http({ bodyLimit, cors })`, `.adminClient(false)` (headless), `.panelPath('/admin')` (serve the admin UI under a sub-path; default `/`; backend-only — no vite.config change needed), `.start(port, onReady)`, `.stop()`. Escape hatch to raw Express: `getExpressApp(panel)` / `panel.getServer<Express>()` (register raw routes before `start()`). Access the ORM/EM at runtime with `panel.getOrm().em.fork()` or `panel.getEm().fork()`.
 
 ## Where to go next
 

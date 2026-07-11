@@ -1,4 +1,4 @@
-import { Request, Response, RequestHandler } from 'express';
+import type { KratosMiddleware, KratosRequest, KratosReply } from '../http/types';
 import { ResourceClass } from '../BaseResource.js';
 import { DataAdapter } from '../adapters/database/DataAdapter';
 import { ResourceHooks } from '../resource/types';
@@ -49,8 +49,8 @@ export interface PanelConfig {
 	defaultSearchableFields?: string[];
 	/** Registered resource classes */
 	resources: ResourceClass[];
-	/** Express middleware to apply to all routes */
-	middleware: RequestHandler[];
+	/** Framework-neutral middleware to apply to all routes */
+	middleware: KratosMiddleware[];
 }
 
 /**
@@ -75,10 +75,10 @@ export interface RegisteredResource {
 export interface RouteContext {
 	/** The registered resource */
 	resource: RegisteredResource;
-	/** Express request */
-	req: Request;
-	/** Express response */
-	res: Response;
+	/** Framework-neutral request */
+	req: KratosRequest;
+	/** Framework-neutral reply */
+	reply: KratosReply;
 }
 
 /**

@@ -17,6 +17,7 @@ import { authenticatedFetch } from '../api/authenticatedFetch';
 import { useTranslation } from '../i18n/useTranslation';
 import { useLocale } from '../i18n/useLocale';
 import { useModalUrlSync } from '../hooks/useModalUrlSync';
+import { getRouterBasename, withPanelBase, stripPanelBase } from '../utils/panelPath';
 
 export interface PageMetadata {
 	slug: string;
@@ -292,11 +293,11 @@ function ModalStackRenderer({ apiBaseUrl }: { apiBaseUrl: string }) {
 			// (pushState updated the address bar; originUrl holds the prior URL).
 			// Without originUrl, only update if the address bar is on this resource.
 			if (closing.originUrl) {
-				window.history.replaceState(null, '', closing.originUrl);
+				window.history.replaceState(null, '', withPanelBase(closing.originUrl));
 			} else {
-				const firstSegment = window.location.pathname.split('/').filter(Boolean)[0] ?? '';
+				const firstSegment = stripPanelBase(window.location.pathname).split('/').filter(Boolean)[0] ?? '';
 				if (firstSegment === closing.resource) {
-					window.history.replaceState(null, '', `/${closing.resource}`);
+					window.history.replaceState(null, '', withPanelBase(`/${closing.resource}`));
 				}
 			}
 		} else {
@@ -305,7 +306,7 @@ function ModalStackRenderer({ apiBaseUrl }: { apiBaseUrl: string }) {
 			// originUrl means "where to go when *the parent itself* closes",
 			// not the URL to display while the parent is still open.
 			const parent = stack[stack.length - 2];
-			window.history.replaceState(null, '', `/${parent.resource}/${parent.recordId || ''}`);
+			window.history.replaceState(null, '', withPanelBase(`/${parent.resource}/${parent.recordId || ''}`));
 		}
 	}, [closeModal]);
 
@@ -319,12 +320,12 @@ function ModalStackRenderer({ apiBaseUrl }: { apiBaseUrl: string }) {
 
 		if (root.originUrl) {
 			// Root was opened via deeplink — restore the page the user came from.
-			window.history.replaceState(null, '', root.originUrl);
+			window.history.replaceState(null, '', withPanelBase(root.originUrl));
 		} else {
 			// URL-based root — only reset to the list if the address bar is on it.
-			const firstSegment = window.location.pathname.split('/').filter(Boolean)[0] ?? '';
+			const firstSegment = stripPanelBase(window.location.pathname).split('/').filter(Boolean)[0] ?? '';
 			if (firstSegment === root.resource) {
-				window.history.replaceState(null, '', `/${root.resource}`);
+				window.history.replaceState(null, '', withPanelBase(`/${root.resource}`));
 			}
 		}
 	}, [closeAllModals]);
@@ -356,7 +357,7 @@ export function AdminPanel({
 	i18nConfig,
 }: AdminPanelProps) {
 	return (
-		<BrowserRouter>
+		<BrowserRouter basename={getRouterBasename()}>
 			<PanelProviders
 				apiBaseUrl={apiBaseUrl}
 				customFields={customFields}
