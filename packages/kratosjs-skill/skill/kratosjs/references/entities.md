@@ -46,7 +46,44 @@ export const Product = new EntitySchema<IProduct>({
     id: { type: 'string', serializedPrimaryKey: true }
     ```
 
-The CLI injects the right shape for your chosen driver. You can also use the exported `idProps` helper from `@maxal_studio/kratosjs`.
+The CLI injects the right shape for your chosen driver.
+
+### Driver-agnostic entities (plugins) — `idProps(driver)`
+
+A **plugin** doesn't know the host's driver at import time, so build its entities as a
+**factory** using `idProps(driver)`, and assign the built entity onto the resource in
+`register()`:
+
+```ts
+import { EntitySchema, idProps, type DriverKind } from '@maxal_studio/kratosjs';
+
+export function createPostEntity(driver: DriverKind) {
+	return new EntitySchema({
+		name: 'CmsPost',
+		tableName: 'cms_post',
+		properties: {
+			...idProps(driver), // SQL autoincrement id, or Mongo _id + serialized id
+			title: { type: 'string' },
+			slug: { type: 'string', unique: true },
+			category: { kind: 'm:1', entity: () => category, nullable: true }, // pass the built related entity
+		} as any,
+	});
+}
+
+// In the Plugin's register(panel):
+const driver = panel.getDriverKind(); // 'sql' | 'mongo'
+const Category = createCategoryEntity(driver);
+const Post = createPostEntity(driver, Category); // build related entity first, pass it in
+PostResource.entity = Post; // declare `static entity!: EntitySchema<IPost>` on the resource
+panel.registerEntities([Category, Post]);
+panel.resources([PostResource, CategoryResource]);
+if (driver === 'sql') panel.registerMigrations([CreateCmsTables]); // Mongo: rely on updateSchema
+```
+
+Reference implementation: `@maxal_studio/kratosjs-plugin-cms`. For a relation between two
+factory-built entities, **pass the built related `EntitySchema` into the other factory**
+and reference it with `entity: () => category` (a plain string entity name does not
+resolve during metadata discovery here).
 
 ## Relations
 

@@ -148,6 +148,46 @@ Every page now renders as `<Layout><Page /></Layout>` — no per-page wiring.
 
     Resolution order: the page's static `layout` → the entry-file `layout` → unwrapped.
 
+## Public metadata (SEO)
+
+Declare site-wide public info once with `panel.publicMetadata(...)`, then build per-page
+SEO from it. The common SEO fields — `title`, `description`, `keywords` — are first-class
+(typed as `PublicMetadata`; extra fields allowed). **`title` defaults to the panel title
+(`.title(...)`)** when omitted. Pass an object, or a function of the request for
+per-locale / per-tenant values:
+
+```typescript
+panel
+	.title('Acme') // used as the default publicMetadata.title
+	.publicMetadata({
+		description: 'We make things',
+		keywords: 'acme, widgets',
+		// title omitted → falls back to 'Acme'
+	});
+```
+
+Once configured, the resolved metadata is **auto-populated on `req.publicMetadata`** for
+every `panel.route(...)` handler — no middleware to attach — so you can compose per-page
+titles/descriptions right in the handler:
+
+```typescript
+panel.route('get', '/posts', (req, reply) =>
+	reply.view('blog/Index', {
+		posts,
+		title: `${req.publicMetadata?.title} — Blog`,
+		description: req.publicMetadata?.description,
+	}),
+);
+```
+
+Outside a route (or from anywhere with the panel), resolve it directly with
+`await panel.resolvePublicMetadata(req)`. It is **also a shared prop** on every view, so
+page components (or your `Layout`'s `<Head>`) can read it without the handler passing it:
+
+```tsx
+const { publicMetadata } = usePage<{ publicMetadata: { title: string } }>().props;
+```
+
 ## Build and deploy
 
 Your app owns a `vite.views.config.mts`:

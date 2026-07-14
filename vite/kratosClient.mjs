@@ -1,8 +1,29 @@
 import fs from 'fs';
 import path from 'path';
+import { createRequire } from 'module';
 
 const VIRTUAL_ID = 'virtual:kratos-client';
 const RESOLVED_ID = '\0' + VIRTUAL_ID;
+
+/**
+ * Resolve a dependency's package.json path from the app root using real Node
+ * resolution — this walks up to a **hoisted** node_modules (npm/pnpm workspaces put
+ * shared deps at the repo root), which a plain `<root>/node_modules/<dep>` check misses.
+ * Falls back to the app-local path.
+ *
+ * @param {NodeRequire} require Require bound to the app root.
+ * @param {string} root App root directory.
+ * @param {string} dep Dependency name.
+ * @returns {string | undefined} Absolute path to the dep's package.json, if found.
+ */
+function resolveDepPackageJson(require, root, dep) {
+	try {
+		return require.resolve(`${dep}/package.json`);
+	} catch {
+		const local = path.join(root, 'node_modules', dep, 'package.json');
+		return fs.existsSync(local) ? local : undefined;
+	}
+}
 
 /**
  * Discover plugin client entry specifiers by scanning the app's dependencies for a
@@ -24,11 +45,12 @@ function discoverClientEntries(root) {
 		return [];
 	}
 
+	const require = createRequire(pkgPath);
 	const deps = { ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) };
 	const entries = [];
 	for (const dep of Object.keys(deps)) {
-		const depPkgPath = path.join(root, 'node_modules', dep, 'package.json');
-		if (!fs.existsSync(depPkgPath)) continue;
+		const depPkgPath = resolveDepPackageJson(require, root, dep);
+		if (!depPkgPath) continue;
 		try {
 			const depPkg = JSON.parse(fs.readFileSync(depPkgPath, 'utf-8'));
 			const client = depPkg.kratosjs?.client;

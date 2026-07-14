@@ -183,6 +183,12 @@ register(panel: Panel): void {
 }
 ```
 
+> **Relations between two factory entities.** Build the related entity first and pass
+> it into the other factory, then reference it with `entity: () => category` — a plain
+> string entity name (`entity: 'Category'`) does not resolve during metadata discovery
+> for factory-built `EntitySchema`s. See `@maxal_studio/kratosjs-plugin-cms` (Post `m:1`
+> Category).
+
 See [Entities & Migrations](./migrations.md) for the full guide — writing SQL migrations, the `boot()` hook, MongoDB notes, and the CMS plugin example.
 
 ## Example 1: Simple Page Plugin

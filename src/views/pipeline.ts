@@ -78,6 +78,15 @@ export function composeRoute(panel: Panel, route: BufferedRoute): KratosHandler 
 	steps.push(panel.ormContextStep());
 	steps.push(localeContextStep(panel));
 
+	// Populate req.publicMetadata (resolved, with the panel-title fallback) when the app
+	// has configured public metadata — no middleware to attach.
+	if (panel.getPublicMetadata() !== undefined) {
+		steps.push(async (req, _reply, next) => {
+			req.publicMetadata = await panel.resolvePublicMetadata(req);
+			await next();
+		});
+	}
+
 	if (route.admin) {
 		const authManager = panel.getAuthManager();
 		if (route.admin.auth === 'optional') {

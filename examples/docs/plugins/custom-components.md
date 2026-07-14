@@ -57,7 +57,12 @@ register the routes that render them. Plugin pages are namespaced with the plugi
 `name`, so you reference them as `'{name}::{key}'`:
 
 ```typescript
-// client manifest
+// client manifest — import definePluginClient from the LIGHTWEIGHT `/plugin` subpath
+// (not the main index) so a pages-only plugin bundled into the SSR views build doesn't
+// drag in the whole admin package. Page components import from `/views`.
+import { definePluginClient } from '@maxal_studio/kratosjs-react/plugin';
+import PostShow from './pages/Post/Show'; // uses @maxal_studio/kratosjs-react/views
+
 export default definePluginClient({
 	name: 'blog',
 	pages: { 'Post/Show': PostShow, 'Post/Index': PostIndex },
@@ -66,10 +71,16 @@ export default definePluginClient({
 // server — in the Plugin's register(panel):
 panel.route('get', '/posts/:slug', async (req, reply) => {
 	const post = await panel.getEm().findOne(Post, { slug: req.params.slug });
-	if (!post) return reply.status(404).html('Not found');
+	if (!post) return reply.view('blog::Post/Show', { post: null }, { status: 404 });
 	reply.view('blog::Post/Show', { post });
 });
 ```
+
+> **Pages vs admin components.** A plugin's page components go into the app's **views**
+> build, while custom fields/columns/widgets go into the **admin** build. Keep a
+> pages-only plugin's client free of admin imports (`/plugin` + `/views` only) — importing
+> the main `@maxal_studio/kratosjs-react` index pulls the admin bundle into your views
+> build. See the reference implementation in `@maxal_studio/kratosjs-plugin-cms`.
 
 For this to be auto-discovered by the app's bundler, the plugin's `package.json`
 declares its client entry (the CLI adds this for client plugins — the default):

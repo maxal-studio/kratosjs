@@ -208,6 +208,11 @@ export class ViewService {
 		if (this.config.csrf) {
 			shared.csrf = csrfToken ?? req.cookies[CSRF_COOKIE] ?? null;
 		}
+		// Site-wide public metadata (SEO) — available to every view component as
+		// `usePage().props.publicMetadata` when `panel.publicMetadata(...)` is set.
+		if (this.panel.getPublicMetadata() !== undefined) {
+			shared.publicMetadata = req.publicMetadata ?? (await this.panel.resolvePublicMetadata(req));
+		}
 		for (const fn of this.panel.getViewShareFns()) {
 			Object.assign(shared, await fn(req));
 		}

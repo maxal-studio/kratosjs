@@ -68,6 +68,17 @@ export default function Show() {
 - Shared props (every page): `{ auth: { user }, locale, csrf }` — add more with `panel.viewShare(fn)`.
 - `lazyProp(fn)` (core) — a prop evaluated only when named in a partial reload.
 
+## Public metadata (SEO)
+
+`panel.publicMetadata(data)` sets site-wide public info. The common SEO fields (`title`, `description`, `keywords`) are first-class (typed `PublicMetadata`, extra fields allowed); `data` is an object or `(req) => object`. **`title` defaults to the panel title** (`.title(...)`) when omitted. When configured, it's **auto-populated on `req.publicMetadata`** for every `panel.route()` handler (no middleware), resolvable anywhere via `await panel.resolvePublicMetadata(req)`, and auto-injected as the `publicMetadata` shared view prop.
+
+```typescript
+panel.publicMetadata({ description: '…', keywords: 'a,b' }); // title falls back to panel.title()
+panel.route('get', '/posts', (req, reply) =>
+	reply.view('blog/Index', { posts, title: `${req.publicMetadata?.title} — Blog` }),
+);
+```
+
 ## Layouts (shared top menu / footer)
 
 A layout wraps every page. Define a component taking `{ children }` and pass it as
@@ -91,9 +102,16 @@ A plugin registers view routes in `register()` and ships page components in its
 client manifest `pages` (namespaced `pluginName::Key` at render):
 
 ```typescript
-// client: definePluginClient({ name: 'blog', pages: { 'Post/Show': PostShow } })
+// client: import definePluginClient from '@maxal_studio/kratosjs-react/plugin' (NOT the
+//         main index — that pulls the admin bundle into the views build). Pages import
+//         from '@maxal_studio/kratosjs-react/views'.
+//   definePluginClient({ name: 'blog', pages: { 'Post/Show': PostShow } })
 // server: panel.route('get', '/posts/:slug', (req, reply) => reply.view('blog::Post/Show', { post }))
 ```
+
+Reference implementation: `@maxal_studio/kratosjs-plugin-cms` (Posts + Categories admin
+resources, migration, and an SSR blog at `/posts` with pagination + category filter and
+`/posts/:slug`).
 
 ## Build & deploy
 

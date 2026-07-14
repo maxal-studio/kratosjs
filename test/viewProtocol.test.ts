@@ -71,6 +71,8 @@ const shareFns: ViewShareFn[] = [];
 const panelStub = {
 	resolveLocale: () => 'en',
 	getViewShareFns: () => shareFns,
+	getPublicMetadata: () => undefined,
+	resolvePublicMetadata: async () => ({}),
 } as unknown as Panel;
 
 function makeService(overrides: Partial<ResolvedViewsConfig> = {}): ViewService {
@@ -184,6 +186,26 @@ describe('ViewService view protocol (JSON path)', () => {
 		} finally {
 			shareFns.pop();
 		}
+	});
+
+	it('includes site publicMetadata as a shared prop when configured', async () => {
+		const pmPanel = {
+			resolveLocale: () => 'en',
+			getViewShareFns: () => [],
+			getPublicMetadata: () => ({ title: 'Acme' }),
+			resolvePublicMetadata: async () => ({ title: 'Acme', keywords: 'a,b' }),
+		} as unknown as Panel;
+		const service = new ViewService(
+			pmPanel,
+			{ template: 'views.html', assetsBase: '/views/', loginPath: '/login', csrf: true },
+			{ mode: 'development' },
+		);
+		const req = makeRequest({ headers: { [VIEW_HEADER]: 'true' } });
+		const { reply, result } = makeReply();
+
+		await service.handleView(req, reply, 'Page', {});
+
+		expect(JSON.parse(result().body!).props.publicMetadata).toEqual({ title: 'Acme', keywords: 'a,b' });
 	});
 
 	it('reads and clears flash errors into props.errors', async () => {

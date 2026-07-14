@@ -9,6 +9,22 @@ import type { SerializedForm } from '../formbuilder/types';
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 /**
+ * Site-wide public metadata for SEO, set via `panel.publicMetadata(...)`. The common
+ * SEO fields are first-class; extra fields are allowed. `title` defaults to the panel
+ * title (`.title(...)`) when omitted.
+ */
+export interface PublicMetadata {
+	/** Page/site title. Defaults to the panel title when not set. */
+	title?: string;
+	/** Meta description. */
+	description?: string;
+	/** Meta keywords — a comma-separated string or a list. */
+	keywords?: string | string[];
+	/** Any additional public metadata fields. */
+	[key: string]: unknown;
+}
+
+/**
  * Framework-neutral HTTP request.
  *
  * Adapters build this from their native request via {@link import('./request').buildKratosRequest};
@@ -65,6 +81,13 @@ export interface KratosRequest {
 
 	/** Authenticated user (present after the auth pipeline step; absent on optional-auth routes without a token) */
 	authUser?: AuthUser;
+
+	/**
+	 * Site-wide public metadata configured with `panel.publicMetadata(...)`. Populated by
+	 * the `publicMetadata()` middleware; use it to build per-page SEO, e.g.
+	 * `req.publicMetadata?.title + ' — Blog'`.
+	 */
+	publicMetadata?: PublicMetadata;
 
 	/** The registered resource for the current route (present on `/:resource/...` routes) */
 	panelResource?: RegisteredResource;

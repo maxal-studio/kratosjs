@@ -32,6 +32,7 @@ export type {
 	StaticMount,
 	AdapterInitContext,
 	ReplyDriver,
+	PublicMetadata,
 } from './http/types';
 
 // Views (SSR public pages) + route middleware

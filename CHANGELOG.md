@@ -20,6 +20,10 @@ lockstep.
   a view-capable reply. Opt into behavior with exported middleware: `adminRoute(panel)`
   (base-path prefix + auth), `requireAuth`/`optionalAuth`, `viewAuth(panel)` (HTML-aware
   login redirect), `csrfProtection(panel)`.
+- **`panel.publicMetadata(data)`** — site-wide SEO metadata (typed `title`/`description`/
+  `keywords`, `title` defaults to the panel title). Auto-populated on `req.publicMetadata`
+  for every `panel.route()` handler, resolvable via `panel.resolvePublicMetadata(req)`, and
+  a shared prop on every view page.
 - **`@maxal_studio/kratosjs-react/views`** — client runtime: `hydrateViewsApp`, `router`,
   `<Link>`, `<Head>`, `usePage`/`useViewProps`, `useForm`.
 - **`@maxal_studio/kratosjs-react/server`** — `createServerRenderer` (the only module that

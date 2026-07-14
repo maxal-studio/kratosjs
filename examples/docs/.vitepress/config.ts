@@ -17,13 +17,20 @@ const sidebar: DefaultTheme.SidebarMulti = {
 			],
 		},
 	],
+	// Views (SSR) is its own top-level section (more specific than '/backend/', so it
+	// wins for the views page) — kept out of the Backend & HTTP group below.
+	'/backend/views': [
+		{
+			text: 'Views (SSR)',
+			items: [{ text: 'Overview', link: '/backend/views' }],
+		},
+	],
 	'/backend/': [
 		{
 			text: 'Backend & HTTP',
 			items: [
 				{ text: 'HTTP Adapters', link: '/backend/http-adapters' },
 				{ text: 'NestJS Integration', link: '/backend/nestjs' },
-				{ text: 'Views (SSR)', link: '/backend/views' },
 				{ text: 'Writing an Adapter', link: '/backend/writing-an-adapter' },
 			],
 		},
@@ -194,6 +201,7 @@ export default defineConfig({
 		},
 		nav: [
 			{ text: 'Guide', link: '/getting-started' },
+			{ text: 'Views', link: '/backend/views' },
 			{ text: 'Resources', link: '/resources/overview' },
 			{ text: 'Pages', link: '/pages/overview' },
 			{ text: 'Forms', link: '/forms/overview' },

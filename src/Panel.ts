@@ -4,7 +4,9 @@ import type {
 	CorsOptions,
 	HttpMethod,
 	KratosMiddleware,
+	KratosRequest,
 	KratosRouteHandler,
+	PublicMetadata,
 	RouteDefinition,
 	StaticMount,
 } from './http/types';
@@ -170,6 +172,8 @@ export class Panel {
 	private _viewsExplicit = false;
 	/** Functions contributing props shared across every view render */
 	private _viewShare: ViewShareFn[] = [];
+	/** Site-wide public metadata (object or per-request function) for SEO */
+	private _publicMetadata?: PublicMetadata | ((req: KratosRequest) => PublicMetadata | Promise<PublicMetadata>);
 	/** The Views service (created during start() when views are enabled) */
 	private _viewService?: ViewService;
 	private _plugins: Array<Plugin | (new () => Plugin)> = [];
@@ -687,10 +691,13 @@ export class Panel {
 	 * ```
 	 */
 	route(method: 'get' | 'post' | 'put' | 'patch' | 'delete', path: string, handler: KratosRouteFn): this;
+	// Variadic tuple: zero-or-more middleware then the terminal handler. Typing the LAST
+	// element as KratosRouteFn lets TypeScript infer the handler's (req, reply) params
+	// even when middleware is passed before it.
 	route(
 		method: 'get' | 'post' | 'put' | 'patch' | 'delete',
 		path: string,
-		...handlers: Array<KratosMiddleware | KratosRouteFn>
+		...handlers: [...KratosMiddleware[], KratosRouteFn]
 	): this;
 	route(method: 'get' | 'post' | 'put' | 'patch' | 'delete', path: string, ...handlers: any[]): this {
 		if (handlers.length === 0) {
@@ -735,7 +742,15 @@ export class Panel {
 		if (handlers.length === 0) {
 			throw new Error(`[kratosjs] registerRoute('${method}', '${path}') needs at least one handler`);
 		}
-		return this.route(method, path, adminRoute(this), ...(handlers as unknown as KratosRouteFn[]));
+		// Cast through the implementation signature: a spread array can't satisfy the
+		// "last element is the handler" tuple overload, but at runtime it is exactly that.
+		(this.route as (m: typeof method, p: string, ...h: unknown[]) => this)(
+			method,
+			path,
+			adminRoute(this),
+			...handlers,
+		);
+		return this;
 	}
 
 	/**
@@ -824,6 +839,49 @@ export class Panel {
 	/** The functions registered via {@link viewShare} (used by ViewService). */
 	getViewShareFns(): ViewShareFn[] {
 		return this._viewShare;
+	}
+
+	/**
+	 * Set site-wide **public metadata** for SEO on public pages. The common SEO fields
+	 * (`title`, `description`, `keywords`) are first-class ({@link PublicMetadata}); extra
+	 * fields are allowed. Pass an object, or a function of the request for per-locale /
+	 * per-tenant values. **`title` defaults to the panel title (`.title(...)`)** when omitted.
+	 *
+	 * Once set, the resolved object is auto-populated on `req.publicMetadata` for every
+	 * `panel.route()` handler (no middleware needed), is resolvable anywhere via
+	 * {@link resolvePublicMetadata}, and is exposed to view components as the
+	 * `publicMetadata` shared prop.
+	 *
+	 * @example
+	 * ```typescript
+	 * panel.publicMetadata({ description: 'We make things', keywords: 'acme, widgets' });
+	 * // title falls back to panel.title(); or set it explicitly / per-request:
+	 * panel.publicMetadata(req => ({ title: req.query.tenant === 'x' ? 'X' : 'Acme' }));
+	 * ```
+	 */
+	publicMetadata(data: PublicMetadata | ((req: KratosRequest) => PublicMetadata | Promise<PublicMetadata>)): this {
+		this._publicMetadata = data;
+		return this;
+	}
+
+	/** The raw public-metadata config (undefined when not set). */
+	getPublicMetadata():
+		| PublicMetadata
+		| ((req: KratosRequest) => PublicMetadata | Promise<PublicMetadata>)
+		| undefined {
+		return this._publicMetadata;
+	}
+
+	/**
+	 * Resolve the configured public metadata for a request. `title` defaults to the panel
+	 * title when the config omits it. Empty object when nothing is configured.
+	 */
+	async resolvePublicMetadata(req: KratosRequest): Promise<PublicMetadata> {
+		const config = this._publicMetadata;
+		if (!config) return {};
+		const base = typeof config === 'function' ? await config(req) : config;
+		const title = base.title ?? this.getTitle();
+		return title !== undefined ? { ...base, title } : base;
 	}
 
 	/** The resolved Views config (defaults applied). Safe to call even before views() is enabled. */
