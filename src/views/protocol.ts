@@ -1,5 +1,5 @@
 /**
- * The wire protocol for the Inertia-style Views system.
+ * The wire protocol for the Views system.
  *
  * Views are a public-site layer independent of the admin panel: a first browser
  * visit gets server-rendered HTML with a page object embedded; subsequent

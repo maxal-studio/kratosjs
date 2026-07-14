@@ -12,7 +12,7 @@
   <a href="https://demo.kratosjs.com"><img src="https://img.shields.io/badge/Live%20Demo-demo.kratosjs.com-22C55E?style=for-the-badge&logo=rocket&logoColor=white" alt="Live Demo" /></a>
 </p>
 
-Build a **server-rendered React front end** and a **dynamic admin panel** from one Node.js backend. Define resources, forms, and tables once, ship SEO-ready public pages with Inertia-style SSR, and run it all on the HTTP framework of your choice.
+Build a **server-rendered React front end** and a **dynamic admin panel** from one Node.js backend. Define resources, forms, and tables once, ship SEO-ready public pages with SSR, and run it all on the HTTP framework of your choice.
 
 ## What is KratosJs?
 
@@ -20,7 +20,7 @@ KratosJs lets you describe your data model once with a fluent TypeScript API. Fr
 
 - A fully functional **REST API** (list, create, read, update, delete, bulk actions)
 - A **React admin panel** that renders forms and tables from the server-side schema — no hand-written CRUD screens
-- **Server-rendered Views** — an Inertia-style, React-only SSR layer for public, SEO-ready pages (landing pages, marketing sites, CMS front-ends); route handlers return `reply.view(component, props)` and data flows from the server, not a separate API
+- **Server-rendered Views** — a React-only SSR layer for public, SEO-ready pages (landing pages, marketing sites, CMS front-ends); route handlers return `reply.view(component, props)` and data flows from the server, not a separate API
 - **Server-side validation** using the same engine the frontend uses, so rules can never be bypassed via direct API calls
 - Runs on **any HTTP framework** — Express (default), Fastify, Hapi, Koa, or mounted onto an existing NestJS app
 
@@ -52,17 +52,17 @@ export class UserResource extends BaseResource {
 
 ## Features
 
-| Feature                          | Description                                                                                                                                            |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Fluent TypeScript API**        | Define resources, forms, and tables with a clean, chainable API. Full autocompletion and compile-time safety.                                          |
-| **React Frontend**               | The `@maxal_studio/kratosjs-react` package renders backend-defined schemas dynamically.                                                                |
-| **Server-Rendered Views (SSR)**  | Inertia-style, React-only SSR for public, SEO-ready pages. First visit is server-rendered HTML; later navigations swap props as JSON — no full reload. |
-| **Pluggable HTTP Framework**     | Express, Fastify, Hapi, Koa, or NestJS — pick your adapter; core is framework-neutral.                                                                 |
-| **MikroORM Support**             | One adapter for MySQL, PostgreSQL, SQLite, MariaDB, and MongoDB. Swap databases without rewriting your resources.                                      |
-| **Authentication & Permissions** | Built-in email auth, OAuth, and granular access control. Protect resources and actions with declarative policies.                                      |
-| **Shared Validation Engine**     | Rules declared on fields run on both client and server with the same isomorphic engine — no drift, no bypass.                                          |
-| **Plugin System**                | Extend with plugins that register entities, migrations, resources, pages, routes, and lifecycle hooks.                                                 |
-| **Media Management**             | Integrated file uploads with local and S3 storage backends. Attach media to any resource field.                                                        |
+| Feature                          | Description                                                                                                                             |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **Fluent TypeScript API**        | Define resources, forms, and tables with a clean, chainable API. Full autocompletion and compile-time safety.                           |
+| **React Frontend**               | The `@maxal_studio/kratosjs-react` package renders backend-defined schemas dynamically.                                                 |
+| **Server-Rendered Views (SSR)**  | React-only SSR for public, SEO-ready pages. First visit is server-rendered HTML; later navigations swap props as JSON — no full reload. |
+| **Pluggable HTTP Framework**     | Express, Fastify, Hapi, Koa, or NestJS — pick your adapter; core is framework-neutral.                                                  |
+| **MikroORM Support**             | One adapter for MySQL, PostgreSQL, SQLite, MariaDB, and MongoDB. Swap databases without rewriting your resources.                       |
+| **Authentication & Permissions** | Built-in email auth, OAuth, and granular access control. Protect resources and actions with declarative policies.                       |
+| **Shared Validation Engine**     | Rules declared on fields run on both client and server with the same isomorphic engine — no drift, no bypass.                           |
+| **Plugin System**                | Extend with plugins that register entities, migrations, resources, pages, routes, and lifecycle hooks.                                  |
+| **Media Management**             | Integrated file uploads with local and S3 storage backends. Attach media to any resource field.                                         |
 
 ## Quick Start
 

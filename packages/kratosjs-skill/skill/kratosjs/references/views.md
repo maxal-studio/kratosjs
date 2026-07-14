@@ -1,4 +1,4 @@
-# Views — Inertia-style SSR public pages (v3)
+# Views — SSR public pages (v3)
 
 Views are a **public-site layer**, independent of the admin SPA: server-rendered,
 SEO-ready React pages (landing pages, marketing sites, CMS front-ends) at top-level

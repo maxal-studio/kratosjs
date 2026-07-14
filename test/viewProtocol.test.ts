@@ -15,7 +15,7 @@ import {
 import { encodeFlash } from '../src/views/flash';
 
 /**
- * Unit tests for the Inertia-style view protocol (ViewService.handleView), JSON path.
+ * Unit tests for the view protocol (ViewService.handleView), JSON path.
  * The HTML/SSR path is covered by the example-app e2e (it needs a Vite build).
  */
 

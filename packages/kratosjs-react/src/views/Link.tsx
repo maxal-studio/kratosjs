@@ -25,7 +25,7 @@ function isPlainClick(event: MouseEvent): boolean {
 
 /**
  * Client-side navigation link. Renders an `<a>` but intercepts plain clicks to do
- * an Inertia-style view visit (no full reload). Modifier-clicks fall through to
+ * (no full reload). Modifier-clicks fall through to
  * the browser (open in new tab, etc.).
  */
 export function Link({

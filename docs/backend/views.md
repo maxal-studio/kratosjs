@@ -5,8 +5,7 @@ title: Views (SSR)
 # Views — server-rendered public pages
 
 Views are KratosJs's **public-site layer**: server-rendered, SEO-ready React pages
-served straight from your backend, independent of the admin panel. The model is
-Inertia.js-style — the first browser visit gets full SSR HTML; subsequent navigations
+served straight from your backend, independent of the admin panel. The first browser visit gets full SSR HTML; subsequent navigations
 fetch just the page's props as JSON and swap the component client-side, with no full
 reload. **Data flows from your route handlers, not a separate REST API.**
 

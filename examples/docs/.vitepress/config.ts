@@ -22,8 +22,8 @@ const sidebar: DefaultTheme.SidebarMulti = {
 			text: 'Backend & HTTP',
 			items: [
 				{ text: 'HTTP Adapters', link: '/backend/http-adapters' },
-				{ text: 'Views (SSR)', link: '/backend/views' },
 				{ text: 'NestJS Integration', link: '/backend/nestjs' },
+				{ text: 'Views (SSR)', link: '/backend/views' },
 				{ text: 'Writing an Adapter', link: '/backend/writing-an-adapter' },
 			],
 		},

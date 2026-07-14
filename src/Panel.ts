@@ -749,11 +749,11 @@ export class Panel {
 	}
 
 	// ============================================================================
-	// Views (Inertia-style SSR public pages)
+	// Views (SSR public pages)
 	// ============================================================================
 
 	/**
-	 * Configure (or disable) the Views system — an Inertia-style, React-only SSR layer
+	 * Configure (or disable) the Views system —  React-only SSR layer
 	 * for building public, SEO-ready pages that live OUTSIDE the admin panel. Register
 	 * pages with {@link route} + `reply.view(...)`.
 	 *
@@ -814,7 +814,7 @@ export class Panel {
 
 	/**
 	 * Register a function contributing props merged into EVERY view render (like
-	 * Inertia shared data). Core already shares `{ auth, locale, csrf }`.
+	 * Shared data). Core already shares `{ auth, locale, csrf }`.
 	 */
 	viewShare(fn: ViewShareFn): this {
 		this._viewShare.push(fn);

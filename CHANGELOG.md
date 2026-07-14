@@ -2,7 +2,7 @@
 
 ## 3.0.0 — SSR Views
 
-Major release adding an **Inertia.js-style, React-only SSR "Views" system** for building
+Major release adding an **React-only SSR "Views" system** for building
 public, SEO-ready pages (landing pages, marketing sites, plugin-driven front-ends) that
 live outside the admin panel. All `@maxal_studio/kratosjs-*` packages move to `3.0.0` in
 lockstep.

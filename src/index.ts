@@ -34,7 +34,7 @@ export type {
 	ReplyDriver,
 } from './http/types';
 
-// Views (Inertia-style SSR public pages) + route middleware
+// Views (SSR public pages) + route middleware
 export { adminRoute, requireAuth, optionalAuth } from './http/routeMiddleware';
 export {
 	ViewService,

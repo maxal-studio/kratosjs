@@ -5,7 +5,7 @@ title: Migrating to v3
 # Migrating from v2 to v3
 
 v3's headline change: **KratosJs is now a full-stack framework, not just an admin
-builder.** A new Inertia-style SSR layer ("Views") lets you build public, SEO-ready
+builder.** A new SSR layer ("Views") lets you build public, SEO-ready
 React pages served straight from your backend, alongside the admin panel. The route
 API is unified around a single primitive.
 

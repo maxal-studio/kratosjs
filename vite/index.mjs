@@ -123,7 +123,7 @@ export function kratosAdminVite(options = {}) {
 }
 
 /**
- * Vite config factory for KratosJs Views (the Inertia-style SSR public-site layer).
+ * Vite config factory for KratosJs Views (SSR public-site layer).
  *
  * Returns a config FUNCTION (not an object) because Views is built twice from one
  * config file — a client build (browser bundle + HTML shell + manifest) and an SSR
