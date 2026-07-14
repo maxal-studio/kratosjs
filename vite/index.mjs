@@ -1,4 +1,5 @@
 import react from '@vitejs/plugin-react';
+import { kratosClientPlugin } from './kratosClient.mjs';
 
 /**
  * Default chunking: pull third-party dependencies out of the app bundle into
@@ -62,6 +63,8 @@ export function kratosAdminVite(options = {}) {
 				include: /\.(tsx?|jsx)$/,
 				jsxRuntime: 'automatic',
 			}),
+			// Exposes `virtual:kratos-client` so main.tsx can auto-import plugin manifests.
+			kratosClientPlugin(options.client ?? {}),
 			...(vite.plugins ?? []),
 		],
 		resolve: {
@@ -117,4 +120,93 @@ export function kratosAdminVite(options = {}) {
 	};
 
 	return config;
+}
+
+/**
+ * Vite config factory for KratosJs Views (the Inertia-style SSR public-site layer).
+ *
+ * Returns a config FUNCTION (not an object) because Views is built twice from one
+ * config file — a client build (browser bundle + HTML shell + manifest) and an SSR
+ * build (`entry-server.js`). Vite passes `isSsrBuild`, and this picks the matching
+ * output:
+ *
+ * ```js
+ * // vite.views.config.mts
+ * import { defineConfig } from 'vite';
+ * import { kratosViewsVite } from '@maxal_studio/kratosjs/vite';
+ * export default defineConfig(kratosViewsVite());
+ *
+ * // package.json
+ * "build:views": "vite build -c vite.views.config.mts && vite build -c vite.views.config.mts --ssr"
+ * ```
+ *
+ * @param {object} [options]
+ * @param {string} [options.template] HTML shell entry (default 'views.html')
+ * @param {string} [options.ssrEntry] SSR entry module (default 'src/views/entry-server.tsx')
+ * @param {string} [options.clientOutDir] Client build output (default 'dist/views/client')
+ * @param {string} [options.serverOutDir] SSR build output (default 'dist/views/server')
+ * @param {string} [options.base] Public base for built assets (default '/views/')
+ * @param {object} [options.client] Options forwarded to {@link kratosClientPlugin}
+ * @param {import('vite').UserConfig} [options.vite] Extra Vite config merged on top
+ * @returns {import('vite').UserConfigFn}
+ */
+export function kratosViewsVite(options = {}) {
+	const {
+		template = 'views.html',
+		ssrEntry = 'src/views/entry-server.tsx',
+		clientOutDir = 'dist/views/client',
+		serverOutDir = 'dist/views/server',
+		base = '/views/',
+		vite = {},
+	} = options;
+
+	return (env = {}) => {
+		// `env.isSsrBuild` is the primary signal, but `vite build --ssr` (boolean flag,
+		// no entry) does not always populate it in the config function — fall back to the
+		// CLI argv so a single config file drives both the client and SSR builds.
+		const isSsrBuild = !!env.isSsrBuild || process.argv.includes('--ssr');
+
+		/** @type {import('vite').UserConfig} */
+		const config = {
+			base,
+			plugins: [
+				react({ include: /\.(tsx?|jsx)$/, jsxRuntime: 'automatic' }),
+				kratosClientPlugin(options.client ?? {}),
+				...(vite.plugins ?? []),
+			],
+			resolve: {
+				dedupe: ['react', 'react-dom', 'react-hook-form'],
+				...(vite.resolve ?? {}),
+			},
+			server: {
+				allowedHosts: true,
+				fs: { strict: false },
+				...(vite.server ?? {}),
+			},
+			optimizeDeps: {
+				include: ['react', 'react-dom', 'react-hook-form'],
+				...(vite.optimizeDeps ?? {}),
+			},
+			build: isSsrBuild
+				? {
+						outDir: serverOutDir,
+						ssr: ssrEntry,
+						emptyOutDir: true,
+						...(vite.build ?? {}),
+					}
+				: {
+						outDir: clientOutDir,
+						emptyOutDir: true,
+						manifest: true,
+						chunkSizeWarningLimit: 2000,
+						...(vite.build ?? {}),
+						rollupOptions: {
+							input: template,
+							...(vite.build?.rollupOptions ?? {}),
+						},
+					},
+		};
+
+		return config;
+	};
 }

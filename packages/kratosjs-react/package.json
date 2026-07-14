@@ -1,6 +1,6 @@
 {
 	"name": "@maxal_studio/kratosjs-react",
-	"version": "2.0.0",
+	"version": "3.0.0",
 	"description": "React components for KratosJs form builder",
 	"type": "module",
 	"main": "dist/index.js",
@@ -21,6 +21,14 @@
 		"./plugin": {
 			"types": "./dist/plugin.d.ts",
 			"import": "./dist/plugin.js"
+		},
+		"./views": {
+			"types": "./dist/views/index.d.ts",
+			"import": "./dist/views/index.js"
+		},
+		"./server": {
+			"types": "./dist/server/index.d.ts",
+			"import": "./dist/server/index.js"
 		},
 		"./styles.css": "./dist/styles.css",
 		"./package.json": "./package.json"
@@ -52,7 +60,7 @@
 	"website": "https://max.al",
 	"license": "ISC",
 	"peerDependencies": {
-		"@maxal_studio/kratosjs": "^2.0.0",
+		"@maxal_studio/kratosjs": "^3.0.0",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0",
 		"react-hook-form": "^7.0.0"

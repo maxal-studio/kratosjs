@@ -25,6 +25,7 @@ async function bootstrap() {
 	await app.listen(PORT);
 
 	console.log(`\n🪺  NestJS app:       http://localhost:${PORT}/`);
+	console.log(`🖥️   SSR page (Views): http://localhost:${PORT}/welcome`);
 	console.log(`🛠️   KratosJs panel:   http://localhost:${PORT}/admin`);
 	console.log(`🔌  Panel API:        http://localhost:${PORT}${panel.getBasePath()}`);
 	console.log('🔐  Login:            admin@example.com / password\n');

@@ -44,6 +44,7 @@ The CLI scaffolds all of this: `npx @maxal_studio/kratosjs-cli new my-app --driv
 | Auth: email/OAuth providers, JWT, `extendUser`, refresh                              | `references/auth.md`            |
 | Internationalization (backend source of truth)                                       | `references/i18n.md`            |
 | Authoring plugins + the React client (`mountAdminPanel`, slots)                      | `references/plugins.md`         |
+| Public SSR pages (Views): `panel.route()` + `reply.view()`, Inertia-style protocol   | `references/views.md`           |
 | Any non-obvious bug — READ THIS when a relation/deeplink/total misbehaves            | `references/gotchas.md`         |
 
 ## Top gotchas (full list in `references/gotchas.md`)

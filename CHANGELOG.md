@@ -1,5 +1,57 @@
 # Changelog
 
+## 3.0.0 — SSR Views
+
+Major release adding an **Inertia.js-style, React-only SSR "Views" system** for building
+public, SEO-ready pages (landing pages, marketing sites, plugin-driven front-ends) that
+live outside the admin panel. All `@maxal_studio/kratosjs-*` packages move to `3.0.0` in
+lockstep.
+
+### Added
+
+- **Views.** Server-side rendering is **enabled by default** — route handlers call
+  `reply.view('component/Name', props)` to render a React page (the machinery activates
+  automatically when the app has the views client present; `panel.views(config)` configures
+  it, `panel.views(false)` disables it). First browser visit is SSR'd HTML (buffered
+  `renderToString`); subsequent client-router navigations receive the page object as JSON
+  with no full reload; partial reloads refetch named props only.
+- **`panel.route(method, path, ...handlers)`** — one route primitive for public views,
+  custom API, and admin routes. Bare and public by default (top-level path, no auth), with
+  a view-capable reply. Opt into behavior with exported middleware: `adminRoute(panel)`
+  (base-path prefix + auth), `requireAuth`/`optionalAuth`, `viewAuth(panel)` (HTML-aware
+  login redirect), `csrfProtection(panel)`.
+- **`@maxal_studio/kratosjs-react/views`** — client runtime: `hydrateViewsApp`, `router`,
+  `<Link>`, `<Head>`, `usePage`/`useViewProps`, `useForm`.
+- **`@maxal_studio/kratosjs-react/server`** — `createServerRenderer` (the only module that
+  imports `react-dom/server`; runs inside the app's Vite-built SSR bundle).
+- **`kratosViewsVite()`** — Vite config for the Views client + SSR builds.
+- **`virtual:kratos-client`** — generated module that auto-imports every installed plugin's
+  client manifest (via each dependency's `package.json` `kratosjs.client` field), so apps
+  no longer hand-edit `main.tsx` to wire plugins. Included by `kratosAdminVite()` and
+  `kratosViewsVite()`.
+- **Plugin client manifests** gain `pages` (rendered as `pluginName::Key`).
+
+### Breaking
+
+- **`panel.registerRoute(...)` is deprecated.** It still works (equivalent to
+  `panel.route(method, path, adminRoute(panel), ...handlers)` — base-path-prefixed,
+  auth-required), but prefer `panel.route()` and the explicit middleware helpers.
+- Scaffolded `src/admin/main.tsx` now imports `pluginClients` from `virtual:kratos-client`.
+  Existing apps can keep passing an explicit `plugins: [...]` array.
+- All package versions and inter-package ranges are now `^3.0.0`.
+- Reserved: the `/views/assets` path (configurable via `views({ assetsBase })`), the
+  `errors` view prop key, and the `kratosjs_csrf` / `kratosjs_view_flash` cookies.
+
+### Migration
+
+1. Bump `@maxal_studio/kratosjs*` dependencies to `^3.0.0`.
+2. No code change required — `registerRoute` keeps working. To adopt the new API, replace
+   `panel.registerRoute('post', '/x', handler)` with
+   `panel.route('post', '/x', adminRoute(panel), handler)` (identical behavior), or drop
+   `adminRoute` for a public, un-prefixed, unauthenticated route.
+3. To add public SSR pages, call `panel.views()` and register `panel.route(...)` handlers
+   that `reply.view(...)`.
+
 ## 2.0.0 (2026-07-10)
 
 ### Pluggable HTTP framework (breaking)

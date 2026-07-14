@@ -11,6 +11,8 @@ const sidebar: DefaultTheme.SidebarMulti = {
 				{ text: 'Backend Setup', link: '/backend-setup' },
 				{ text: 'Database & MikroORM', link: '/database/overview' },
 				{ text: 'HTTP Adapters', link: '/backend/http-adapters' },
+				{ text: 'Views (SSR)', link: '/backend/views' },
+				{ text: 'Migrating to v3', link: '/migration-v3' },
 				{ text: 'Migrating to v2', link: '/migration-v2' },
 			],
 		},
@@ -20,6 +22,7 @@ const sidebar: DefaultTheme.SidebarMulti = {
 			text: 'Backend & HTTP',
 			items: [
 				{ text: 'HTTP Adapters', link: '/backend/http-adapters' },
+				{ text: 'Views (SSR)', link: '/backend/views' },
 				{ text: 'NestJS Integration', link: '/backend/nestjs' },
 				{ text: 'Writing an Adapter', link: '/backend/writing-an-adapter' },
 			],

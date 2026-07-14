@@ -98,7 +98,7 @@ function buildRequestContext(panel: Panel, req: KratosRequest): RequestContext {
  * up front so server `t()` localizes even on routes that run before the richer
  * resource context. The full `contextRunner` below nests a fuller context inside this.
  */
-function localeContextStep(panel: Panel): KratosMiddleware {
+export function localeContextStep(panel: Panel): KratosMiddleware {
 	return async (req, _reply, next) => {
 		const localeContext: RequestContext = {
 			activeLocale: panel.resolveLocale({
@@ -113,7 +113,7 @@ function localeContextStep(panel: Panel): KratosMiddleware {
 }
 
 /** Run the rest of the chain inside the full request context (after auth populated req.authUser). */
-function contextRunnerStep(panel: Panel): KratosMiddleware {
+export function contextRunnerStep(panel: Panel): KratosMiddleware {
 	return async (req, _reply, next) => {
 		const context = buildRequestContext(panel, req);
 		await requestContextStorage.run(context, () => next());

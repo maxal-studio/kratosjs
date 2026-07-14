@@ -163,10 +163,16 @@ adapter:
 
 ```typescript
 import type { KratosRequest, KratosReply, KratosMiddleware } from '@maxal_studio/kratosjs';
+import { adminRoute } from '@maxal_studio/kratosjs';
 
-panel.registerRoute('get', '/hello/:name', (req: KratosRequest, reply: KratosReply) => {
+// `panel.route()` registers a bare, public, top-level route.
+panel.route('get', '/hello/:name', (req: KratosRequest, reply: KratosReply) => {
 	reply.json({ hello: req.params.name, locale: req.header('accept-language') });
 });
+
+// For an authenticated API endpoint under the panel base path, add `adminRoute(panel)`
+// (this is what the deprecated `panel.registerRoute()` did automatically):
+panel.route('post', '/reindex', adminRoute(panel), (req, reply) => reply.json({ ok: true }));
 
 const audit: KratosMiddleware = async (req, _reply, next) => {
 	console.log(req.method, req.path, req.ip);

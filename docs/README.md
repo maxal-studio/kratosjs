@@ -17,6 +17,7 @@ Then ask your assistant to build resources, forms, tables, hooks, actions, widge
 ### Backend & HTTP
 
 - [HTTP Adapters](./backend/http-adapters.md)
+- [Views (SSR)](./backend/views.md)
 - [Writing an HTTP Adapter](./backend/writing-an-adapter.md)
 
 ### Database

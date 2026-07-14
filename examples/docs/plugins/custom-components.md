@@ -39,13 +39,44 @@ export default definePluginClient({
 	columns: { 'star-rating': StarRatingColumn },
 	widgets: { card: CardWidget },
 	// blocks: { 'lives-page': LivesPageBlock },
-	// rules: { phone: phoneRule }, // custom validation rules — see Creating Plugins
+	// pages: { 'Post/Show': PostShow },   // SSR view pages — see below
+	// rules: { phone: phoneRule },        // custom validation rules — see Creating Plugins
 });
 ```
 
 The manifest may also carry custom validation `rules` so they validate on the
 client exactly as on the server — see
 [Custom Validation Rules](./creating-plugins.md#custom-validation-rules).
+
+### View pages (SSR)
+
+A plugin can also ship **server-rendered pages** for the [Views](/backend/views) layer,
+so it can serve its own public front end (e.g. a CMS plugin rendering `/posts/:slug`).
+Add page components to the manifest under `pages`, then have the plugin's `register()`
+register the routes that render them. Plugin pages are namespaced with the plugin
+`name`, so you reference them as `'{name}::{key}'`:
+
+```typescript
+// client manifest
+export default definePluginClient({
+	name: 'blog',
+	pages: { 'Post/Show': PostShow, 'Post/Index': PostIndex },
+});
+
+// server — in the Plugin's register(panel):
+panel.route('get', '/posts/:slug', async (req, reply) => {
+	const post = await panel.getEm().findOne(Post, { slug: req.params.slug });
+	if (!post) return reply.status(404).html('Not found');
+	reply.view('blog::Post/Show', { post });
+});
+```
+
+For this to be auto-discovered by the app's bundler, the plugin's `package.json`
+declares its client entry (the CLI adds this for client plugins — the default):
+
+```json
+{ "kratosjs": { "client": "kratosjs-plugin-blog/client" } }
+```
 
 The manifest keys (`'star-rating'`, `'card'`, ...) must match:
 

@@ -18,10 +18,9 @@ const adminPanel = Panel.make('admin')
 	.icon('/assets/icon.png')
 	// The HTTP framework is pluggable ({{adapterLabel}}).
 	.httpAdapter({{adapterNew}})
-	// The admin UI mount path. Default '/' (root). Change to e.g. '/admin' to relocate
-	// the UI and free '/' for your own routes — no other change needed (the client and
-	// its asset URLs are handled automatically by the server).
-	.panelPath('/')
+	// The admin UI mounts at '/admin', leaving '/' free for your server-rendered
+	// front end (see the Views section below). Set it back to '/' for an admin-only app.
+	.panelPath('/admin')
 	.orm(
 		{{ormConfig}},
 		{ migrate: true, updateSchema: true },
@@ -68,11 +67,23 @@ adminPanel.auth({
 // Serve static assets (including panel icon)
 adminPanel.useStatic('/assets', assetsPath);
 
+// Server-rendered front page at '/'. The handler returns `reply.view(component, props)`;
+// the React component lives in src/views/pages/Home.tsx. Add more public pages with
+// `adminPanel.route('get', '/path', (req, reply) => reply.view('Name', props))`.
+adminPanel.route('get', '/', (_req, reply) =>
+	reply.view('Home', {
+		title: '{{appTitle}}',
+		adminUrl: adminPanel.getPanelPath(),
+		renderedAt: new Date().toISOString(),
+	}),
+);
+
 adminPanel
 	.start(PORT, async () => {
 		await seedAdminUser(adminPanel);
 		console.log(`🚀 {{appTitle}} running on http://localhost:${PORT}`);
-		console.log(`📊 Admin Panel API: ${adminPanel.getBasePath()}`);
+		console.log(`🏠 Landing page: http://localhost:${PORT}/`);
+		console.log(`📊 Admin Panel: http://localhost:${PORT}${adminPanel.getPanelPath()}`);
 		console.log('🔐 Login: admin@example.com / password');
 	})
 	.catch((error: unknown) => {

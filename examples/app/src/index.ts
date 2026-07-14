@@ -26,6 +26,9 @@ const adminPanel = Panel.make('admin')
 	.favicon('/assets/icon.png')
 	// The HTTP framework is pluggable — Express is the default adapter.
 	.httpAdapter(new ExpressAdapter())
+	// Admin UI at '/admin', leaving '/' free for the server-rendered front end below.
+	// Views (SSR) are enabled by default — no .views() call needed.
+	.panelPath('/admin')
 	.orm(
 		{
 			driver: MongoDriver,
@@ -63,12 +66,23 @@ adminPanel.auth({
 
 adminPanel.useStatic('/assets', assetsPath);
 
+// Server-rendered front page at '/'. `reply.view(component, props)` renders the React
+// page in src/views/pages/Home.tsx (SSR on first visit, JSON on client navigation).
+adminPanel.route('get', '/', (_req, reply) =>
+	reply.view('Home', {
+		title: 'KratosJs (MongoDB)',
+		adminUrl: adminPanel.getPanelPath(),
+		renderedAt: new Date().toISOString(),
+	}),
+);
+
 adminPanel
 	.start(PORT, async () => {
 		await seedAdminUser(adminPanel);
 		await seedSampleContent(adminPanel);
 		console.log(`🚀 KratosJs API Server running on http://localhost:${PORT}`);
-		console.log(`📊 Admin Panel API: ${adminPanel.getBasePath()}`);
+		console.log(`🏠 Landing page: http://localhost:${PORT}/`);
+		console.log(`📊 Admin Panel: http://localhost:${PORT}${adminPanel.getPanelPath()}`);
 		console.log('🔐 Login: admin@example.com / password');
 	})
 	.catch((error: any) => {

@@ -1,0 +1,29 @@
+// @ts-nocheck
+
+interface {{PluginName}}PanelProps {
+	resourceSlug?: string;
+	record?: Record<string, unknown>;
+}
+
+/**
+ * Sample slot component for the {{PluginName}} plugin. It renders under a record's
+ * details (the `detail.afterDetails` slot); the manifest passes the current
+ * `resourceSlug` and `record` from the slot context. Replace the body with your own
+ * UI — an audit trail, related data, an external widget, etc.
+ *
+ * Use the `.k-*` design-token classes (not raw Tailwind): plugins ship precompiled
+ * JS that the app's Tailwind build cannot scan, so these stable classes are the
+ * supported way to match the panel's theme.
+ */
+export default function {{PluginName}}Panel({ resourceSlug, record }: {{PluginName}}PanelProps) {
+	return (
+		<div className="k-surface k-border" style={{ borderWidth: 1, borderStyle: 'solid', borderRadius: 8, padding: 12 }}>
+			<div className="k-text-secondary" style={{ fontSize: 12, marginBottom: 6 }}>
+				{{PluginName}} · {resourceSlug}
+			</div>
+			<pre className="k-text" style={{ margin: 0, fontSize: 12, whiteSpace: 'pre-wrap', overflowX: 'auto' }}>
+				{JSON.stringify(record, null, 2)}
+			</pre>
+		</div>
+	);
+}

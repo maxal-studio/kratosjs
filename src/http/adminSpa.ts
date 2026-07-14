@@ -15,6 +15,12 @@ export interface AdminSpaDevServer {
 	middlewares: ConnectMiddleware;
 	/** Read the app index.html, run vite + panel HTML transforms for the given URL */
 	renderIndexHtml(url: string): Promise<string>;
+	/** Load an ESM module through Vite's SSR pipeline (used by the Views SSR renderer). */
+	ssrLoadModule(url: string): Promise<Record<string, any>>;
+	/** Run Vite's index.html transform (HMR client + react-refresh preamble) on arbitrary HTML. */
+	transformIndexHtml(url: string, html: string): Promise<string>;
+	/** Rewrite an error's stack to map back to original source (SSR dev ergonomics). */
+	ssrFixStacktrace(err: Error): void;
 	close(): Promise<void>;
 }
 
@@ -36,6 +42,13 @@ export class AdminSpaService {
 	/** Admin UI mount path (normalized). '/' means whole-domain catch-all. */
 	readonly panelPath: string;
 
+	/**
+	 * Whether the admin SPA fallback is active. When false (admin client disabled but
+	 * the Views system needs the shared dev server), the Vite middlewares are still
+	 * mounted but no catch-all HTML fallback is served.
+	 */
+	readonly spaEnabled: boolean;
+
 	private readonly panel: Panel;
 	private readonly appRoot: string;
 	private cachedIndexHtml?: string;
@@ -43,14 +56,20 @@ export class AdminSpaService {
 
 	constructor(
 		panel: Panel,
-		options: { appRoot?: string; mode?: 'development' | 'production'; panelPath?: string } = {},
+		options: {
+			appRoot?: string;
+			mode?: 'development' | 'production';
+			panelPath?: string;
+			spaEnabled?: boolean;
+		} = {},
 	) {
 		this.panel = panel;
 		this.appRoot = options.appRoot ?? process.cwd();
 		this.panelPath = normalizePanelPath(options.panelPath ?? panel.getPanelPath());
 		this.mode = options.mode ?? (process.env.NODE_ENV === 'production' ? 'production' : 'development');
+		this.spaEnabled = options.spaEnabled ?? true;
 
-		if (this.mode === 'production') {
+		if (this.mode === 'production' && this.spaEnabled) {
 			const adminDist = path.join(this.appRoot, 'dist', 'admin');
 			if (!fs.existsSync(path.join(adminDist, 'index.html'))) {
 				throw new Error(
@@ -144,6 +163,9 @@ export class AdminSpaService {
 				const viteHtml = await vite.transformIndexHtml(url, raw);
 				return this.transformIndexHtml(viteHtml);
 			},
+			ssrLoadModule: (url: string) => vite.ssrLoadModule(url),
+			transformIndexHtml: (url: string, html: string) => vite.transformIndexHtml(url, html),
+			ssrFixStacktrace: (err: Error) => vite.ssrFixStacktrace(err),
 			close: async (): Promise<void> => {
 				await vite.close();
 			},
@@ -157,6 +179,9 @@ export class AdminSpaService {
 	 * panel path — everything else falls through (404 / the app's own routes).
 	 */
 	shouldFallback(method: string, pathname: string): boolean {
+		if (!this.spaEnabled) {
+			return false;
+		}
 		const upper = method.toUpperCase();
 		return (upper === 'GET' || upper === 'HEAD') && this.isUnderPanelPath(pathname);
 	}

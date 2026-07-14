@@ -7,11 +7,11 @@ This guide walks you through creating custom plugins for KratosJs, with practica
 Scaffold a standalone plugin package with the CLI:
 
 ```bash
-# server-only plugin (no custom React UI)
+# server + React client (the default)
 npx @maxal_studio/kratosjs-cli plugin my-plugin
 
-# include a React client entry (custom field/column/widget components)
-npx @maxal_studio/kratosjs-cli plugin my-plugin --client
+# server-only plugin (no React UI)
+npx @maxal_studio/kratosjs-cli plugin my-plugin --no-client
 ```
 
 Then:
@@ -24,17 +24,27 @@ npm run build
 
 ### What gets generated
 
-| Path                           | Purpose                                                    |
-| ------------------------------ | ---------------------------------------------------------- |
-| `src/MyPluginPlugin.ts`        | Plugin class — `getName()` + `register(panel)`             |
-| `src/index.ts`                 | Server entry — re-exports the plugin class                 |
-| `package.json`                 | Dual `.`/`./client` exports when `--client` is used        |
-| `tsconfig.server.json`         | Compiles server code to `dist/server/`                     |
-| `src/client/index.ts`          | Client manifest via `definePluginClient` (with `--client`) |
-| `src/client/MyPluginField.tsx` | Sample custom field component (with `--client`)            |
-| `tsconfig.client.json`         | Compiles client code to `dist/client/` (with `--client`)   |
+Plugins scaffold **with the React client by default** (`--no-client` omits the `client`
+column below). `@maxal_studio/kratosjs-react`, `react`, and `react-dom` are added as
+devDependencies so the client builds immediately.
 
-Register the server plugin in your app's `src/index.ts` via `.plugins([...])`. If the plugin ships UI, import its `/client` manifest in `src/admin/main.tsx` and pass it to `mountAdminPanel({ plugins: [...] })`.
+| Path                           | Purpose                                                        |
+| ------------------------------ | -------------------------------------------------------------- |
+| `src/MyPluginPlugin.ts`        | Plugin class — `getName()` + `register(panel)`                 |
+| `src/index.ts`                 | Server entry — re-exports the plugin class                     |
+| `package.json`                 | Dual `.`/`./client` exports + a `kratosjs.client` field        |
+| `tsconfig.server.json`         | Compiles server code to `dist/server/`                         |
+| `src/client/index.tsx`         | Client manifest via `definePluginClient` (field + slot sample) |
+| `src/client/MyPluginField.tsx` | Sample custom field component                                  |
+| `src/client/MyPluginPanel.tsx` | Sample slot component (rendered under a record's details)      |
+| `tsconfig.client.json`         | Compiles client code to `dist/client/`                         |
+
+Register the server plugin in your app's `src/index.ts` via `.plugins([...])`. The
+client manifest is **auto-discovered** — the generated `package.json` declares
+`"kratosjs": { "client": "kratosjs-plugin-my-plugin/client" }`, and the app's
+`virtual:kratos-client` module imports it automatically, so you don't edit
+`src/admin/main.tsx` when adding a plugin. (You can still pass it explicitly to
+`mountAdminPanel({ plugins: [...] })` if you prefer.)
 
 ## Plugin Package Structure
 
@@ -83,8 +93,8 @@ React instead of bundling its own. A second React or `@mikro-orm/core` instance 
 runtime (duplicate React → "invalid hook call"; duplicate MikroORM → your entities aren't
 found by the host's EntityManager).
 
-`kratosjs plugin <name>` (or `--client`) sets the **base** peers; add the rest based on
-what your plugin actually uses:
+`kratosjs plugin <name>` sets the **base** peers (React ones included unless
+`--no-client`); add the rest based on what your plugin actually uses:
 
 | If your plugin…                                 | Add these `peerDependencies`                         |
 | ----------------------------------------------- | ---------------------------------------------------- |
@@ -252,7 +262,7 @@ export async function getNotifications(req: KratosRequest, reply: KratosReply) P
 
 ```typescript
 // src/plugins/notifications/NotificationsPlugin.ts
-import { Plugin, Panel } from '@maxal_studio/kratosjs';
+import { Plugin, Panel, adminRoute } from '@maxal_studio/kratosjs';
 import { getNotifications } from './notificationController';
 
 export class NotificationsPlugin extends Plugin {
@@ -261,12 +271,19 @@ export class NotificationsPlugin extends Plugin {
 	}
 
 	register(panel: Panel): void {
-		// Register routes
-		panel.registerRoute('get', '/notifications', getNotifications);
-		panel.registerRoute('post', '/notifications/mark-read', async (req: KratosRequest, reply: KratosReply) => {
-			// Mark notification as read
-			reply.json({ success: true });
-		});
+		// Register admin API routes. `adminRoute(panel)` prefixes the panel base path
+		// and requires auth, so the admin client can call them. (`panel.registerRoute`
+		// is the deprecated alias for `panel.route(m, p, adminRoute(panel), ...h)`.)
+		panel.route('get', '/notifications', adminRoute(panel), getNotifications);
+		panel.route(
+			'post',
+			'/notifications/mark-read',
+			adminRoute(panel),
+			async (req: KratosRequest, reply: KratosReply) => {
+				// Mark notification as read
+				reply.json({ success: true });
+			},
+		);
 	}
 }
 ```
@@ -497,7 +514,7 @@ export class ProfilePage extends Page {
 
 ```typescript
 // src/plugins/profile/ProfilePlugin.ts
-import { Plugin, Panel } from '@maxal_studio/kratosjs';
+import { Plugin, Panel, adminRoute } from '@maxal_studio/kratosjs';
 import { ProfilePage } from './ProfilePage';
 import { updateProfile, changePassword } from './profileController';
 
@@ -510,22 +527,22 @@ export class ProfilePlugin extends Plugin {
 		// Register page
 		panel.registerPage(ProfilePage);
 
-		// Register routes
-		panel.registerRoute('post', '/profile/update', updateProfile);
-		panel.registerRoute('post', '/profile/change-password', changePassword);
+		// Register admin API routes (base-path-prefixed + auth via adminRoute).
+		panel.route('post', '/profile/update', adminRoute(panel), updateProfile);
+		panel.route('post', '/profile/change-password', adminRoute(panel), changePassword);
 	}
 }
 ```
 
 ## Using Media Helpers in Plugins
 
-Routes registered via plugins automatically have access to media helper functions:
+Routes registered via plugins have access to the request's media helper functions:
 
 ```typescript
-import { KratosRequest, KratosReply } from '@maxal_studio/kratosjs';
+import { KratosRequest, KratosReply, adminRoute } from '@maxal_studio/kratosjs';
 
 register(panel: Panel): void {
-  panel.registerRoute('post', '/upload-avatar', async (req: KratosRequest, reply: KratosReply) => {
+  panel.route('post', '/upload-avatar', adminRoute(panel), async (req: KratosRequest, reply: KratosReply) => {
     const formatMediaKey = req.formatMediaKey;
     const resolveMediaUrl = req.resolveMediaUrl;
 
