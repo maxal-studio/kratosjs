@@ -4,8 +4,7 @@ layout: home
 hero:
     name: KratosJs
     text: The full-stack TypeScript framework
-    tagline: Build a server-rendered React front end and a dynamic admin panel from one Node.js backend. Define resources, forms, and tables once — and ship SEO-ready public pages with 
-    SSR.
+    tagline: Build a server-rendered React front end and a dynamic admin panel from one Node.js backend. Define resources, forms, and tables once — and ship SEO-ready public pages with SSR.
     image:
         src: /icon.png
         alt: KratosJs
