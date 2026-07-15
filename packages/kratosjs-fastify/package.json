@@ -1,6 +1,6 @@
 {
 	"name": "@maxal_studio/kratosjs-fastify",
-	"version": "3.0.1",
+	"version": "3.0.2",
 	"description": "Fastify HTTP adapter for KratosJs admin panels",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
@@ -33,7 +33,7 @@
 		"url": "git+ssh://git@github.com/maxal-studio/kratosjs.git"
 	},
 	"peerDependencies": {
-		"@maxal_studio/kratosjs": "^3.0.1"
+		"@maxal_studio/kratosjs": "^3.0.2"
 	},
 	"dependencies": {
 		"@fastify/cors": "^11.3.0",
@@ -42,7 +42,7 @@
 		"fastify": "^5.10.0"
 	},
 	"devDependencies": {
-		"@maxal_studio/kratosjs": "^3.0.1",
+		"@maxal_studio/kratosjs": "^3.0.2",
 		"@types/node": "^25.9.3",
 		"typescript": "^5.9.3",
 		"vitest": "^4.1.8"

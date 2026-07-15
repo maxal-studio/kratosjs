@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.0.2
+
+### Fixed
+
+- **Development SSR failed** with `ERR_PACKAGE_PATH_NOT_EXPORTED` (`Package subpath
+'./plugin' is not defined by "exports"`) as soon as a plugin shipping a client manifest
+  was installed from the registry. 3.0.1 added `ssr.noExternal` to `kratosViewsVite()`,
+  which fixed production — but in development a single Vite server created from the app's
+  **admin** `vite.config` renders views via `ssrLoadModule`, so the rule was absent there
+  and the plugin client was still externalized to Node. `kratosAdminVite()` now applies
+  the same `ssr.noExternal`. Only reproducible with a registry-installed plugin: Vite does
+  not externalize `file:`-linked packages, which is why the linked example apps passed.
+
 ## 3.0.1
 
 ### Fixed
