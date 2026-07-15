@@ -62,6 +62,6 @@ Keep plugin entities **driver-agnostic**. Declare `@maxal_studio/kratosjs` (and 
 
 ## Client customizations
 
-Custom **fields**, **columns**, **widgets**, **blocks**, and SSR view **pages** follow the same two-part pattern: a backend class/route that serializes config + data, and a React component registered on the client via the plugin manifest (`definePluginClient` from `@maxal_studio/kratosjs-react`), referenced by name. Register the component in the plugin's client manifest, then include that manifest in `mountAdminPanel({ plugins: [...] })` (or let `virtual:kratos-client` auto-import it via the package's `kratosjs.client` field). SSR pages go under the manifest `pages` key and are referenced as `'{name}::Key'`; see `references/views.md`.
+Custom **fields**, **columns**, **widgets**, **blocks**, and SSR view **pages** follow the same two-part pattern: a backend class/route that serializes config + data, and a React component registered on the client via the plugin manifest (`definePluginClient` from `@maxal_studio/kratosjs-react/plugin`), referenced by name. Register the component in the plugin's client manifest, then include that manifest in `mountAdminPanel({ plugins: [...] })` (or let `virtual:kratos-client` auto-import it via the package's `kratosjs.client` field). SSR pages go under the manifest `pages` key and are referenced as `'{name}::Key'`; see `references/views.md`.
 
 For the full plugin authoring guide (routes, resource plugins, hooks plugins, custom validation rules, custom components), see the framework's plugin documentation.

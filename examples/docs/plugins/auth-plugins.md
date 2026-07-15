@@ -110,7 +110,7 @@ export function TwoFactorChallenge({ onSubmit, onCancel, error, submitting }: Au
 
 ```ts
 // src/client/index.ts
-import { definePluginClient } from '@maxal_studio/kratosjs-react';
+import { definePluginClient } from '@maxal_studio/kratosjs-react/plugin';
 import { TwoFactorChallenge } from './TwoFactorChallenge';
 
 export default definePluginClient({

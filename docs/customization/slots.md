@@ -52,7 +52,7 @@ A plugin contributes slots through its client manifest. Plugin and app contribut
 
 ```tsx
 // my-plugin/src/client/index.ts
-import { definePluginClient } from '@maxal_studio/kratosjs-react';
+import { definePluginClient } from '@maxal_studio/kratosjs-react/plugin';
 import { AuditBanner } from './AuditBanner';
 
 export default definePluginClient({

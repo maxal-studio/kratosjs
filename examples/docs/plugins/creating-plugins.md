@@ -616,7 +616,7 @@ register(panel: Panel): void {
 
 ```typescript
 // src/client/index.ts
-import { definePluginClient } from '@maxal_studio/kratosjs-react';
+import { definePluginClient } from '@maxal_studio/kratosjs-react/plugin';
 import { phoneRule } from '../rules';
 
 export default definePluginClient({

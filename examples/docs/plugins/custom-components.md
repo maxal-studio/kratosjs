@@ -28,7 +28,10 @@ A plugin with UI components exports a client manifest:
 
 ```typescript
 // plugins/star-rating/src/client/index.ts
-import { definePluginClient } from '@maxal_studio/kratosjs-react';
+// Import definePluginClient from the lightweight `/plugin` subpath (not the main
+// index) — it carries no admin/SSR runtime, so the same manifest can be bundled into
+// either the admin build or the SSR views build without dragging the other in.
+import { definePluginClient } from '@maxal_studio/kratosjs-react/plugin';
 import StarRatingField from './StarRatingField';
 import StarRatingColumn from './StarRatingColumn';
 import CardWidget from './CardWidget';
@@ -57,9 +60,8 @@ register the routes that render them. Plugin pages are namespaced with the plugi
 `name`, so you reference them as `'{name}::{key}'`:
 
 ```typescript
-// client manifest — import definePluginClient from the LIGHTWEIGHT `/plugin` subpath
-// (not the main index) so a pages-only plugin bundled into the SSR views build doesn't
-// drag in the whole admin package. Page components import from `/views`.
+// client manifest — same `/plugin` subpath as always. Page components import from
+// `@maxal_studio/kratosjs-react/views`.
 import { definePluginClient } from '@maxal_studio/kratosjs-react/plugin';
 import PostShow from './pages/Post/Show'; // uses @maxal_studio/kratosjs-react/views
 
@@ -301,7 +303,7 @@ export class StarRatingPlugin extends Plugin {
 
 ```typescript
 // src/client/index.ts
-import { definePluginClient } from '@maxal_studio/kratosjs-react';
+import { definePluginClient } from '@maxal_studio/kratosjs-react/plugin';
 import StarRatingField from './StarRatingField';
 
 export default definePluginClient({
