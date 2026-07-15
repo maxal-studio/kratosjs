@@ -119,10 +119,11 @@ it inside a function called per request, or store catalog keys and translate the
 For the latter — cron jobs, queues, per-recipient emails — pass an explicit locale or scope one:
 
 ```typescript
-import { t, withLocale } from '@maxal_studio/kratosjs';
+import { t, withLocale, adminRoute } from '@maxal_studio/kratosjs';
 
-// Custom route — uses the request's active locale automatically.
-panel.registerRoute('get', '/welcome', (req, reply) => {
+// Custom route — uses the request's active locale automatically. `adminRoute(panel)`
+// makes it an authenticated endpoint under the panel base path.
+panel.route('get', '/welcome', adminRoute(panel), (req, reply) => {
 	reply.json({ message: t('app:emails.welcome', { name: req.authUser?.name }) });
 });
 

@@ -4,10 +4,11 @@ Plugins are a powerful way to extend KratosJs Panel functionality. They are stan
 
 ## Quick Start
 
-Scaffold a new plugin with the CLI:
+Scaffold a new plugin with the CLI (server + React client by default; add
+`--no-client` for a server-only plugin):
 
 ```bash
-npx @maxal_studio/kratosjs-cli plugin my-plugin --client
+npx @maxal_studio/kratosjs-cli plugin my-plugin
 ```
 
 See [Creating Plugins](./creating-plugins.md) for the full walkthrough, package layout, and examples. For entities, SQL migrations, and the `boot()` seeding hook, see [Entities & Migrations](./migrations.md).
@@ -24,10 +25,10 @@ Plugins can register:
 - **Entities** - MikroORM entity schemas for plugin-owned tables (driver-agnostic: SQL and MongoDB)
 - **Migrations** - migrations that run during `panel.start()` (registered per database driver)
 - **Resources** - New data models and their CRUD operations
-- **Pages** - Custom pages with widgets, forms, and tables
-- **Routes** - Custom API endpoints
+- **Pages** - Custom admin pages with widgets, forms, and tables
+- **Routes** - Custom API endpoints and public [Views](/backend/views): register with `panel.route(...)`; a handler can `reply.view('{name}::Page', props)` to render an SSR page shipped in the client entry's `pages`
 - **Hooks** - Event handlers for resource operations
-- **Custom component names** - fields/columns/widgets/blocks rendered by the React components shipped in the client entry
+- **Custom component names** - fields/columns/widgets/blocks (and SSR view `pages`) rendered by the React components shipped in the client entry
 - **Slots** - extra React elements injected into fixed UI locations (header, sidebar, table toolbar, form footer, detail modal, …) that stack with the app's and other plugins' contributions (see [Slots](/customization/slots))
 - **Validation rules** - custom rules that validate on both the client and the server (see [Custom Validation Rules](./creating-plugins.md#custom-validation-rules))
 - **Translations** - server + client catalogs, namespaced by plugin name, that host apps can override (see [Plugin Translations](/i18n/plugins))
@@ -166,11 +167,15 @@ register(panel: Panel): void {
 
 ### Register Routes
 
-Routes registered via plugins automatically get the base path, auth middleware, and media helpers:
+`panel.route()` registers a bare, public route. Add `adminRoute(panel)` to make it an
+authenticated API endpoint under the panel base path (media helpers are always on the
+request). For a public SSR page, drop `adminRoute` and call `reply.view(...)`.
 
 ```typescript
+import { adminRoute } from '@maxal_studio/kratosjs';
+
 register(panel: Panel): void {
-  panel.registerRoute('post', '/my-endpoint', async (req, reply) => {
+  panel.route('post', '/my-endpoint', adminRoute(panel), async (req, reply) => {
     const user = req.authUser;
     reply.json({ message: 'Hello from plugin!' });
   });

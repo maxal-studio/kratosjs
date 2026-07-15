@@ -60,6 +60,7 @@ const sq = {
 	'auth.oauth_failed': 'Autentifikimi OAuth dështoi',
 	'auth.unauthorized_no_token': 'I paautorizuar - Nuk u dha token',
 	'auth.unauthorized_invalid_token': 'I paautorizuar - Token i pavlefshëm ose i skaduar',
+	'auth.csrf_mismatch': 'Mospërputhje e token-it CSRF',
 
 	// Validation messages.
 	'validation.required': 'Fusha "{label}" është e detyrueshme',

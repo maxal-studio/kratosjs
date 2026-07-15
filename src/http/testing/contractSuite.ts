@@ -92,6 +92,10 @@ export function runHttpAdapterContractSuite(config: HttpContractSuiteConfig): vo
 			staticDir = fs.mkdtempSync(path.join(os.tmpdir(), 'kratos-http-contract-'));
 			fs.writeFileSync(path.join(staticDir, 'hello.txt'), 'static hello');
 			adapter.useStatic({ urlPath: '/assets', directory: staticDir });
+			// Nested mount (two-segment prefix) — the Views system serves built assets
+			// under `/views/assets`, which real adapters (express.static, @fastify/static)
+			// mount differently than a single-segment prefix.
+			adapter.useStatic({ urlPath: '/views/assets', directory: staticDir });
 
 			// --- Routes. Registration order matters: /echo/greet must beat /echo/:resource ---
 
@@ -175,6 +179,15 @@ export function runHttpAdapterContractSuite(config: HttpContractSuiteConfig): vo
 				path: '/replies/redirect',
 				source: 'app',
 				handler: async (_req, reply) => reply.redirect('https://example.com/next'),
+			});
+
+			// Views coerce post-mutation redirects to 303 (See Other) — the adapter must
+			// pass an explicit redirect status through unchanged. Top-level path (no basePath).
+			adapter.registerRoute({
+				method: 'POST',
+				path: '/views/submit',
+				source: 'app',
+				handler: async (_req, reply) => reply.redirect('/thanks', 303),
 			});
 
 			adapter.registerRoute({
@@ -351,6 +364,12 @@ export function runHttpAdapterContractSuite(config: HttpContractSuiteConfig): vo
 			expect(res.headers.get('Location')).toBe('https://example.com/next');
 		});
 
+		it('passes an explicit redirect status through (303 for view form posts)', async () => {
+			const res = await fetch(`${baseUrl}/views/submit`, { method: 'POST', redirect: 'manual' });
+			expect(res.status).toBe(303);
+			expect(res.headers.get('Location')).toBe('/thanks');
+		});
+
 		it('redirectTo responds with the JSON redirect shape', async () => {
 			const res = await fetch(`${baseUrl}/replies/redirect-to`);
 			expect(res.status).toBe(200);
@@ -406,6 +425,12 @@ export function runHttpAdapterContractSuite(config: HttpContractSuiteConfig): vo
 			expect(res.status).toBe(200);
 			expect(await res.json()).toEqual({ traceId: 'trace-42' });
 			expect(callOrder).toEqual(['context', 'auth', 'handler']);
+		});
+
+		it('serves a nested static mount (views assets)', async () => {
+			const res = await fetch(`${baseUrl}/views/assets/hello.txt`);
+			expect(res.status).toBe(200);
+			expect(await res.text()).toBe('static hello');
 		});
 
 		it('serves static mounts', async () => {

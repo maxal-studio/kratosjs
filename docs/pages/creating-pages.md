@@ -186,18 +186,23 @@ TableBlock.make(table).title('Recent Users').subtitle('Last 10 registered users'
 
 ## Custom Routes for Pages
 
-For pages that need custom API endpoints, register a route on the panel. The base path,
-authentication, request context, and media helpers are applied automatically, and the
-handler is framework-neutral — it runs on any HTTP adapter:
+For pages that need custom API endpoints, register a route on the panel with the
+`adminRoute(panel)` middleware — it prefixes the panel base path and requires auth, so
+the admin client can call it. The handler is framework-neutral (runs on any HTTP adapter):
 
 ```typescript
 // In your backend index.ts
-adminPanel.registerRoute('post', '/dashboard/recent-users', async (req, reply) => {
+import { adminRoute } from '@maxal_studio/kratosjs';
+
+adminPanel.route('post', '/dashboard/recent-users', adminRoute(adminPanel), async (req, reply) => {
 	const em = adminPanel.getEm();
 	const users = await em.find('User', {}, { limit: 10 });
 	reply.json({ data: users });
 });
 ```
+
+> `panel.registerRoute(...)` still works (deprecated) and is equivalent to
+> `panel.route(method, path, adminRoute(panel), ...handlers)`.
 
 ## Next Steps
 

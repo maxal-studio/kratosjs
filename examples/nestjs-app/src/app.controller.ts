@@ -54,10 +54,14 @@ export class AppController {
 			<p>A KratosJs admin panel is mounted onto it — the two coexist on one server.</p>
 			<ul>
 				<li><code>/</code> — this page (a Nest controller)</li>
+				<li><code>/welcome</code> — a KratosJs server-rendered page (SSR Views)</li>
 				<li><code>/admin</code> — the KratosJs admin UI</li>
 				<li><code>/kratosjs/api</code> — the panel API</li>
 			</ul>
-			<p><a class="btn" href="/admin">Open the admin panel →</a></p>
+			<p>
+				<a class="btn" href="/admin">Open the admin panel →</a>
+				&nbsp;<a class="btn" href="/welcome" style="background:#22c55e">See an SSR page →</a>
+			</p>
 		</div>
 	</body>
 </html>`;

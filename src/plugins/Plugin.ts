@@ -58,6 +58,20 @@ export abstract class Plugin {
 	 * resources, pages, routes, hooks, custom components, database entities
 	 * (panel.registerEntities) and migrations (panel.registerMigrations).
 	 *
+	 * A plugin can also register public SSR view routes here — e.g. a CMS plugin
+	 * exposing its content at top-level paths (paired with `pages` in its client
+	 * manifest, rendered as `'{pluginName}::Key'`):
+	 *
+	 * ```typescript
+	 * register(panel: Panel): void {
+	 *   panel.route('get', '/posts/:slug', async (req, reply) => {
+	 *     const post = await panel.getEm().findOne(Post, { slug: req.params.slug });
+	 *     if (!post) return reply.status(404).html('Not found');
+	 *     reply.view('blog::Post/Show', { post });
+	 *   });
+	 * }
+	 * ```
+	 *
 	 * @param panel - The Panel instance to register with
 	 */
 	abstract register(panel: Panel): void | Promise<void>;

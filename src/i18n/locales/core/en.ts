@@ -75,6 +75,7 @@ const en = {
 	'auth.oauth_failed': 'OAuth authentication failed',
 	'auth.unauthorized_no_token': 'Unauthorized - No token provided',
 	'auth.unauthorized_invalid_token': 'Unauthorized - Invalid or expired token',
+	'auth.csrf_mismatch': 'CSRF token mismatch',
 
 	// Validation messages (shared shape with the client; rendered via `t()`).
 	...defaultValidationMessages,

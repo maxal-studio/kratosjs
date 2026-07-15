@@ -36,7 +36,7 @@ The client manifest carries only components (fields, columns, challenges, slotsâ
 translations:
 
 ```typescript
-import { definePluginClient } from '@maxal_studio/kratosjs-react';
+import { definePluginClient } from '@maxal_studio/kratosjs-react/plugin';
 import TwoFactorChallenge from './TwoFactorChallenge';
 
 export default definePluginClient({

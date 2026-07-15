@@ -19,7 +19,7 @@ example below is the bundled `@maxal_studio/kratosjs-plugin-2fa`.
 ## Server: register the challenge
 
 ```ts
-import { Plugin, Panel, AuthUser, AuthHookContext } from '@maxal_studio/kratosjs';
+import { Plugin, Panel, AuthUser, AuthHookContext, adminRoute } from '@maxal_studio/kratosjs';
 
 export class TwoFactorPlugin extends Plugin {
 	getName() {
@@ -49,15 +49,16 @@ export class TwoFactorPlugin extends Plugin {
 			getChallengeData: () => ({}), // nothing sensitive
 		});
 
-		// Enrollment routes. registerRoute already applies the request-scoped ORM context
-		// AND the auth middleware, so these run only for an authenticated user (req.authUser).
-		panel.registerRoute('post', '/auth/2fa/setup', (req, reply) => {
+		// Enrollment routes. `adminRoute(panel)` applies the base path + auth middleware,
+		// so these run only for an authenticated user (req.authUser) — with the
+		// request-scoped ORM context available. (`registerRoute` is the deprecated alias.)
+		panel.route('post', '/auth/2fa/setup', adminRoute(panel), (req, reply) => {
 			/* return secret + QR */
 		});
-		panel.registerRoute('post', '/auth/2fa/enable', (req, reply) => {
+		panel.route('post', '/auth/2fa/enable', adminRoute(panel), (req, reply) => {
 			/* verify + enable */
 		});
-		panel.registerRoute('post', '/auth/2fa/disable', (req, reply) => {
+		panel.route('post', '/auth/2fa/disable', adminRoute(panel), (req, reply) => {
 			/* verify + remove */
 		});
 	}
@@ -109,7 +110,7 @@ export function TwoFactorChallenge({ onSubmit, onCancel, error, submitting }: Au
 
 ```ts
 // src/client/index.ts
-import { definePluginClient } from '@maxal_studio/kratosjs-react';
+import { definePluginClient } from '@maxal_studio/kratosjs-react/plugin';
 import { TwoFactorChallenge } from './TwoFactorChallenge';
 
 export default definePluginClient({
@@ -172,7 +173,7 @@ export class TwoFactorPage extends Page {
 // in the plugin's register(panel):
 panel.registerCustomBlock('two-factor-setup');
 panel.registerPage(TwoFactorPage);
-panel.registerRoute('get', '/auth/2fa/status', (req, reply) => /* { enabled } for req.authUser */);
+panel.route('get', '/auth/2fa/status', adminRoute(panel), (req, reply) => /* { enabled } for req.authUser */);
 ```
 
 The block's client component calls the same authenticated `/auth/2fa/*` routes to enroll

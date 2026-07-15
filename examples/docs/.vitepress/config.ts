@@ -11,8 +11,18 @@ const sidebar: DefaultTheme.SidebarMulti = {
 				{ text: 'Backend Setup', link: '/backend-setup' },
 				{ text: 'Database & MikroORM', link: '/database/overview' },
 				{ text: 'HTTP Adapters', link: '/backend/http-adapters' },
+				{ text: 'Views (SSR)', link: '/backend/views' },
+				{ text: 'Migrating to v3', link: '/migration-v3' },
 				{ text: 'Migrating to v2', link: '/migration-v2' },
 			],
+		},
+	],
+	// Views (SSR) is its own top-level section (more specific than '/backend/', so it
+	// wins for the views page) — kept out of the Backend & HTTP group below.
+	'/backend/views': [
+		{
+			text: 'Views (SSR)',
+			items: [{ text: 'Overview', link: '/backend/views' }],
 		},
 	],
 	'/backend/': [
@@ -191,6 +201,7 @@ export default defineConfig({
 		},
 		nav: [
 			{ text: 'Guide', link: '/getting-started' },
+			{ text: 'Views', link: '/backend/views' },
 			{ text: 'Resources', link: '/resources/overview' },
 			{ text: 'Pages', link: '/pages/overview' },
 			{ text: 'Forms', link: '/forms/overview' },

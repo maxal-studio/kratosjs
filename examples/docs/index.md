@@ -3,8 +3,8 @@ layout: home
 
 hero:
     name: KratosJs
-    text: Admin panels, forged in TypeScript
-    tagline: A powerful, opinionated framework for building Node.js backend admin panels with React frontends. Define resources, forms, and tables once — render them everywhere.
+    text: The full-stack TypeScript framework
+    tagline: Build a server-rendered React front end and a dynamic admin panel from one Node.js backend. Define resources, forms, and tables once — and ship SEO-ready public pages with SSR.
     image:
         src: /icon.png
         alt: KratosJs
@@ -27,6 +27,8 @@ features:
       details: Define resources, forms, and tables with a clean, chainable API. Full autocompletion and compile-time safety out of the box.
     - title: React Frontend
       details: A dedicated React package renders your backend-defined schemas dynamically — no hand-written CRUD screens.
+    - title: Server-Rendered Views (SSR)
+      details: A React-only SSR layer for public, SEO-ready pages. Route handlers return `reply.view(component, props)`; data flows from the server, not a separate API.
     - title: MikroORM Support
       details: One adapter for MySQL, PostgreSQL, SQLite, MariaDB, and MongoDB. Swap databases without rewriting your resources.
     - title: Authentication & Permissions

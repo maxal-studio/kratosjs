@@ -4,13 +4,28 @@ import type {
 	CorsOptions,
 	HttpMethod,
 	KratosMiddleware,
+	KratosRequest,
 	KratosRouteHandler,
+	PublicMetadata,
 	RouteDefinition,
 	StaticMount,
 } from './http/types';
 import { KratosHttpAdapter } from './http/KratosHttpAdapter';
 import { AdminSpaService, normalizePanelPath } from './http/adminSpa';
-import { buildPanelRouteTable, composeCustomRouteHandler } from './http/pipeline';
+import { buildPanelRouteTable } from './http/pipeline';
+import { ViewService } from './views/ViewService';
+import { composeRoute } from './views/pipeline';
+import { scaffoldViewsClient, hasViewsClientEntry } from './scaffold/viewsClient';
+import fs from 'fs';
+import { adminRoute, readAdminRouteMarker } from './http/routeMiddleware';
+import type {
+	AdminRouteConfig,
+	BufferedRoute,
+	KratosRouteFn,
+	ResolvedViewsConfig,
+	ViewsConfig,
+	ViewShareFn,
+} from './views/types';
 import { ResourceClass } from './BaseResource';
 import { Resource } from './Resource';
 import { ResourceHooks } from './resource/types';
@@ -136,13 +151,8 @@ export class Panel {
 	private _mediaHooks: MediaHooks = {};
 	private _authManager?: AuthManager;
 	private _httpAdapter?: KratosHttpAdapter;
-	/** Custom routes registered via registerRoute(), buffered until start() */
-	private _customRoutes: Array<{
-		method: HttpMethod;
-		path: string;
-		handlers: KratosRouteHandler[];
-		source: 'app' | 'plugin';
-	}> = [];
+	/** Routes registered via route() / registerRoute(), buffered until start() */
+	private _routes: BufferedRoute[] = [];
 	/** Static mounts registered via useStatic(), buffered until start() */
 	private _staticMounts: StaticMount[] = [];
 	/** The final route table, built during start() */
@@ -152,6 +162,20 @@ export class Panel {
 	/** Whether to serve the admin SPA client (disable for headless / API-only usage) */
 	private _serveAdminClient = true;
 	private _adminSpa?: AdminSpaService;
+	/** Views system config (optional; views are enabled by default) */
+	private _viewsConfig?: ViewsConfig;
+	/** Cached resolved views config (defaults applied), invalidated when views() is called */
+	private _resolvedViewsConfig?: ResolvedViewsConfig;
+	/** Views are enabled by default; `views(false)` turns them off. */
+	private _viewsDisabled = false;
+	/** True when views() was called explicitly (forces activation + dev scaffolding). */
+	private _viewsExplicit = false;
+	/** Functions contributing props shared across every view render */
+	private _viewShare: ViewShareFn[] = [];
+	/** Site-wide public metadata (object or per-request function) for SEO */
+	private _publicMetadata?: PublicMetadata | ((req: KratosRequest) => PublicMetadata | Promise<PublicMetadata>);
+	/** The Views service (created during start() when views are enabled) */
+	private _viewService?: ViewService;
 	private _plugins: Array<Plugin | (new () => Plugin)> = [];
 	private _pluginInstances: Plugin[] = [];
 	// Custom component type names registered by plugins (for metadata/introspection).
@@ -637,17 +661,78 @@ export class Panel {
 	}
 
 	/**
-	 * Register a custom route with automatic base path, auth, request context, and
-	 * media helpers. Handlers receive framework-neutral KratosRequest/KratosReply and
-	 * run unchanged on any HTTP adapter. All but the last handler act as middleware
-	 * (they receive `next` as a third argument).
+	 * Register a route. This is the single route primitive for public views, custom
+	 * API endpoints, and admin routes.
 	 *
-	 * Routes are buffered and registered during start(), BEFORE the panel's own
-	 * routes — a custom route wins over `/:resource/...` patterns.
+	 * By default the route is **bare and public**: the path is top-level (NOT
+	 * base-path-prefixed) and there is no forced auth. Every handler receives a
+	 * view-capable reply, so it may call `reply.view(component, props)` to render a
+	 * React page, or `reply.json()` / `reply.html()`. All but the last handler act as
+	 * middleware (they receive `next`).
 	 *
-	 * @param method - HTTP method (get, post, put, patch, delete)
-	 * @param path - Route path (will be prepended with basePath)
-	 * @param handlers - Route handler functions
+	 * Opt into cross-cutting concerns with exported middleware:
+	 * - `adminRoute(panel)` — make it an admin/API route (prefix basePath + require auth)
+	 * - `requireAuth(panel)` / `optionalAuth(panel)` — auth without prefixing
+	 * - `viewAuth(panel)` — HTML-aware auth for protected pages
+	 * - `csrfProtection(panel)` — CSRF check on non-GET
+	 *
+	 * Routes are buffered and registered during start(), BEFORE the panel's own routes.
+	 *
+	 * @example
+	 * ```typescript
+	 * import { adminRoute, viewAuth } from '@maxal_studio/kratosjs';
+	 *
+	 * // Public SSR page
+	 * panel.route('get', '/posts/:slug', (req, reply) => reply.view('blog/Show', { slug: req.params.slug }));
+	 * // Protected page (redirects to login when signed out)
+	 * panel.route('get', '/account', viewAuth(panel), (req, reply) => reply.view('Account'));
+	 * // Admin API endpoint at `${basePath}/reindex`
+	 * panel.route('post', '/reindex', adminRoute(panel), (req, reply) => reply.json({ ok: true }));
+	 * ```
+	 */
+	route(method: 'get' | 'post' | 'put' | 'patch' | 'delete', path: string, handler: KratosRouteFn): this;
+	// Variadic tuple: zero-or-more middleware then the terminal handler. Typing the LAST
+	// element as KratosRouteFn lets TypeScript infer the handler's (req, reply) params
+	// even when middleware is passed before it.
+	route(
+		method: 'get' | 'post' | 'put' | 'patch' | 'delete',
+		path: string,
+		...handlers: [...KratosMiddleware[], KratosRouteFn]
+	): this;
+	route(method: 'get' | 'post' | 'put' | 'patch' | 'delete', path: string, ...handlers: any[]): this {
+		if (handlers.length === 0) {
+			throw new Error(`[kratosjs] route('${method}', '${path}') needs at least one handler`);
+		}
+
+		// Detect and strip the adminRoute() marker; it drives prefixing + auth.
+		let admin: AdminRouteConfig | undefined;
+		const realHandlers: KratosRouteFn[] = [];
+		for (const h of handlers) {
+			const marker = readAdminRouteMarker(h);
+			if (marker) {
+				admin = marker;
+				continue;
+			}
+			realHandlers.push(h as KratosRouteFn);
+		}
+		if (realHandlers.length === 0) {
+			throw new Error(`[kratosjs] route('${method}', '${path}') needs a handler function`);
+		}
+
+		this._routes.push({
+			method: method.toUpperCase() as HttpMethod,
+			path: path.startsWith('/') ? path : `/${path}`,
+			handlers: realHandlers,
+			admin,
+			source: this._registeringPlugins ? 'plugin' : 'app',
+		});
+		return this;
+	}
+
+	/**
+	 * @deprecated Use {@link route} with the `adminRoute(panel)` middleware instead:
+	 * `panel.route(method, path, adminRoute(panel), ...handlers)`. Kept for backward
+	 * compatibility — registers a base-path-prefixed, auth-required admin route.
 	 */
 	registerRoute(
 		method: 'get' | 'post' | 'put' | 'patch' | 'delete',
@@ -657,12 +742,14 @@ export class Panel {
 		if (handlers.length === 0) {
 			throw new Error(`[kratosjs] registerRoute('${method}', '${path}') needs at least one handler`);
 		}
-		this._customRoutes.push({
-			method: method.toUpperCase() as HttpMethod,
+		// Cast through the implementation signature: a spread array can't satisfy the
+		// "last element is the handler" tuple overload, but at runtime it is exactly that.
+		(this.route as (m: typeof method, p: string, ...h: unknown[]) => this)(
+			method,
 			path,
-			handlers,
-			source: this._registeringPlugins ? 'plugin' : 'app',
-		});
+			adminRoute(this),
+			...handlers,
+		);
 		return this;
 	}
 
@@ -674,6 +761,155 @@ export class Panel {
 	useStatic(path: string, directory: string): this {
 		this._staticMounts.push({ urlPath: path, directory });
 		return this;
+	}
+
+	// ============================================================================
+	// Views (SSR public pages)
+	// ============================================================================
+
+	/**
+	 * Configure (or disable) the Views system —  React-only SSR layer
+	 * for building public, SEO-ready pages that live OUTSIDE the admin panel. Register
+	 * pages with {@link route} + `reply.view(...)`.
+	 *
+	 * **Views are enabled by default** — you do NOT need to call this to use
+	 * `reply.view(...)`. The SSR machinery activates automatically when the app has the
+	 * views client present (the `views.html` + `src/views/*` files in development, or a
+	 * `dist/views` build in production). Call this only to:
+	 * - pass config: `panel.views({ loginPath: '/login' })`, or
+	 * - force activation (auto-scaffolding the client in dev): `panel.views()`, or
+	 * - disable entirely: `panel.views(false)`.
+	 *
+	 * @example
+	 * ```typescript
+	 * // No views() call needed — just register a route that renders a view:
+	 * panel.route('get', '/', (req, reply) => reply.view('Home', { title: 'Welcome' }));
+	 * ```
+	 */
+	views(config: ViewsConfig | false = {}): this {
+		if (config === false) {
+			this._viewsDisabled = true;
+			return this;
+		}
+		this._viewsDisabled = false;
+		this._viewsExplicit = true;
+		this._viewsConfig = { ...this._viewsConfig, ...config };
+		this._resolvedViewsConfig = undefined; // recompute on next access
+		return this;
+	}
+
+	/** True unless views were disabled via `views(false)`. */
+	isViewsEnabled(): boolean {
+		return !this._viewsDisabled;
+	}
+
+	/**
+	 * Whether to boot the views machinery during start(): only when enabled AND the
+	 * app actually has the client present (so API-only apps neither crash in prod nor
+	 * get scaffolded noise in dev) — or when `views()` was called explicitly.
+	 */
+	private shouldActivateViews(mode: 'development' | 'production'): boolean {
+		if (!this.isViewsEnabled()) {
+			return false;
+		}
+		const cwd = process.cwd();
+		if (mode === 'production') {
+			const cfg = this.getResolvedViewsConfig();
+			const serverDir = path.join(cwd, 'dist', 'views', 'server');
+			const built =
+				fs.existsSync(path.join(cwd, 'dist', 'views', 'client', cfg.template)) &&
+				(fs.existsSync(path.join(serverDir, 'entry-server.mjs')) ||
+					fs.existsSync(path.join(serverDir, 'entry-server.js')));
+			// Explicit views() with no build → still activate so initProd throws a clear
+			// "run build:views" error; default (implicit) with no build → stay dormant.
+			return built || this._viewsExplicit;
+		}
+		return hasViewsClientEntry(cwd) || this._viewsExplicit;
+	}
+
+	/**
+	 * Register a function contributing props merged into EVERY view render (like
+	 * Shared data). Core already shares `{ auth, locale, csrf }`.
+	 */
+	viewShare(fn: ViewShareFn): this {
+		this._viewShare.push(fn);
+		return this;
+	}
+
+	/** The functions registered via {@link viewShare} (used by ViewService). */
+	getViewShareFns(): ViewShareFn[] {
+		return this._viewShare;
+	}
+
+	/**
+	 * Set site-wide **public metadata** for SEO on public pages. The common SEO fields
+	 * (`title`, `description`, `keywords`) are first-class ({@link PublicMetadata}); extra
+	 * fields are allowed. Pass an object, or a function of the request for per-locale /
+	 * per-tenant values. **`title` defaults to the panel title (`.title(...)`)** when omitted.
+	 *
+	 * Once set, the resolved object is auto-populated on `req.publicMetadata` for every
+	 * `panel.route()` handler (no middleware needed), is resolvable anywhere via
+	 * {@link resolvePublicMetadata}, and is exposed to view components as the
+	 * `publicMetadata` shared prop.
+	 *
+	 * @example
+	 * ```typescript
+	 * panel.publicMetadata({ description: 'We make things', keywords: 'acme, widgets' });
+	 * // title falls back to panel.title(); or set it explicitly / per-request:
+	 * panel.publicMetadata(req => ({ title: req.query.tenant === 'x' ? 'X' : 'Acme' }));
+	 * ```
+	 */
+	publicMetadata(data: PublicMetadata | ((req: KratosRequest) => PublicMetadata | Promise<PublicMetadata>)): this {
+		this._publicMetadata = data;
+		return this;
+	}
+
+	/** The raw public-metadata config (undefined when not set). */
+	getPublicMetadata():
+		| PublicMetadata
+		| ((req: KratosRequest) => PublicMetadata | Promise<PublicMetadata>)
+		| undefined {
+		return this._publicMetadata;
+	}
+
+	/**
+	 * Resolve the configured public metadata for a request. `title` defaults to the panel
+	 * title when the config omits it. Empty object when nothing is configured.
+	 */
+	async resolvePublicMetadata(req: KratosRequest): Promise<PublicMetadata> {
+		const config = this._publicMetadata;
+		if (!config) return {};
+		const base = typeof config === 'function' ? await config(req) : config;
+		const title = base.title ?? this.getTitle();
+		return title !== undefined ? { ...base, title } : base;
+	}
+
+	/** The resolved Views config (defaults applied). Safe to call even before views() is enabled. */
+	getResolvedViewsConfig(): ResolvedViewsConfig {
+		if (!this._resolvedViewsConfig) {
+			this._resolvedViewsConfig = this.resolveViewsConfig();
+		}
+		return this._resolvedViewsConfig;
+	}
+
+	private resolveViewsConfig(): ResolvedViewsConfig {
+		const c = this._viewsConfig ?? {};
+		const panelPrefix = this._panelPath === '/' ? '' : this._panelPath;
+		return {
+			template: c.template ?? 'views.html',
+			assetsBase: c.assetsBase ?? '/views/',
+			loginPath: c.loginPath ?? `${panelPrefix}/login`,
+			csrf: c.csrf ?? true,
+			version: c.version,
+		};
+	}
+
+	/** The Views service (available after start() when views are enabled). */
+	getViewService(): ViewService {
+		if (!this._viewService) {
+			throw new Error('[kratosjs] Views are not enabled. Call panel.views() before rendering a view.');
+		}
+		return this._viewService;
 	}
 
 	/**
@@ -838,6 +1074,22 @@ export class Panel {
 		// 3. Drive the HTTP adapter: init → static mounts → routes → admin SPA → listen.
 		// The route table is built now, after all configuration (including plugins).
 		this.mountDefaultAssetsIfNeeded();
+
+		// Views: enabled by default, but the machinery only boots when the app actually
+		// has the client present (or views() was called explicitly) — so API-only apps
+		// neither crash in prod nor get scaffolded noise in dev.
+		const viewsMode = process.env.NODE_ENV === 'production' ? 'production' : 'development';
+		if (this.shouldActivateViews(viewsMode)) {
+			const viewsConfig = this.getResolvedViewsConfig();
+			this._viewService = new ViewService(this, viewsConfig, { mode: viewsMode });
+			if (viewsMode === 'production') {
+				const assetsMount = `${viewsConfig.assetsBase.replace(/\/+$/, '')}/assets`;
+				this.useStatic(assetsMount, path.join(process.cwd(), 'dist', 'views', 'client', 'assets'));
+			} else {
+				scaffoldViewsClient(process.cwd());
+			}
+		}
+
 		this._routeTable = this.getRouteTable();
 
 		await adapter.init({
@@ -855,9 +1107,20 @@ export class Panel {
 			adapter.registerRoute(route);
 		}
 
-		if (this._serveAdminClient) {
-			this._adminSpa = new AdminSpaService(this);
+		// The admin SPA is served when enabled; in development an ACTIVATED Views system
+		// also needs the shared Vite dev server, so create it (with the SPA fallback off)
+		// even when the admin client is disabled.
+		const viewsNeedDevServer = this._viewService !== undefined && viewsMode === 'development';
+		if (this._serveAdminClient || viewsNeedDevServer) {
+			this._adminSpa = new AdminSpaService(this, { spaEnabled: this._serveAdminClient });
 			await adapter.serveAdminSpa(this._adminSpa);
+			if (viewsNeedDevServer) {
+				this._viewService!.bindDevServer(await this._adminSpa.createDevServer());
+			}
+		}
+
+		if (this._viewService && viewsMode === 'production') {
+			await this._viewService.initProd();
 		}
 
 		await adapter.listen(port, callback);
@@ -867,6 +1130,7 @@ export class Panel {
 	 * Stop the HTTP server (and the Vite dev server in development).
 	 */
 	async stop(): Promise<void> {
+		await this._viewService?.close();
 		await this._adminSpa?.close();
 		await this._httpAdapter?.close();
 	}
@@ -1586,13 +1850,17 @@ export class Panel {
 	 * Every handler is fully composed — adapters register these one-to-one.
 	 */
 	getRouteTable(): RouteDefinition[] {
-		const customRoutes: RouteDefinition[] = this._customRoutes.map(route => ({
+		// All route() routes are composed first (custom routes win over `/:resource`
+		// patterns, preserving v1 precedence). Admin-marked routes are prefixed with
+		// the base path; bare/view routes stay top-level. The SPA catch-all is added
+		// last in serveAdminSpa, so a bare view route at '/' still beats the fallback.
+		const routes: RouteDefinition[] = this._routes.map(route => ({
 			method: route.method,
-			path: `${this._basePath}${route.path}`,
-			handler: composeCustomRouteHandler(this, route.handlers),
+			path: route.admin ? `${this._basePath}${route.path}` : route.path,
+			handler: composeRoute(this, route),
 			source: route.source,
 		}));
 
-		return [...customRoutes, ...buildPanelRouteTable(this)];
+		return [...routes, ...buildPanelRouteTable(this)];
 	}
 }

@@ -32,7 +32,48 @@ export type {
 	StaticMount,
 	AdapterInitContext,
 	ReplyDriver,
+	PublicMetadata,
 } from './http/types';
+
+// Views (SSR public pages) + route middleware
+export { adminRoute, requireAuth, optionalAuth } from './http/routeMiddleware';
+export {
+	ViewService,
+	viewAuth,
+	csrfProtection,
+	lazyProp,
+	isLazyProp,
+	resolveProps,
+	mintCsrfToken,
+	verifyCsrfToken,
+	encodeFlash,
+	decodeFlash,
+	VIEW_HEADER,
+	VIEW_VERSION_HEADER,
+	VIEW_ONLY_HEADER,
+	VIEW_EXCEPT_HEADER,
+	VIEW_COMPONENT_HEADER,
+	VIEW_RESPONSE_HEADER,
+	VIEW_LOCATION_HEADER,
+	CSRF_HEADER,
+	CSRF_COOKIE,
+	FLASH_COOKIE,
+	VIEW_PAGE_ELEMENT_ID,
+} from './views';
+export type {
+	ViewPage,
+	LazyProp,
+	KratosViewReply,
+	KratosViewHandler,
+	KratosRouteFn,
+	ViewReplyOptions,
+	AdminRouteConfig,
+	ViewsConfig,
+	ResolvedViewsConfig,
+	ViewShareFn,
+	ViewRenderFn,
+	ViewRenderResult,
+} from './views';
 
 // Media Adapters
 export { MediaAdapter, S3MediaAdapter, LocalMediaAdapter } from './adapters/media';

@@ -29,3 +29,5 @@ dist/
 # Examples
 **/uploads/**
 examples/docs/.vitepress/cache/
+# impeccable design-hook local cache
+.impeccable/

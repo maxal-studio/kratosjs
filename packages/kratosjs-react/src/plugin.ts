@@ -3,6 +3,7 @@ import type { ColumnRegistry } from './contexts/ColumnRegistryContext';
 import type { AuthChallengeRegistry } from './contexts/AuthChallengeRegistryContext';
 import type { RuleDefinition } from '@maxal_studio/kratosjs';
 import type { SlotMap, ResolvedSlots } from './slots/types';
+import type { PageRegistry } from './views/pageResolver';
 import { appendSlots, sortSlots } from './slots/mergeSlots';
 
 /**
@@ -60,6 +61,16 @@ export interface KratosPluginClient {
 	 * }
 	 */
 	slots?: SlotMap;
+	/**
+	 * Views (SSR public pages) contributed by the plugin, keyed by page name (e.g.
+	 * `'Post/Show'`). Rendered when a `panel.route(...)` handler calls
+	 * `reply.view('{name}::Post/Show', ...)` — plugin pages are namespaced with the
+	 * plugin `name` to avoid collisions. Values are directly-imported components.
+	 *
+	 * @example
+	 * pages: { 'Post/Show': PostShow, 'Post/Index': PostIndex }
+	 */
+	pages?: PageRegistry;
 }
 
 /**

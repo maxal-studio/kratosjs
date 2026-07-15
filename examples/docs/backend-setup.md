@@ -106,25 +106,34 @@ When you start a Panel, it automatically:
 ## Registering Custom Routes
 
 Custom route handlers are **framework-neutral**: they receive a `KratosRequest` and a
-`KratosReply` and run unchanged on any HTTP adapter. Each route automatically gets:
+`KratosReply` and run unchanged on any HTTP adapter. `panel.route()` registers a **bare,
+public, top-level** route (no base-path prefix, no auth) whose reply can also render a
+view. Every route gets the request context — `getRequestContext()` and server-side `t()`
+work inside handlers — plus media helpers (`req.transformMediaFieldsForStorage`, etc.).
 
-- Base path prepended
-- Authentication (when auth is configured)
-- The request context — `getRequestContext()` and server-side `t()` work inside handlers
-- Media helpers (`req.transformMediaFieldsForStorage`, `req.formatMediaKey`, `req.resolveMediaUrl`)
+For an **authenticated API endpoint under the panel base path** (what the admin client
+calls), add the `adminRoute(panel)` middleware — it prefixes the base path and requires
+auth:
 
 ```typescript
-adminPanel.registerRoute('post', '/dashboard/stats', async (req, reply) => {
+import { adminRoute } from '@maxal_studio/kratosjs';
+
+adminPanel.route('post', '/dashboard/stats', adminRoute(adminPanel), async (req, reply) => {
 	const em = adminPanel.getEm();
 	const stats = { userCount: await em.count('User', {}) };
 	reply.json(stats);
 });
 ```
 
+> `panel.registerRoute(...)` still works (deprecated) and is exactly
+> `panel.route(method, path, adminRoute(panel), ...handlers)`. Other opt-in middleware:
+> `requireAuth` / `optionalAuth` (auth without a prefix), `viewAuth` (protected pages),
+> `csrfProtection`.
+
 ### The request and reply
 
 ```typescript
-adminPanel.registerRoute('get', '/demo/:id', async (req, reply) => {
+adminPanel.route('get', '/demo/:id', adminRoute(adminPanel), async (req, reply) => {
 	req.method; // 'GET'
 	req.params.id; // path params
 	req.query; // parsed query string
@@ -147,7 +156,7 @@ Supported HTTP methods: `get`, `post`, `put`, `patch`, `delete`.
 Pass multiple handlers and all but the last act as middleware (they receive `next`):
 
 ```typescript
-adminPanel.registerRoute(
+adminPanel.route(
 	'get',
 	'/reports',
 	async (req, reply, next) => {
@@ -167,7 +176,7 @@ panel's `/:resource/...` patterns if there's a conflict.
 
 When you need more than the neutral API (raw middleware, streaming, websockets), grab the
 native app from the adapter. This ties the code to a specific adapter — prefer
-`registerRoute()` for anything portable:
+`panel.route()` for anything portable:
 
 ```typescript
 import { getExpressApp } from '@maxal_studio/kratosjs-express';

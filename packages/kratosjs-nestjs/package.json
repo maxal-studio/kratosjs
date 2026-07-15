@@ -1,6 +1,6 @@
 {
 	"name": "@maxal_studio/kratosjs-nestjs",
-	"version": "2.0.0",
+	"version": "3.0.0",
 	"description": "NestJS integration for KratosJs admin panels (mounts onto an existing Nest app — express or fastify)",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
@@ -34,9 +34,9 @@
 		"url": "git+ssh://git@github.com/maxal-studio/kratosjs.git"
 	},
 	"peerDependencies": {
-		"@maxal_studio/kratosjs": "^2.0.0",
-		"@maxal_studio/kratosjs-express": "^2.0.0",
-		"@maxal_studio/kratosjs-fastify": "^2.0.0",
+		"@maxal_studio/kratosjs": "^3.0.0",
+		"@maxal_studio/kratosjs-express": "^3.0.0",
+		"@maxal_studio/kratosjs-fastify": "^3.0.0",
 		"@nestjs/common": "^10.0.0 || ^11.0.0",
 		"@nestjs/core": "^10.0.0 || ^11.0.0"
 	},
@@ -49,9 +49,9 @@
 		}
 	},
 	"devDependencies": {
-		"@maxal_studio/kratosjs": "^2.0.0",
-		"@maxal_studio/kratosjs-express": "^2.0.0",
-		"@maxal_studio/kratosjs-fastify": "^2.0.0",
+		"@maxal_studio/kratosjs": "^3.0.0",
+		"@maxal_studio/kratosjs-express": "^3.0.0",
+		"@maxal_studio/kratosjs-fastify": "^3.0.0",
 		"@mikro-orm/sqlite": "^7.1.4",
 		"@nestjs/common": "^11.0.0",
 		"@nestjs/core": "^11.0.0",

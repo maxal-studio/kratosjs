@@ -27,7 +27,7 @@ program
 	.command('plugin')
 	.argument('[name]', 'plugin name')
 	.description('Scaffold a standalone KratosJs plugin package')
-	.option('--client', 'include a React client entry (custom UI components)')
+	.option('--no-client', 'scaffold a server-only plugin (skip the React client entry)')
 	.action(async (name, options) => {
 		await runPlugin(name, options);
 	});

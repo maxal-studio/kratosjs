@@ -5,9 +5,10 @@
 	"description": "Demo: a KratosJs admin panel mounted onto a NestJS (Express) app",
 	"scripts": {
 		"dev": "tsx watch src/main.ts",
-		"build": "npm run build:server && npm run build:admin",
+		"build": "npm run build:server && npm run build:admin && npm run build:views",
 		"build:server": "tsc",
 		"build:admin": "vite build",
+		"build:views": "vite build -c vite.views.config.mts && vite build -c vite.views.config.mts --ssr src/views/entry-server.tsx",
 		"start": "NODE_ENV=production node dist/main.js"
 	},
 	"dependencies": {

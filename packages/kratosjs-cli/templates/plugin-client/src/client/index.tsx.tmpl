@@ -1,0 +1,39 @@
+import { definePluginClient } from '@maxal_studio/kratosjs-react/plugin';
+import {{PluginName}}Field from './{{PluginName}}Field';
+import {{PluginName}}Panel from './{{PluginName}}Panel';
+
+/**
+ * Client manifest. Auto-discovered via the `kratosjs.client` field in package.json,
+ * so the app bundles it without editing its entry (`virtual:kratos-client`).
+ *
+ * The manifest is where a plugin contributes React to the panel:
+ *   - `fields` / `columns` / `widgets` / `blocks` — custom components keyed by the
+ *     `type` string the backend builder emits.
+ *   - `slots` — inject UI into fixed placements (header, detail view, form footer …);
+ *     unlike the registries above (1:1 override), slots stack (1:many).
+ *   - `pages` — SSR view pages for the Views layer, referenced as `{{pluginName}}::Key`.
+ *
+ * Translations are NOT declared here — register them on the backend in the plugin's
+ * `register()` via `panel.registerTranslations('{{pluginName}}', {...})`; the server
+ * injects them and the client picks them up automatically.
+ */
+export default definePluginClient({
+	name: '{{pluginName}}',
+
+	// A custom field component, used by a FormBuilder field of type '{{pluginName}}'.
+	fields: { '{{pluginName}}': {{PluginName}}Field },
+
+	// A slot component rendered under every record's details. `render` receives the
+	// slot context ({ resourceSlug, record, ... }). Remove this if you don't need it.
+	slots: {
+		'detail.afterDetails': {
+			id: '{{pluginName}}-panel',
+			render: ({ resourceSlug, record }) => (
+				<{{PluginName}}Panel resourceSlug={resourceSlug} record={record} />
+			),
+		},
+	},
+
+	// SSR view pages for the Views layer (rendered via `reply.view('{{pluginName}}::Key', props)`):
+	// pages: { 'Post/Show': PostShow },
+});

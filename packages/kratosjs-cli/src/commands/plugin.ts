@@ -32,6 +32,9 @@ function buildPackageJson(pluginName: string, withClient: boolean, local: boolea
 				: {}),
 			'./package.json': './package.json',
 		},
+		// Auto-discovered by `virtual:kratos-client` (kratosAdminVite/kratosViewsVite):
+		// the app bundles this manifest without editing its entry file.
+		...(withClient ? { kratosjs: { client: `kratosjs-plugin-${pluginName}/client` } } : {}),
 		files: ['dist'],
 		scripts: {
 			build: withClient
@@ -53,6 +56,11 @@ function buildPackageJson(pluginName: string, withClient: boolean, local: boolea
 				},
 		devDependencies: withClient
 			? {
+					// The client is declared as peer deps (consumers provide them), but the
+					// plugin author needs them installed to build/type-check the client entry.
+					'@maxal_studio/kratosjs-react': kratosReactDep(local),
+					react: '^19.2.7',
+					'react-dom': '^19.2.7',
 					'@types/react': '^19.2.5',
 					typescript: '^5.9.3',
 				}
@@ -76,7 +84,8 @@ export async function runPlugin(nameArg: string | undefined, options: PluginComm
 	const pluginName = toKebabCase(rawName);
 	const PluginName = toPascalCase(rawName);
 	const pluginCamel = toCamelCase(rawName);
-	const withClient = options.client ?? false;
+	// Plugins ship with the React client (and kratosjs-react) by default; --no-client opts out.
+	const withClient = options.client ?? true;
 	const targetDir = path.resolve(process.cwd(), `kratosjs-plugin-${pluginName}`);
 
 	if (fs.existsSync(targetDir) && fs.readdirSync(targetDir).length > 0) {

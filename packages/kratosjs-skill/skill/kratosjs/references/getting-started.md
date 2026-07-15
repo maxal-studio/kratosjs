@@ -7,7 +7,7 @@ npx @maxal_studio/kratosjs-cli new my-app --driver mysql --http express   # --dr
 cd my-app && npm run dev
 ```
 
-`@maxal_studio/kratosjs-cli` (bin `kratosjs`) is the scaffolder; `@maxal_studio/kratosjs` is the runtime framework. Other CLI commands: `kratosjs plugin <name> [--client]` (scaffold a plugin), `kratosjs init` (add the admin client to an existing app). Default login after scaffolding: `admin@example.com` / `password`.
+`@maxal_studio/kratosjs-cli` (bin `kratosjs`) is the scaffolder; `@maxal_studio/kratosjs` is the runtime framework. Other CLI commands: `kratosjs plugin <name>` (scaffold a plugin — server + React client by default, `--no-client` for server-only), `kratosjs init` (add the admin client to an existing app). Default login after scaffolding: `admin@example.com` / `password`.
 
 ## Project structure
 
@@ -89,7 +89,7 @@ adminPanel.start(PORT, async () => {
 });
 ```
 
-Key `Panel` builder methods: `.title()`, `.favicon()`, `.icon()`, `.httpAdapter(adapter)` (required; `new ExpressAdapter()` from `@maxal_studio/kratosjs-express`), `.orm(config, options)`, `.mediaAdapters([...])`, `.resources([...])`, `.pages([...])`, `.plugins([...])`, `.auth({...})`, `.i18n({...})`, `.useStatic(route, dir)`, `.registerRoute(method, path, handler)` (handler gets framework-neutral `(req: KratosRequest, reply: KratosReply)` — `reply.json(...)`, not `res.json(...)`), `.http({ bodyLimit, cors })`, `.adminClient(false)` (headless), `.panelPath('/admin')` (serve the admin UI under a sub-path; default `/`; backend-only — no vite.config change needed), `.start(port, onReady)`, `.stop()`. Escape hatch to raw Express: `getExpressApp(panel)` / `panel.getServer<Express>()` (register raw routes before `start()`). Access the ORM/EM at runtime with `panel.getOrm().em.fork()` or `panel.getEm().fork()`.
+Key `Panel` builder methods: `.title()`, `.favicon()`, `.icon()`, `.httpAdapter(adapter)` (required; `new ExpressAdapter()` from `@maxal_studio/kratosjs-express`), `.orm(config, options)`, `.mediaAdapters([...])`, `.resources([...])`, `.pages([...])`, `.plugins([...])`, `.auth({...})`, `.i18n({...})`, `.useStatic(route, dir)`, `.route(method, path, ...handlers)` (bare public route; handler gets framework-neutral `(req: KratosRequest, reply: KratosReply)` — `reply.json(...)`/`reply.view(...)`, not `res.json(...)`; add `adminRoute(panel)` middleware for a base-path-prefixed + auth-required API route; `.registerRoute(...)` is the deprecated alias for `route(m, p, adminRoute(panel), ...h)`), `.views(config)` (enable SSR public pages), `.http({ bodyLimit, cors })`, `.adminClient(false)` (headless), `.panelPath('/admin')` (serve the admin UI under a sub-path; default `/`; backend-only — no vite.config change needed), `.start(port, onReady)`, `.stop()`. Escape hatch to raw Express: `getExpressApp(panel)` / `panel.getServer<Express>()` (register raw routes before `start()`). Access the ORM/EM at runtime with `panel.getOrm().em.fork()` or `panel.getEm().fork()`.
 
 ## Where to go next
 

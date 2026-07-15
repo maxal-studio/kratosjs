@@ -29,6 +29,9 @@ const adminPanel = Panel.make('admin')
 	.icon('/assets/icon.png')
 	// The HTTP framework is pluggable — Express is the default adapter.
 	.httpAdapter(new ExpressAdapter())
+	// Admin UI at '/admin', leaving '/' free for the server-rendered front end below.
+	// Views (SSR) are enabled by default — no .views() call needed.
+	.panelPath('/admin')
 	.orm(
 		{
 			driver: MySqlDriver,
@@ -95,6 +98,17 @@ adminPanel.auth({
 
 adminPanel.useStatic('/assets', assetsPath);
 
+// Server-rendered front page at '/'. `reply.view(component, props)` renders the
+// React page in src/views/pages/Home.tsx (SSR on first visit, JSON on client-side
+// navigation). Add more with `adminPanel.route('get', '/path', ...)`.
+adminPanel.route('get', '/', (_req, reply) =>
+	reply.view('Home', {
+		title: 'KratosJs (MySQL)',
+		adminUrl: adminPanel.getPanelPath(),
+		renderedAt: new Date().toISOString(),
+	}),
+);
+
 // Escape hatch: when you need more than the neutral registerRoute() API
 // (raw middleware, streaming, websockets...), grab the framework-native app.
 // Register raw routes BEFORE start() so they precede the admin SPA catch-all.
@@ -109,7 +123,8 @@ adminPanel
 	.start(PORT, async () => {
 		await seedAdminUser(adminPanel);
 		console.log(`🚀 KratosJs SQL Example running on http://localhost:${PORT}`);
-		console.log(`📊 Admin Panel API: ${adminPanel.getBasePath()}`);
+		console.log(`🏠 Landing page: http://localhost:${PORT}/`);
+		console.log(`📊 Admin Panel: http://localhost:${PORT}${adminPanel.getPanelPath()}`);
 		console.log('🔐 Login: admin@example.com / password');
 	})
 	.catch((error: any) => {

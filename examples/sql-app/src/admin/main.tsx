@@ -1,5 +1,8 @@
 import { mountAdminPanel, CircleHelp } from '@maxal_studio/kratosjs-react';
 import '@maxal_studio/kratosjs-react/styles.css';
+// Plugin client manifests (e.g. the CMS plugin's admin resources and SSR pages) are
+// auto-discovered from installed plugins via the `kratosjs.client` package.json field.
+import { pluginClients } from 'virtual:kratos-client';
 
 // App-level custom components — no plugin required. The keys match the
 // componentType/columnType emitted by the backend builders (src/fields, src/columns).
@@ -11,6 +14,8 @@ import CalloutBlock from './components/CalloutBlock';
 // page, so no locale/translation config is needed here — the LocaleSwitcher and
 // every app string come from the server automatically.
 mountAdminPanel({
+	// Auto-discovered plugin manifests; app-level entries below override on key clash.
+	plugins: pluginClients,
 	fields: { 'star-rating': StarRatingField },
 	columns: { 'star-rating': StarRatingColumn },
 	blocks: { callout: CalloutBlock },

@@ -52,4 +52,4 @@ The dashboard pattern above resolves widgets from `ResourceX.widgets()` by `getN
 
 ## Custom page routes
 
-For pages that need bespoke server logic, register a route on the panel: `panel.registerRoute('get', '/my-endpoint', handler)`. The React client can fetch it (same-origin, `credentials: 'include'`). This is how, e.g., a footer countdown polls a `/reseed-info` endpoint.
+For pages that need bespoke server logic, register a route on the panel with the admin middleware: `panel.route('get', '/my-endpoint', adminRoute(panel), handler)` — `adminRoute(panel)` prefixes the base path and requires auth, so the admin client can fetch it (same-origin, `credentials: 'include'`). This is how, e.g., a footer countdown polls a `/reseed-info` endpoint. (`panel.registerRoute(...)` is the deprecated alias for this exact call.)
