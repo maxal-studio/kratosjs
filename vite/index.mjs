@@ -2,6 +2,34 @@ import react from '@vitejs/plugin-react';
 import { kratosClientPlugin, discoverClientPackages } from './kratosClient.mjs';
 
 /**
+ * Vite `ssr` config shared by the admin and views configs.
+ *
+ * Vite externalizes dependencies from SSR by default, leaving Node to load the view
+ * runtime and plugin client manifests straight from node_modules. Both are published as
+ * bundler-targeted ESM (extensionless relative imports, `import`-only export conditions)
+ * which Node cannot resolve — so they must be bundled, never externalized.
+ *
+ * This applies to the ADMIN config too, not just the views config: in development a
+ * single Vite dev server (created from the app's `vite.config`) renders views via
+ * `ssrLoadModule`, so the rule has to be present there or dev SSR breaks. Note the
+ * failure only reproduces with a registry-installed plugin — Vite does not externalize
+ * `file:`-linked packages.
+ *
+ * @param {object} options Options passed to kratosAdminVite/kratosViewsVite.
+ * @param {import('vite').UserConfig} vite Caller's extra Vite config (wins on conflict).
+ * @returns {import('vite').SSROptions}
+ */
+function ssrConfig(options, vite) {
+	return {
+		noExternal: [
+			/^@maxal_studio\/kratosjs-react/,
+			...discoverClientPackages(process.cwd(), options.client?.clientEntries ?? []),
+		],
+		...(vite.ssr ?? {}),
+	};
+}
+
+/**
  * Default chunking: pull third-party dependencies out of the app bundle into
  * cacheable vendor chunks. React (and friends) rarely change, so isolating
  * them means an app code change doesn't bust the framework/React bundle.
@@ -71,6 +99,9 @@ export function kratosAdminVite(options = {}) {
 			dedupe: ['react', 'react-dom', 'react-hook-form'],
 			...(vite.resolve ?? {}),
 		},
+		// Needed here (not just in kratosViewsVite) because the development server that
+		// renders views is created from the app's admin vite.config — see ssrConfig().
+		ssr: ssrConfig(options, vite),
 		server: {
 			allowedHosts: true,
 			fs: {
@@ -183,18 +214,7 @@ export function kratosViewsVite(options = {}) {
 				fs: { strict: false },
 				...(vite.server ?? {}),
 			},
-			ssr: {
-				// Vite externalizes dependencies from SSR builds by default, which would
-				// leave Node to import the view runtime and every plugin client straight
-				// from node_modules at boot. Both are published as bundler-targeted ESM
-				// (extensionless relative imports), which Node's ESM resolver rejects —
-				// so bundle them into entry-server instead of externalizing them.
-				noExternal: [
-					/^@maxal_studio\/kratosjs-react/,
-					...discoverClientPackages(process.cwd(), options.client?.clientEntries ?? []),
-				],
-				...(vite.ssr ?? {}),
-			},
+			ssr: ssrConfig(options, vite),
 			optimizeDeps: {
 				include: ['react', 'react-dom', 'react-hook-form'],
 				...(vite.optimizeDeps ?? {}),
