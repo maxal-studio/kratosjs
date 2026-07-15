@@ -65,6 +65,32 @@ function discoverClientEntries(root) {
 }
 
 /**
+ * Bare package name of an import specifier ('@acme/blog/client' → '@acme/blog').
+ *
+ * @param {string} specifier
+ * @returns {string}
+ */
+function packageNameOf(specifier) {
+	const parts = specifier.split('/');
+	return specifier.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0];
+}
+
+/**
+ * Package names of every plugin contributing a client manifest. Plugin clients are
+ * published as bundler-targeted ESM (extensionless relative imports), so an SSR build
+ * must bundle rather than externalize them — Node's ESM resolver cannot load them
+ * directly. Feed this to Vite's `ssr.noExternal`.
+ *
+ * @param {string} [root] App root directory.
+ * @param {string[]} [clientEntries] Explicit client specifiers (merged with discovery).
+ * @returns {string[]} Package names, e.g. '@acme/kratos-blog'.
+ */
+export function discoverClientPackages(root = process.cwd(), clientEntries = []) {
+	const all = [...discoverClientEntries(root), ...clientEntries];
+	return [...new Set(all.map(packageNameOf))];
+}
+
+/**
  * Vite plugin exposing `virtual:kratos-client` — a generated module re-exporting
  * every plugin's client manifest as `pluginClients`, so apps never hand-edit their
  * admin/views entry to wire plugins.

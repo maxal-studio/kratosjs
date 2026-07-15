@@ -1,5 +1,5 @@
 import react from '@vitejs/plugin-react';
-import { kratosClientPlugin } from './kratosClient.mjs';
+import { kratosClientPlugin, discoverClientPackages } from './kratosClient.mjs';
 
 /**
  * Default chunking: pull third-party dependencies out of the app bundle into
@@ -182,6 +182,18 @@ export function kratosViewsVite(options = {}) {
 				allowedHosts: true,
 				fs: { strict: false },
 				...(vite.server ?? {}),
+			},
+			ssr: {
+				// Vite externalizes dependencies from SSR builds by default, which would
+				// leave Node to import the view runtime and every plugin client straight
+				// from node_modules at boot. Both are published as bundler-targeted ESM
+				// (extensionless relative imports), which Node's ESM resolver rejects —
+				// so bundle them into entry-server instead of externalizing them.
+				noExternal: [
+					/^@maxal_studio\/kratosjs-react/,
+					...discoverClientPackages(process.cwd(), options.client?.clientEntries ?? []),
+				],
+				...(vite.ssr ?? {}),
 			},
 			optimizeDeps: {
 				include: ['react', 'react-dom', 'react-hook-form'],

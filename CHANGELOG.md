@@ -1,5 +1,18 @@
 # Changelog
 
+## 3.0.1
+
+### Fixed
+
+- **Production SSR failed to boot** with `ERR_MODULE_NOT_FOUND`. Vite externalizes
+  dependencies from SSR builds by default, leaving Node to import the view runtime and any
+  plugin client manifests straight from `node_modules` at startup. Both are published as
+  bundler-targeted ESM (extensionless relative imports), which Node's ESM resolver rejects,
+  so `NODE_ENV=production` apps crashed on start once a view route was registered.
+  `kratosViewsVite()` now marks `@maxal_studio/kratosjs-react` and every discovered plugin
+  client package as `ssr.noExternal`, bundling them into `entry-server` instead. Override
+  via `kratosViewsVite({ vite: { ssr: … } })`. Development was unaffected.
+
 ## 3.0.0 — SSR Views
 
 Major release adding an **React-only SSR "Views" system** for building
