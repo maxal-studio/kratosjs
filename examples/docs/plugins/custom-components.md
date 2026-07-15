@@ -47,6 +47,29 @@ export default definePluginClient({
 });
 ```
 
+### Make the manifest discoverable
+
+Exporting the manifest is only half the contract. For the app's `virtual:kratos-client`
+to pick it up — so installing your plugin needs **no** edit to `src/admin/main.tsx` — the
+plugin's `package.json` must also expose the entry and point at it:
+
+```json
+{
+	"exports": {
+		".": "./dist/server/index.js",
+		"./client": "./dist/client/index.js"
+	},
+	"kratosjs": {
+		"client": "@maxal_studio/kratosjs-plugin-star-rating/client"
+	}
+}
+```
+
+The `kratosjs.client` specifier is what discovery scans dependencies for; without it the
+plugin loads on the server but its components are silently never registered. `npx
+@maxal_studio/kratosjs-cli plugin <name>` writes both for you — add them by hand when
+upgrading a plugin written before v3.
+
 The manifest may also carry custom validation `rules` so they validate on the
 client exactly as on the server — see
 [Custom Validation Rules](./creating-plugins.md#custom-validation-rules).
